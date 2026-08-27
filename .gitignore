@@ -1,0 +1,17 @@
+# IntelliJ IDEA
+.idea/
+*.iml
+
+# Java / Maven 
+target /
+
+# Node / Angular
+node_modules/
+dist/
+.angular/
+
+# Environment / Secrets 
+.env
+
+# OS
+.DS_Store 
