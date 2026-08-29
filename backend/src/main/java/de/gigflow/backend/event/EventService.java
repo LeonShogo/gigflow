@@ -21,11 +21,13 @@ public class EventService {
     public EventResponse createEvent(EventRequest request) {
         Band band = bandRepository.findById(request.getBandId())
                 .orElseThrow(() -> new IllegalArgumentException("Band nicht gefunden: " + request.getBandId()));
+        Event concert = resolveConcert(request.getConcertId());
         Event event = new Event();
         event.setTitle(request.getTitle());
         event.setDateTime(request.getDateTime());
         event.setType(request.getType());
         event.setBand(band);
+        event.setConcert(concert);
         return EventResponse.from(eventRepository.save(event));
     }
 
@@ -38,11 +40,25 @@ public class EventService {
                 .orElseThrow(() -> new IllegalArgumentException("Event nicht gefunden: " + id));
         Band band = bandRepository.findById(request.getBandId())
                 .orElseThrow(() -> new IllegalArgumentException("Band nicht gefunden: " + request.getBandId()));
+        Event concert = resolveConcert(request.getConcertId());
         existing.setTitle(request.getTitle());
         existing.setDateTime(request.getDateTime());
         existing.setType(request.getType());
         existing.setBand(band);
+        existing.setConcert(concert);
         return EventResponse.from(eventRepository.save(existing));
+    }
+
+    private Event resolveConcert(Long concertId) {
+        if (concertId == null) {
+            return null;
+        }
+        Event concert = eventRepository.findById(concertId)
+                .orElseThrow(() -> new IllegalArgumentException("Konzert nicht gefunden: " + concertId));
+        if (concert.getType() != EventType.CONCERT) {
+            throw new IllegalArgumentException("Referenziertes Event ist kein Konzert: " + concertId);
+        }
+        return concert;
     }
 
     public List<EventResponse> findAllEvents() {

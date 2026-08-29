@@ -19,6 +19,8 @@ public class EventRequest {
     @NotNull
     private Long bandId;
 
+    private Long concertId;
+
     public String getTitle() {
         return title;
     }
@@ -49,5 +51,13 @@ public class EventRequest {
 
     public void setBandId(Long bandId) {
         this.bandId = bandId;
+    }
+
+    public Long getConcertId() {
+        return concertId;
+    }
+
+    public void setConcertId(Long concertId) {
+        this.concertId = concertId;
     }
 }

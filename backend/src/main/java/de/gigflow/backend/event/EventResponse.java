@@ -9,6 +9,7 @@ public class EventResponse {
     private LocalDateTime dateTime;
     private EventType type;
     private Long bandId;
+    private Long concertId;
 
     public static EventResponse from(Event event) {
         EventResponse response = new EventResponse();
@@ -18,6 +19,9 @@ public class EventResponse {
         response.setType(event.getType());
         if (event.getBand() != null) {
             response.setBandId(event.getBand().getId());
+        }
+        if (event.getConcert() != null) {
+            response.setConcertId(event.getConcert().getId());
         }
         return response;
     }
@@ -60,5 +64,13 @@ public class EventResponse {
 
     public void setBandId(Long bandId) {
         this.bandId = bandId;
+    }
+
+    public Long getConcertId() {
+        return concertId;
+    }
+
+    public void setConcertId(Long concertId) {
+        this.concertId = concertId;
     }
 }

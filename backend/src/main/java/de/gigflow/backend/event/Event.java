@@ -37,6 +37,10 @@ public class Event {
     @JoinColumn(name = "band_id", nullable = false)
     private Band band;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "concert_id")
+    private Event concert;
+
     public Long getId() {
         return id;
     }
@@ -75,5 +79,13 @@ public class Event {
 
     public void setBand(Band band) {
         this.band = band;
+    }
+
+    public Event getConcert() {
+        return concert;
+    }
+
+    public void setConcert(Event concert) {
+        this.concert = concert;
     }
 }
