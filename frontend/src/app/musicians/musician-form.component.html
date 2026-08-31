@@ -1,0 +1,59 @@
+<section class="form-page">
+  <a class="back" routerLink="/musicians">&larr; Musiker:innen</a>
+
+  <header class="head">
+    <p class="eyebrow">
+      {{ editId() !== null ? 'Bearbeiten' : 'Neu' }}
+    </p>
+    <h1 class="title">
+      {{ editId() !== null ? 'Musiker:in bearbeiten' : 'Musiker:in hinzufügen' }}
+    </h1>
+  </header>
+
+  @if (loading()) {
+    <p class="status">Daten werden geladen …</p>
+  } @else if (loadError(); as message) {
+    <p class="error" role="alert">{{ message }}</p>
+  } @else {
+    <form class="form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <label class="field">
+        <span class="field__label">Vorname</span>
+        <input class="field__input" type="text" formControlName="firstName" />
+        @if (form.controls.firstName.touched && form.controls.firstName.hasError('required')) {
+          <span class="field__hint">Bitte einen Vornamen angeben.</span>
+        }
+      </label>
+
+      <label class="field">
+        <span class="field__label">Nachname</span>
+        <input class="field__input" type="text" formControlName="lastName" />
+        @if (form.controls.lastName.touched && form.controls.lastName.hasError('required')) {
+          <span class="field__hint">Bitte einen Nachnamen angeben.</span>
+        }
+      </label>
+
+      <label class="field">
+        <span class="field__label">Instrument</span>
+        <input class="field__input" type="text" formControlName="instrument" placeholder="z. B. Gitarre" />
+      </label>
+
+      <label class="field">
+        <span class="field__label">E-Mail</span>
+        <input class="field__input" type="email" formControlName="email" />
+        @if (form.controls.email.touched && form.controls.email.hasError('email')) {
+          <span class="field__hint">Bitte eine gültige E-Mail angeben.</span>
+        }
+      </label>
+
+      @if (submitError(); as message) {
+        <p class="error" role="alert">{{ message }}</p>
+      }
+
+      <div class="actions">
+        <button class="submit" type="submit" [disabled]="saving()">
+          {{ saving() ? 'Wird gespeichert …' : 'Speichern' }}
+        </button>
+      </div>
+    </form>
+  }
+</section>

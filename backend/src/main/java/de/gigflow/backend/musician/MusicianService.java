@@ -20,6 +20,7 @@ public class MusicianService {
         musician.setLastName(request.getLastName());
         musician.setInstrument(request.getInstrument());
         musician.setEmail(request.getEmail());
+        musician.setEmailPublic(request.isEmailPublic());
         return MusicianResponse.from(musicianRepository.save(musician));
     }
 
@@ -38,6 +39,7 @@ public class MusicianService {
         existing.setLastName(request.getLastName());
         existing.setInstrument(request.getInstrument());
         existing.setEmail(request.getEmail());
+        existing.setEmailPublic(request.isEmailPublic());
         return MusicianResponse.from(musicianRepository.save(existing));
     }
 

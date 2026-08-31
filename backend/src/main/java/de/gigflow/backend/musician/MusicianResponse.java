@@ -7,6 +7,7 @@ public class MusicianResponse {
     private String lastName;
     private String instrument;
     private String email;
+    private boolean emailPublic;
 
     public static MusicianResponse from(Musician musician) {
         MusicianResponse response = new MusicianResponse();
@@ -15,6 +16,7 @@ public class MusicianResponse {
         response.setLastName(musician.getLastName());
         response.setInstrument(musician.getInstrument());
         response.setEmail(musician.getEmail());
+        response.setEmailPublic(musician.isEmailPublic());
         return response;
     }
 
@@ -56,5 +58,13 @@ public class MusicianResponse {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public boolean isEmailPublic() {
+        return emailPublic;
+    }
+
+    public void setEmailPublic(boolean emailPublic) {
+        this.emailPublic = emailPublic;
     }
 }

@@ -37,6 +37,27 @@ public class EventController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    @GetMapping("/by-concert/{concertId}")
+    public List<EventResponse> getRehearsalsByConcert(@PathVariable Long concertId) {
+        return eventService.findRehearsalsByConcert(concertId);
+    }
+
+    @GetMapping("/{id}/layout")
+    public ResponseEntity<PanelLayout> getPanelLayout(@PathVariable Long id) {
+        return eventService.findPanelLayout(id)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @PutMapping("/{id}/layout")
+    public ResponseEntity<PanelLayout> updatePanelLayout(
+            @PathVariable Long id,
+            @RequestBody PanelLayout layout) {
+        return eventService.updatePanelLayout(id, layout)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
     @PostMapping
     public ResponseEntity<EventResponse> createEvent(@Valid @RequestBody EventRequest request) {
         try {

@@ -1,6 +1,7 @@
 package de.gigflow.backend.setlist;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -35,6 +36,14 @@ public class SetlistEntryService {
 
     public Optional<SetlistEntryResponse> findEntryById(Long id) {
         return entryRepository.findById(id).map(SetlistEntryResponse::from);
+    }
+
+    @Transactional(readOnly = true)
+    public List<SetlistEntryResponse> findEntriesBySetlist(Long setlistId) {
+        return entryRepository.findBySetlistIdOrderByPositionAsc(setlistId)
+                .stream()
+                .map(SetlistEntryResponse::from)
+                .toList();
     }
 
     public List<SetlistEntryResponse> findAllEntries() {

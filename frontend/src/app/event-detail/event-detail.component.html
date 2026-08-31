@@ -1,0 +1,846 @@
+<section class="detail">
+  <a class="back" routerLink="/">&larr; Alle Events</a>
+
+  @if (loading()) {
+    <p class="status">Event wird geladen …</p>
+  } @else if (error(); as message) {
+    <p class="status status--error" role="alert">{{ message }}</p>
+  } @else if (event(); as event) {
+    <header class="head">
+      <p class="type">{{ typeLabel(event.type) }}</p>
+      <h1 class="title">{{ event.title }}</h1>
+      <div class="meta">
+        <time class="meta__date" [attr.datetime]="event.dateTime">
+          {{ formatDate(event.dateTime) }}
+        </time>
+        <time class="meta__time" [attr.datetime]="event.dateTime">
+          {{ formatTime(event.dateTime) }} Uhr
+        </time>
+      </div>
+    </header>
+
+    @if (event.type === 'CONCERT') {
+      <div
+        class="board"
+        cdkDropList
+        cdkDropListOrientation="vertical"
+        (cdkDropListDropped)="onPanelDrop($event)"
+      >
+        @for (panelKey of panelOrder(); track panelKey) {
+          @switch (panelKey) {
+            @case ('members') {
+              <section class="panel panel--members" cdkDrag>
+                <div class="panel__head">
+                  <span class="panel__head-left">
+                    <span class="panel__drag" cdkDragHandle aria-label="Kachel verschieben">&vellip;</span>
+                    <button
+                      type="button"
+                      class="panel__title-btn"
+                      (click)="togglePanel('members')"
+                      [attr.aria-expanded]="!isCollapsed('members')"
+                    >
+                      <h2 class="panel__title">Musiker / Zusagen</h2>
+                    </button>
+                  </span>
+                  <button
+                    type="button"
+                    class="panel__collapse"
+                    (click)="togglePanel('members')"
+                    [attr.aria-expanded]="!isCollapsed('members')"
+                  >{{ isCollapsed('members') ? 'Öffnen' : 'Einklappen' }}</button>
+                </div>
+
+                @if (!isCollapsed('members')) {
+                  @if (participantsLoading()) {
+                    <p class="panel__note">Teilnahmen werden geladen …</p>
+                  } @else if (participantsError(); as message) {
+                    <p class="panel__note panel__note--error" role="alert">{{ message }}</p>
+                  } @else {
+                    <div class="members__bar">
+                      @if (participations().length === 0) {
+                        <span class="members__count">Noch keine Musiker:innen zu diesem Gig eingeladen.</span>
+                      } @else {
+                        <span class="members__count">
+                          {{ confirmedCount() }} von {{ participations().length }} bestätigt
+                        </span>
+                      }
+                      <button type="button" class="members__add" (click)="togglePicker()">
+                        Musiker:in hinzufügen
+                      </button>
+                    </div>
+
+                    @if (participationFeedback(); as feedback) {
+                      <p class="members__feedback" role="status">{{ feedback }}</p>
+                    }
+                    @if (participationError(); as message) {
+                      <p class="members__feedback members__feedback--error" role="alert">{{ message }}</p>
+                    }
+
+                    @if (participations().length > 0) {
+                      <ul class="members">
+                        @for (participation of participations(); track participation.id) {
+                          <li class="member">
+                            <div class="member__main">
+                              <span class="member__name">
+                                {{ participation.musician?.firstName }} {{ participation.musician?.lastName }}
+                              </span>
+                              @if (participation.musician?.instrument) {
+                                <span class="member__instrument">
+                                  {{ participation.musician?.instrument }}
+                                </span>
+                              }
+                            </div>
+                            <div class="member__aside">
+                              <label class="sr-only" [for]="'status-' + participation.id">
+                                Status von {{ participation.musician?.firstName }} {{ participation.musician?.lastName }}
+                              </label>
+                              <select
+                                class="member__status"
+                                [id]="'status-' + participation.id"
+                                [value]="participation.status"
+                                [disabled]="pauseSaving()[participation.id]"
+                                (change)="changeStatus(participation, $any($event.target).value)"
+                              >
+                                @for (status of statusOptions; track status) {
+                                  <option [value]="status">{{ statusLabel(status) }}</option>
+                                }
+                              </select>
+
+                              @if (!confirmingRemoval()[participation.id]) {
+                                <button
+                                  type="button"
+                                  class="member__remove"
+                                  (click)="requestRemoveParticipation(participation)"
+                                  [disabled]="pauseSaving()[participation.id]"
+                                  aria-label="Person entfernen"
+                                >Entfernen</button>
+                              } @else {
+                                <span class="member__confirm">
+                                  <button
+                                    type="button"
+                                    class="member__remove member__remove--danger"
+                                    (click)="confirmRemoveParticipation(participation)"
+                                    [disabled]="pauseSaving()[participation.id]"
+                                  >Wirklich?</button>
+                                  <button
+                                    type="button"
+                                    class="member__remove"
+                                    (click)="cancelRemoveParticipation(participation)"
+                                  >Abbrechen</button>
+                                </span>
+                              }
+                            </div>
+                          </li>
+                        }
+                      </ul>
+                    }
+
+                    @if (pickerOpen()) {
+                      <div class="picker">
+                        <button
+                          type="button"
+                          class="picker__toggle-new"
+                          (click)="toggleNewMusician()"
+                          [attr.aria-expanded]="newMusicianOpen()"
+                        >
+                          {{ newMusicianOpen() ? 'Neue Person schließen' : 'Neue Person anlegen' }}
+                        </button>
+
+                        @if (newMusicianOpen()) {
+                          <form class="picker__new" (ngSubmit)="addNewMusician()">
+                            <label class="sr-only" for="new-first">Vorname</label>
+                            <input
+                              id="new-first"
+                              class="picker__input"
+                              [value]="newFirstName()"
+                              (input)="onNewFirstName($event)"
+                              placeholder="Vorname"
+                              required
+                            />
+                            <label class="sr-only" for="new-last">Nachname</label>
+                            <input
+                              id="new-last"
+                              class="picker__input"
+                              [value]="newLastName()"
+                              (input)="onNewLastName($event)"
+                              placeholder="Nachname"
+                              required
+                            />
+                            <label class="sr-only" for="new-instrument">Instrument</label>
+                            <input
+                              id="new-instrument"
+                              class="picker__input"
+                              [value]="newInstrument()"
+                              (input)="onNewInstrument($event)"
+                              placeholder="Instrument (optional)"
+                            />
+                            <button
+                              type="submit"
+                              class="picker__submit"
+                              [disabled]="!canAddNewMusician()"
+                            >Anlegen & hinzufügen</button>
+                          </form>
+                        }
+
+                        @if (musiciansLoading()) {
+                          <p class="panel__note">Musiker:innen werden geladen …</p>
+                        } @else if (availableMusicians().length === 0) {
+                          <p class="panel__note">Keine weiteren Musiker:innen verfügbar.</p>
+                        } @else {
+                          <ul class="picker__list">
+                            @for (musician of availableMusicians(); track musician.id) {
+                              <li class="picker__item">
+                                <span class="picker__name">
+                                  {{ musician.firstName }} {{ musician.lastName }}
+                                  @if (musician.instrument) {
+                                    <span class="picker__instrument">— {{ musician.instrument }}</span>
+                                  }
+                                </span>
+                                <button
+                                  type="button"
+                                  class="picker__add"
+                                  (click)="addExistingMusician(musician)"
+                                  [disabled]="addingMusicians()[musician.id]"
+                                >
+                                  {{ addingMusicians()[musician.id] ? 'Füge hinzu …' : 'Hinzufügen' }}
+                                </button>
+                              </li>
+                            }
+                          </ul>
+                        }
+                      </div>
+                    }
+                  }
+                }
+              </section>
+            }
+            @case ('setlist') {
+              <section class="panel panel--setlist panel--open" cdkDrag>
+                <div class="panel__head">
+                  <span class="panel__head-left">
+                    <span class="panel__drag" cdkDragHandle aria-label="Kachel verschieben">&vellip;</span>
+                    <button
+                      type="button"
+                      class="panel__title-btn"
+                      (click)="togglePanel('setlist')"
+                      [attr.aria-expanded]="!isCollapsed('setlist')"
+                    >
+                      <h2 class="panel__title">Setlist</h2>
+                    </button>
+                  </span>
+                  <button
+                    type="button"
+                    class="panel__collapse"
+                    (click)="togglePanel('setlist')"
+                    [attr.aria-expanded]="!isCollapsed('setlist')"
+                  >{{ isCollapsed('setlist') ? 'Öffnen' : 'Einklappen' }}</button>
+                </div>
+
+                @if (!isCollapsed('setlist')) {
+                  <div class="setlist">
+                    @if (setlistLoading()) {
+                      <p class="panel__note">Setlist wird geladen …</p>
+                    } @else if (setlistError(); as message) {
+                      <p class="panel__note panel__note--error" role="alert">{{ message }}</p>
+                    } @else if (entries().length === 0) {
+                      <p class="panel__note">Noch keine Stücke in der Setlist.</p>
+                    } @else {
+                      <ol class="setlist__entries" cdkDropList (cdkDropListDropped)="onDrop($event)">
+                        @for (entry of entries(); track entry.id; let i = $index) {
+                          <li class="entry" cdkDrag>
+                            <span class="entry__pos">{{ i + 1 }}</span>
+                            <span class="entry__title">{{ entry.pieceTitle }}</span>
+                            <span class="entry__actions">
+                              <button
+                                type="button"
+                                class="entry__btn"
+                                (click)="moveEntry(i, -1)"
+                                [disabled]="i === 0"
+                                aria-label="Nach oben"
+                              >&uarr;</button>
+                              <button
+                                type="button"
+                                class="entry__btn"
+                                (click)="moveEntry(i, 1)"
+                                [disabled]="i === entries().length - 1"
+                                aria-label="Nach unten"
+                              >&darr;</button>
+                              <button
+                                type="button"
+                                class="entry__btn entry__btn--danger"
+                                (click)="removeEntry(entry.id)"
+                                aria-label="Stück entfernen"
+                              >&times;</button>
+                            </span>
+                          </li>
+                        }
+                      </ol>
+                    }
+
+                    <form class="setlist__add">
+                      <label class="sr-only" for="piece-title">Neues Stück</label>
+                      <input
+                        id="piece-title"
+                        class="setlist__input"
+                        [value]="newTitle()"
+                        (input)="onTitleInput($event)"
+                        (keydown.enter)="onTitleEnter($event)"
+                        placeholder="Neues Stück hinzufügen …"
+                      />
+                      <button
+                        type="button"
+                        class="setlist__submit"
+                        [disabled]="canAdd()"
+                        (click)="addPiece()"
+                      >Hinzufügen</button>
+                    </form>
+                  </div>
+                }
+              </section>
+            }
+            @case ('rehearsals') {
+              <section class="panel panel--rehearsals" cdkDrag>
+                <div class="panel__head">
+                  <span class="panel__head-left">
+                    <span class="panel__drag" cdkDragHandle aria-label="Kachel verschieben">&vellip;</span>
+                    <button
+                      type="button"
+                      class="panel__title-btn"
+                      (click)="togglePanel('rehearsals')"
+                      [attr.aria-expanded]="!isCollapsed('rehearsals')"
+                    >
+                      <h2 class="panel__title">Proben zu diesem Gig</h2>
+                    </button>
+                  </span>
+                  <button
+                    type="button"
+                    class="panel__collapse"
+                    (click)="togglePanel('rehearsals')"
+                    [attr.aria-expanded]="!isCollapsed('rehearsals')"
+                  >{{ isCollapsed('rehearsals') ? 'Öffnen' : 'Einklappen' }}</button>
+                </div>
+
+                @if (!isCollapsed('rehearsals')) {
+                  @if (rehearsalsLoading()) {
+                    <p class="panel__note">Proben werden geladen …</p>
+                  } @else if (rehearsalsError(); as message) {
+                    <p class="panel__note panel__note--error" role="alert">{{ message }}</p>
+                  } @else {
+                    <div class="rehearsals__bar">
+                      <button type="button" class="rehearsals__add" (click)="toggleRehearsalPicker()">
+                        Probe hinzufügen
+                      </button>
+                    </div>
+
+                    @if (rehearsalsFeedback(); as feedback) {
+                      <p class="rehearsals__feedback" role="status">{{ feedback }}</p>
+                    }
+                    @if (rehearsalsError(); as message) {
+                      <p class="rehearsals__feedback rehearsals__feedback--error" role="alert">{{ message }}</p>
+                    }
+
+                    @if (rehearsals().length === 0) {
+                      <p class="panel__note">Noch keine Proben für diesen Gig geplant.</p>
+                    } @else {
+                      <ul class="rehearsals">
+                        @for (rehearsal of rehearsals(); track rehearsal.id) {
+                          <li class="rehearsal">
+                            <a class="rehearsal__link" [routerLink]="['/events', rehearsal.id]">
+                              <span class="rehearsal__title">{{ rehearsal.title }}</span>
+                              <span class="rehearsal__meta">
+                                <time [attr.datetime]="rehearsal.dateTime">{{ formatDate(rehearsal.dateTime) }}</time>
+                                <time [attr.datetime]="rehearsal.dateTime">{{ formatTime(rehearsal.dateTime) }} Uhr</time>
+                              </span>
+                            </a>
+                            <div class="rehearsal__unlink">
+                              @if (!confirmingRehearsalUnlink()[rehearsal.id]) {
+                                <button
+                                  type="button"
+                                  class="rehearsal__unlink-btn"
+                                  (click)="requestUnlinkRehearsal(rehearsal)"
+                                  [disabled]="rehearsalsSaving()[rehearsal.id]"
+                                >Lösen</button>
+                              } @else {
+                                <span class="rehearsal__confirm">
+                                  <span class="rehearsal__confirm-text">Probe vom Gig lösen?</span>
+                                  <button
+                                    type="button"
+                                    class="rehearsal__unlink-btn rehearsal__unlink-btn--danger"
+                                    (click)="confirmUnlinkRehearsal(rehearsal)"
+                                    [disabled]="rehearsalsSaving()[rehearsal.id]"
+                                  >Ja, lösen</button>
+                                  <button
+                                    type="button"
+                                    class="rehearsal__unlink-btn"
+                                    (click)="cancelUnlinkRehearsal(rehearsal)"
+                                  >Abbrechen</button>
+                                </span>
+                              }
+                            </div>
+                          </li>
+                        }
+                      </ul>
+                    }
+
+                    @if (rehearsalPickerOpen()) {
+                      <div class="picker picker--rehearsals">
+                        <button
+                          type="button"
+                          class="picker__toggle-new"
+                          (click)="toggleNewRehearsal()"
+                          [attr.aria-expanded]="newRehearsalOpen()"
+                        >
+                          {{ newRehearsalOpen() ? 'Neue Probe schließen' : 'Neue Probe anlegen' }}
+                        </button>
+
+                        @if (newRehearsalOpen()) {
+                          <form class="picker__new" (ngSubmit)="createRehearsal()">
+                            <label class="sr-only" for="new-rehearsal-title">Titel</label>
+                            <input
+                              id="new-rehearsal-title"
+                              class="picker__input"
+                              [value]="newRehearsalTitle()"
+                              (input)="onNewRehearsalTitle($event)"
+                              placeholder="Titel"
+                              required
+                            />
+                            <label class="sr-only" for="new-rehearsal-date">Datum</label>
+                            <input
+                              id="new-rehearsal-date"
+                              class="picker__input"
+                              type="date"
+                              [value]="newRehearsalDate()"
+                              (input)="onNewRehearsalDate($event)"
+                              required
+                            />
+                            <label class="sr-only" for="new-rehearsal-time">Uhrzeit</label>
+                            <input
+                              id="new-rehearsal-time"
+                              class="picker__input"
+                              type="time"
+                              [value]="newRehearsalTime()"
+                              (input)="onNewRehearsalTime($event)"
+                              required
+                            />
+                            <button
+                              type="submit"
+                              class="picker__submit"
+                              [disabled]="!canAddNewRehearsal()"
+                            >Anlegen & zuordnen</button>
+                          </form>
+                        }
+
+                        @if (allRehearsalsLoading()) {
+                          <p class="panel__note">Proben werden geladen …</p>
+                        } @else if (availableRehearsals().length === 0) {
+                          <p class="panel__note">Keine weiteren Proben verfügbar.</p>
+                        } @else {
+                          <ul class="picker__list">
+                            @for (rehearsal of availableRehearsals(); track rehearsal.id) {
+                              <li class="picker__item">
+                                <a class="picker__link" [routerLink]="['/events', rehearsal.id]">
+                                  <span class="picker__name">{{ rehearsal.title }}</span>
+                                  <span class="picker__instrument">
+                                    {{ formatDate(rehearsal.dateTime) }}, {{ formatTime(rehearsal.dateTime) }} Uhr
+                                  </span>
+                                </a>
+                                <button
+                                  type="button"
+                                  class="picker__add"
+                                  (click)="addExistingRehearsal(rehearsal)"
+                                  [disabled]="assigningRehearsal()[rehearsal.id]"
+                                >
+                                  {{ assigningRehearsal()[rehearsal.id] ? 'Ordne zu …' : 'Zuordnen' }}
+                                </button>
+                              </li>
+                            }
+                          </ul>
+                        }
+                      </div>
+                    }
+                  }
+                }
+              </section>
+            }
+            @case ('equipment') {
+              <section class="panel panel--equipment" cdkDrag>
+                <div class="panel__head">
+                  <span class="panel__head-left">
+                    <span class="panel__drag" cdkDragHandle aria-label="Kachel verschieben">&vellip;</span>
+                    <button
+                      type="button"
+                      class="panel__title-btn"
+                      (click)="togglePanel('equipment')"
+                      [attr.aria-expanded]="!isCollapsed('equipment')"
+                    >
+                      <h2 class="panel__title">Equipment</h2>
+                    </button>
+                  </span>
+                  <button
+                    type="button"
+                    class="panel__collapse"
+                    (click)="togglePanel('equipment')"
+                    [attr.aria-expanded]="!isCollapsed('equipment')"
+                  >{{ isCollapsed('equipment') ? 'Öffnen' : 'Einklappen' }}</button>
+                </div>
+
+                @if (!isCollapsed('equipment')) {
+                  @if (requirementsLoading()) {
+                    <p class="panel__note">Equipment wird geladen …</p>
+                  } @else if (requirementsError(); as message) {
+                    <p class="panel__note panel__note--error" role="alert">{{ message }}</p>
+                  } @else {
+                    <div class="equipment__bar">
+                      <button type="button" class="equipment__add" (click)="toggleEquipmentPicker()">
+                        Equipment hinzufügen
+                      </button>
+                    </div>
+
+                    @if (requirementsFeedback(); as feedback) {
+                      <p class="equipment__feedback" role="status">{{ feedback }}</p>
+                    }
+                    @if (requirementsError(); as message) {
+                      <p class="equipment__feedback equipment__feedback--error" role="alert">{{ message }}</p>
+                    }
+
+                    @if (requirements().length === 0) {
+                      <p class="panel__note">Noch kein Equipment für diesen Gig erfasst.</p>
+                    } @else {
+                      <ul class="equipment">
+                        @for (requirement of requirements(); track requirement.id) {
+                          <li class="eq">
+                            <div class="eq__main">
+                              <span class="eq__name">{{ requirement.equipmentName }}</span>
+                              @if (requirement.category) {
+                                <span class="eq__category">{{ requirement.category }}</span>
+                              }
+                            </div>
+
+                            <div class="eq__status">
+                              <button
+                                type="button"
+                                class="eq__chip"
+                                [class.eq__chip--yes]="requirement.availableOnSite === 'YES'"
+                                [class.eq__chip--no]="requirement.availableOnSite === 'NO'"
+                                (click)="toggleRequirementState(requirement, 'availableOnSite')"
+                                [disabled]="requirementsSaving()[requirement.id]"
+                                aria-label="Vor Ort vorhanden: {{ stateLabel(requirement.availableOnSite) }}. Zum Umschalten klicken."
+                              >
+                                Vor Ort: {{ stateLabel(requirement.availableOnSite) }}
+                              </button>
+                              <button
+                                type="button"
+                                class="eq__chip"
+                                [class.eq__chip--yes]="requirement.needsToBeBrought === 'YES'"
+                                [class.eq__chip--no]="requirement.needsToBeBrought === 'NO'"
+                                (click)="toggleRequirementState(requirement, 'needsToBeBrought')"
+                                [disabled]="requirementsSaving()[requirement.id]"
+                                aria-label="Muss mitgebracht werden: {{ stateLabel(requirement.needsToBeBrought) }}. Zum Umschalten klicken."
+                              >
+                                Mitbringen: {{ stateLabel(requirement.needsToBeBrought) }}
+                              </button>
+                            </div>
+
+                            <div class="eq__responsible">
+                              <label class="sr-only" [for]="'eq-resp-' + requirement.id">
+                                Verantwortliche Person für {{ requirement.equipmentName }}
+                              </label>
+                              <select
+                                class="eq__select"
+                                [id]="'eq-resp-' + requirement.id"
+                                [value]="responsibleValue(requirement)"
+                                [disabled]="requirementsSaving()[requirement.id]"
+                                (change)="onResponsibleChange(requirement, $any($event.target).value)"
+                              >
+                                <option [value]="''">Ohne Verantwortung</option>
+                                @for (musician of participations(); track musician.id) {
+                                  <option [value]="musician.musicianId">{{ musician.musician?.firstName }} {{ musician.musician?.lastName }}</option>
+                                }
+                              </select>
+                            </div>
+
+                            <div class="eq__remove">
+                              @if (!confirmingRequirementRemoval()[requirement.id]) {
+                                <button
+                                  type="button"
+                                  class="eq__remove-btn"
+                                  (click)="requestRemoveRequirement(requirement)"
+                                  [disabled]="requirementsSaving()[requirement.id]"
+                                >Entfernen</button>
+                              } @else {
+                                <span class="eq__confirm">
+                                  <button
+                                    type="button"
+                                    class="eq__remove-btn eq__remove-btn--danger"
+                                    (click)="confirmRemoveRequirement(requirement)"
+                                    [disabled]="requirementsSaving()[requirement.id]"
+                                  >Wirklich?</button>
+                                  <button
+                                    type="button"
+                                    class="eq__remove-btn"
+                                    (click)="cancelRemoveRequirement(requirement)"
+                                  >Abbrechen</button>
+                                </span>
+                              }
+                            </div>
+                          </li>
+                        }
+                      </ul>
+                    }
+
+                    @if (equipmentPickerOpen()) {
+                      <div class="picker picker--equipment">
+                        <button
+                          type="button"
+                          class="picker__toggle-new"
+                          (click)="toggleNewEquipment()"
+                          [attr.aria-expanded]="newEquipmentOpen()"
+                        >
+                          {{ newEquipmentOpen() ? 'Neues Equipment schließen' : 'Neues Equipment anlegen' }}
+                        </button>
+
+                        @if (newEquipmentOpen()) {
+                          <form class="picker__new" (ngSubmit)="addNewEquipment()">
+                            <label class="sr-only" for="new-eq-name">Name</label>
+                            <input
+                              id="new-eq-name"
+                              class="picker__input"
+                              [value]="newEquipmentName()"
+                              (input)="onNewEquipmentName($event)"
+                              placeholder="Name"
+                              required
+                            />
+                            <label class="sr-only" for="new-eq-category">Kategorie</label>
+                            <input
+                              id="new-eq-category"
+                              class="picker__input"
+                              [value]="newEquipmentCategory()"
+                              (input)="onNewEquipmentCategory($event)"
+                              placeholder="Kategorie (optional)"
+                            />
+                            <button
+                              type="submit"
+                              class="picker__submit"
+                              [disabled]="!canAddNewEquipment()"
+                            >Anlegen & hinzufügen</button>
+                          </form>
+                        }
+
+                        @if (equipmentCatalogLoading()) {
+                          <p class="panel__note">Equipment wird geladen …</p>
+                        } @else if (availableEquipment().length === 0) {
+                          <p class="panel__note">Kein weiteres Equipment verfügbar.</p>
+                        } @else {
+                          <ul class="picker__list">
+                            @for (equipment of availableEquipment(); track equipment.id) {
+                              <li class="picker__item">
+                                <span class="picker__name">
+                                  {{ equipment.name }}
+                                  @if (equipment.category) {
+                                    <span class="picker__instrument">— {{ equipment.category }}</span>
+                                  }
+                                </span>
+                                <button
+                                  type="button"
+                                  class="picker__add"
+                                  (click)="addExistingEquipment(equipment)"
+                                  [disabled]="addingEquipment()[equipment.id]"
+                                >
+                                  {{ addingEquipment()[equipment.id] ? 'Füge hinzu …' : 'Hinzufügen' }}
+                                </button>
+                              </li>
+                            }
+                          </ul>
+                        }
+                      </div>
+                    }
+                  }
+                }
+              </section>
+            }
+            @case ('schedule') {
+              <section class="panel panel--schedule" cdkDrag>
+                <div class="panel__head">
+                  <span class="panel__head-left">
+                    <span class="panel__drag" cdkDragHandle aria-label="Kachel verschieben">&vellip;</span>
+                    <button
+                      type="button"
+                      class="panel__title-btn"
+                      (click)="togglePanel('schedule')"
+                      [attr.aria-expanded]="!isCollapsed('schedule')"
+                    >
+                      <h2 class="panel__title">Ablauf / Zeiten</h2>
+                    </button>
+                  </span>
+                  <button
+                    type="button"
+                    class="panel__collapse"
+                    (click)="togglePanel('schedule')"
+                    [attr.aria-expanded]="!isCollapsed('schedule')"
+                  >{{ isCollapsed('schedule') ? 'Öffnen' : 'Einklappen' }}</button>
+                </div>
+
+                @if (!isCollapsed('schedule')) {
+                  @if (scheduleLoading()) {
+                    <p class="panel__note">Ablauf wird geladen …</p>
+                  } @else if (scheduleError(); as message) {
+                    <p class="panel__note panel__note--error" role="alert">{{ message }}</p>
+                  } @else {
+                    <div class="schedule__bar">
+                      <button
+                        type="button"
+                        class="schedule__add"
+                        (click)="toggleScheduleForm()"
+                        [attr.aria-expanded]="scheduleFormOpen()"
+                      >
+                        {{ scheduleFormOpen() ? 'Neuen Zeitpunkt schließen' : 'Zeitpunkt hinzufügen' }}
+                      </button>
+                    </div>
+
+                    @if (scheduleFeedback(); as feedback) {
+                      <p class="schedule__feedback" role="status">{{ feedback }}</p>
+                    }
+                    @if (scheduleError(); as message) {
+                      <p class="schedule__feedback schedule__feedback--error" role="alert">{{ message }}</p>
+                    }
+
+                    @if (scheduleFormOpen()) {
+                      <form class="schedule__new" (ngSubmit)="saveScheduleItem()">
+                        <label class="sr-only" for="schedule-label">Bezeichnung</label>
+                        <input
+                          id="schedule-label"
+                          class="schedule__input"
+                          [value]="scheduleLabel()"
+                          (input)="onScheduleLabel($event)"
+                          placeholder="z. B. Soundcheck"
+                          required
+                        />
+                        <label class="sr-only" for="schedule-time">Uhrzeit</label>
+                        <input
+                          id="schedule-time"
+                          class="schedule__input schedule__input--time"
+                          type="time"
+                          [value]="scheduleTime()"
+                          (input)="onScheduleTime($event)"
+                          required
+                        />
+                        <div class="schedule__form-actions">
+                          <button
+                            type="submit"
+                            class="schedule__submit"
+                            [disabled]="!canSaveSchedule()"
+                          >
+                            {{ editingScheduleId() != null ? 'Speichern' : 'Hinzufügen' }}
+                          </button>
+                          @if (editingScheduleId() != null) {
+                            <button type="button" class="schedule__cancel" (click)="cancelScheduleEdit()">
+                              Abbrechen
+                            </button>
+                          }
+                        </div>
+                      </form>
+                    }
+
+                    @if (scheduleItems().length === 0) {
+                      <p class="panel__note">Noch kein Ablauf für diesen Gig erfasst.</p>
+                    } @else {
+                      <ol class="schedule">
+                        @for (item of scheduleItems(); track item.id) {
+                          <li class="sched">
+                            <span class="sched__time">
+                              @if (editingScheduleId() === item.id) {
+                                <input
+                                  class="sched__edit-time"
+                                  type="time"
+                                  [value]="scheduleTime()"
+                                  (input)="onScheduleTime($event)"
+                                  aria-label="Uhrzeit bearbeiten"
+                                />
+                              } @else {
+                                {{ item.time }}
+                              }
+                            </span>
+
+                            @if (editingScheduleId() === item.id) {
+                              <input
+                                class="sched__edit-label"
+                                [value]="scheduleLabel()"
+                                (input)="onScheduleLabel($event)"
+                                aria-label="Bezeichnung bearbeiten"
+                              />
+                            } @else {
+                              <span class="sched__label">{{ item.label }}</span>
+                            }
+
+                            <span class="sched__actions">
+                              @if (editingScheduleId() !== item.id) {
+                                <button
+                                  type="button"
+                                  class="sched__btn"
+                                  (click)="startEditSchedule(item)"
+                                  [disabled]="scheduleSaving()[item.id]"
+                                >Bearbeiten</button>
+                                <button
+                                  type="button"
+                                  class="sched__btn sched__btn--danger"
+                                  (click)="requestRemoveSchedule(item)"
+                                  [disabled]="scheduleSaving()[item.id]"
+                                >{{ scheduleSaving()[item.id] ? 'Entfernen …' : 'Entfernen' }}</button>
+                              } @else {
+                                <button
+                                  type="button"
+                                  class="sched__btn sched__btn--primary"
+                                  (click)="saveScheduleItem()"
+                                >Speichern</button>
+                                <button
+                                  type="button"
+                                  class="sched__btn"
+                                  (click)="cancelScheduleEdit()"
+                                >Abbrechen</button>
+                              }
+                            </span>
+                          </li>
+                        }
+                      </ol>
+                    }
+                  }
+                }
+              </section>
+            }
+            @default {
+              <section class="panel" cdkDrag>
+                <div class="panel__head">
+                  <span class="panel__head-left">
+                    <span class="panel__drag" cdkDragHandle aria-label="Kachel verschieben">&vellip;</span>
+                    <button
+                      type="button"
+                      class="panel__title-btn"
+                      (click)="togglePanel(panelKey)"
+                      [attr.aria-expanded]="!isCollapsed(panelKey)"
+                    >
+                      <h2 class="panel__title">{{ panelTitle(panelKey) }}</h2>
+                    </button>
+                  </span>
+                  <button
+                    type="button"
+                    class="panel__collapse"
+                    (click)="togglePanel(panelKey)"
+                    [attr.aria-expanded]="!isCollapsed(panelKey)"
+                  >{{ isCollapsed(panelKey) ? 'Öffnen' : 'Einklappen' }}</button>
+                </div>
+                @if (!isCollapsed(panelKey)) {
+                  <p class="panel__note">
+                    <span class="panel__tag">{{ panelKey }}</span>
+                    {{ panelDescription(panelKey) }}
+                  </p>
+                }
+              </section>
+            }
+          }
+        }
+      </div>
+    } @else {
+      <p class="note">Dieser Termin ist eine Probe.</p>
+    }
+  }
+</section>

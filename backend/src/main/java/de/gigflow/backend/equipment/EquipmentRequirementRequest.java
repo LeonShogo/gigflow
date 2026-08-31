@@ -10,9 +10,9 @@ public class EquipmentRequirementRequest {
     @NotNull
     private Long equipmentId;
 
-    private boolean availableOnSite;
+    private RequirementState availableOnSite;
 
-    private boolean needsToBeBrought;
+    private RequirementState needsToBeBrought;
 
     private Long responsibleMusicianId;
 
@@ -32,19 +32,19 @@ public class EquipmentRequirementRequest {
         this.equipmentId = equipmentId;
     }
 
-    public boolean isAvailableOnSite() {
+    public RequirementState getAvailableOnSite() {
         return availableOnSite;
     }
 
-    public void setAvailableOnSite(boolean availableOnSite) {
+    public void setAvailableOnSite(RequirementState availableOnSite) {
         this.availableOnSite = availableOnSite;
     }
 
-    public boolean isNeedsToBeBrought() {
+    public RequirementState getNeedsToBeBrought() {
         return needsToBeBrought;
     }
 
-    public void setNeedsToBeBrought(boolean needsToBeBrought) {
+    public void setNeedsToBeBrought(RequirementState needsToBeBrought) {
         this.needsToBeBrought = needsToBeBrought;
     }
 

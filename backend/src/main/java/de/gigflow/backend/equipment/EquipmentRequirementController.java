@@ -30,6 +30,11 @@ public class EquipmentRequirementController {
         return requirementService.findAllRequirements();
     }
 
+    @GetMapping("/event/{eventId}")
+    public List<EquipmentRequirementResponse> getRequirementsByEvent(@PathVariable Long eventId) {
+        return requirementService.findRequirementsByEvent(eventId);
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<EquipmentRequirementResponse> getRequirementById(@PathVariable Long id) {
         Optional<EquipmentRequirementResponse> requirement = requirementService.findRequirementById(id);

@@ -30,6 +30,11 @@ public class EventParticipationController {
         return participationService.findAllParticipations();
     }
 
+    @GetMapping("/event/{eventId}")
+    public List<EventParticipationResponseDto> getParticipationsByEvent(@PathVariable Long eventId) {
+        return participationService.findParticipationsByEvent(eventId);
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<EventParticipationResponseDto> getParticipationById(@PathVariable Long id) {
         Optional<EventParticipationResponseDto> participation = participationService.findParticipationById(id);

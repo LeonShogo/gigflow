@@ -1,6 +1,7 @@
 package de.gigflow.backend.equipment;
 
 import de.gigflow.backend.musician.Musician;
+import de.gigflow.backend.musician.MusicianPublicDto;
 import org.springframework.lang.Nullable;
 
 public class EquipmentRequirementResponse {
@@ -8,9 +9,12 @@ public class EquipmentRequirementResponse {
     private Long id;
     private Long eventId;
     private Long equipmentId;
-    private boolean availableOnSite;
-    private boolean needsToBeBrought;
+    private String equipmentName;
+    private String category;
+    private RequirementState availableOnSite;
+    private RequirementState needsToBeBrought;
     private Long responsibleMusicianId;
+    private MusicianPublicDto responsibleMusician;
 
     public static EquipmentRequirementResponse from(EquipmentRequirement requirement) {
         EquipmentRequirementResponse response = new EquipmentRequirementResponse();
@@ -18,14 +22,18 @@ public class EquipmentRequirementResponse {
         if (requirement.getEvent() != null) {
             response.setEventId(requirement.getEvent().getId());
         }
-        if (requirement.getEquipment() != null) {
-            response.setEquipmentId(requirement.getEquipment().getId());
+        Equipment equipment = requirement.getEquipment();
+        if (equipment != null) {
+            response.setEquipmentId(equipment.getId());
+            response.setEquipmentName(equipment.getName());
+            response.setCategory(equipment.getCategory());
         }
-        response.setAvailableOnSite(requirement.isAvailableOnSite());
-        response.setNeedsToBeBrought(requirement.isNeedsToBeBrought());
+        response.setAvailableOnSite(requirement.getAvailableOnSiteState());
+        response.setNeedsToBeBrought(requirement.getNeedsToBeBroughtState());
         Musician responsible = requirement.getResponsibleMusician();
         if (responsible != null) {
             response.setResponsibleMusicianId(responsible.getId());
+            response.setResponsibleMusician(MusicianPublicDto.from(responsible));
         }
         return response;
     }
@@ -54,19 +62,35 @@ public class EquipmentRequirementResponse {
         this.equipmentId = equipmentId;
     }
 
-    public boolean isAvailableOnSite() {
+    public String getEquipmentName() {
+        return equipmentName;
+    }
+
+    public void setEquipmentName(String equipmentName) {
+        this.equipmentName = equipmentName;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    public RequirementState getAvailableOnSite() {
         return availableOnSite;
     }
 
-    public void setAvailableOnSite(boolean availableOnSite) {
+    public void setAvailableOnSite(RequirementState availableOnSite) {
         this.availableOnSite = availableOnSite;
     }
 
-    public boolean isNeedsToBeBrought() {
+    public RequirementState getNeedsToBeBrought() {
         return needsToBeBrought;
     }
 
-    public void setNeedsToBeBrought(boolean needsToBeBrought) {
+    public void setNeedsToBeBrought(RequirementState needsToBeBrought) {
         this.needsToBeBrought = needsToBeBrought;
     }
 
@@ -77,5 +101,14 @@ public class EquipmentRequirementResponse {
 
     public void setResponsibleMusicianId(Long responsibleMusicianId) {
         this.responsibleMusicianId = responsibleMusicianId;
+    }
+
+    @Nullable
+    public MusicianPublicDto getResponsibleMusician() {
+        return responsibleMusician;
+    }
+
+    public void setResponsibleMusician(MusicianPublicDto responsibleMusician) {
+        this.responsibleMusician = responsibleMusician;
     }
 }

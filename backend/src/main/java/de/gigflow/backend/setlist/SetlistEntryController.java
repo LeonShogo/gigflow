@@ -37,6 +37,11 @@ public class SetlistEntryController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    @GetMapping("/by-setlist/{setlistId}")
+    public List<SetlistEntryResponse> getEntriesBySetlist(@PathVariable Long setlistId) {
+        return entryService.findEntriesBySetlist(setlistId);
+    }
+
     @PostMapping
     public ResponseEntity<SetlistEntryResponse> createEntry(@Valid @RequestBody SetlistEntryRequest request) {
         try {

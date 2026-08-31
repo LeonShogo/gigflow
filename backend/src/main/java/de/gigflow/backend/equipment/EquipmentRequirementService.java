@@ -37,8 +37,8 @@ public class EquipmentRequirementService {
         EquipmentRequirement requirement = new EquipmentRequirement();
         requirement.setEvent(event);
         requirement.setEquipment(equipment);
-        requirement.setAvailableOnSite(request.isAvailableOnSite());
-        requirement.setNeedsToBeBrought(request.isNeedsToBeBrought());
+        requirement.setAvailableOnSite(request.getAvailableOnSite());
+        requirement.setNeedsToBeBrought(request.getNeedsToBeBrought());
         requirement.setResponsibleMusician(responsible);
         return EquipmentRequirementResponse.from(requirementRepository.save(requirement));
     }
@@ -62,10 +62,16 @@ public class EquipmentRequirementService {
 
         existing.setEvent(event);
         existing.setEquipment(equipment);
-        existing.setAvailableOnSite(request.isAvailableOnSite());
-        existing.setNeedsToBeBrought(request.isNeedsToBeBrought());
+        existing.setAvailableOnSite(request.getAvailableOnSite());
+        existing.setNeedsToBeBrought(request.getNeedsToBeBrought());
         existing.setResponsibleMusician(responsible);
         return EquipmentRequirementResponse.from(requirementRepository.save(existing));
+    }
+
+    public List<EquipmentRequirementResponse> findRequirementsByEvent(Long eventId) {
+        return requirementRepository.findByEventId(eventId).stream()
+                .map(EquipmentRequirementResponse::from)
+                .toList();
     }
 
     public void deleteRequirement(Long id) {

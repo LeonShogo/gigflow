@@ -1,0 +1,75 @@
+<section class="dashboard">
+  <header class="masthead">
+    <div class="masthead__title">
+      <p class="wordmark">GigFlow</p>
+      <h1 class="title">GigFlow</h1>
+    </div>
+    <div class="masthead__actions">
+      <a class="masthead__link" routerLink="/musicians">Musiker:innen</a>
+      <a class="masthead__add" routerLink="/events/new">+ Neues Event</a>
+    </div>
+  </header>
+
+  <nav class="filters" aria-label="Events filtern">
+    @for (item of filters; track item.value) {
+      <button
+        type="button"
+        class="filter"
+        [class.filter--active]="filter() === item.value"
+        (click)="selectFilter(item.value)"
+      >
+        {{ item.label }}
+      </button>
+    }
+  </nav>
+
+  @if (loading()) {
+    <p class="status">Events werden geladen …</p>
+  } @else if (error(); as message) {
+    <p class="status status--error" role="alert">{{ message }}</p>
+  } @else {
+    <ul class="events">
+      @for (event of filteredEvents(); track event.id) {
+        <li>
+          <a
+            class="event"
+            [class.event--concert]="event.type === 'CONCERT'"
+            [routerLink]="['/events', event.id]"
+          >
+            <span class="event__tick" aria-hidden="true"></span>
+
+            <div class="event__body">
+              <p class="event__type">
+                {{ typeLabel(event.type) }}
+              </p>
+              <h2 class="event__title">{{ event.title }}</h2>
+              <p class="event__context">
+                @if (event.venue) {
+                  <span>{{ event.venue }}</span>
+                }
+                @if (event.bandName) {
+                  <span>{{ event.bandName }}</span>
+                }
+              </p>
+            </div>
+
+            <div class="event__meta">
+              <time class="event__date" [attr.datetime]="event.dateTime">
+                {{ formatDate(event.dateTime) }}
+              </time>
+              <time class="event__time" [attr.datetime]="event.dateTime">
+                {{ formatTime(event.dateTime) }} Uhr
+              </time>
+            </div>
+          </a>
+        </li>
+      } @empty {
+        <li>
+          <article class="event event--empty">
+            <p>Keine Events in dieser Ansicht.</p>
+          </article>
+        </li>
+      }
+    </ul>
+  }
+</section>

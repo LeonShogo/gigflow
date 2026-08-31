@@ -1,0 +1,86 @@
+/* ------------------------------------------------------------------ */
+/*  GigFlow design tokens                                              */
+/*  Editorial / musical. Reduced. No SaaS-gradient, no glow.          */
+/* ------------------------------------------------------------------ */
+
+:root {
+  /* Surfaces */
+  --paper: #f4f1ea;
+  --paper-raised: #fbf9f4;
+  --ink: #1a1712;
+  --ink-soft: #57514a;
+  --ink-faint: #8b8479;
+  --line: #d9d2c6;
+
+  /* Accent — a single, confident stage red */
+  --accent: #b4231e;
+  --accent-ink: #8c1915;
+
+  /* Type */
+  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia,
+    "Times New Roman", serif;
+  --font-body: "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas,
+    monospace;
+
+  /* Rhythm */
+  --space-1: 0.5rem;
+  --space-2: 1rem;
+  --space-3: 1.5rem;
+  --space-4: 2.5rem;
+  --space-5: 4rem;
+
+  --radius: 2px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+a {
+  color: inherit;
+}
+
+button {
+  font-family: inherit;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Angular CDK drag & drop (setlist)                                  */
+/*  The preview/placeholder are appended to <body>, so they are global */
+/* ------------------------------------------------------------------ */
+
+.cdk-drag-preview {
+  border: 1px solid var(--ink);
+  border-radius: var(--radius);
+  background: var(--paper-raised);
+  box-shadow: 0 3px 10px rgb(26 23 18 / 0.14);
+  opacity: 0.92;
+}
+
+.cdk-drag-placeholder {
+  opacity: 0.25;
+}

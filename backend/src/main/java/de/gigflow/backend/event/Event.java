@@ -41,6 +41,9 @@ public class Event {
     @JoinColumn(name = "concert_id")
     private Event concert;
 
+    @Column(name = "panel_layout")
+    private String panelLayout;
+
     public Long getId() {
         return id;
     }
@@ -87,5 +90,13 @@ public class Event {
 
     public void setConcert(Event concert) {
         this.concert = concert;
+    }
+
+    public String getPanelLayout() {
+        return panelLayout;
+    }
+
+    public void setPanelLayout(String panelLayout) {
+        this.panelLayout = panelLayout;
     }
 }

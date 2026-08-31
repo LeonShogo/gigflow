@@ -31,6 +31,9 @@ public class Musician {
     @Column(unique = true)
     private String email;
 
+    @Column(nullable = false)
+    private boolean emailPublic = false;
+
     public Long getId() {
         return id;
     }
@@ -69,5 +72,13 @@ public class Musician {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public boolean isEmailPublic() {
+        return emailPublic;
+    }
+
+    public void setEmailPublic(boolean emailPublic) {
+        this.emailPublic = emailPublic;
     }
 }

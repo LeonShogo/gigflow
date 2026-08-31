@@ -16,6 +16,8 @@ public class MusicianRequest {
     @Email
     private String email;
 
+    private boolean emailPublic;
+
     public String getFirstName() {
         return firstName;
     }
@@ -46,5 +48,13 @@ public class MusicianRequest {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public boolean isEmailPublic() {
+        return emailPublic;
+    }
+
+    public void setEmailPublic(boolean emailPublic) {
+        this.emailPublic = emailPublic;
     }
 }

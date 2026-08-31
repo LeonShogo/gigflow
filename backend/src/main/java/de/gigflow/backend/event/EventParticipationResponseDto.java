@@ -1,10 +1,13 @@
 package de.gigflow.backend.event;
 
+import de.gigflow.backend.musician.MusicianPublicDto;
+
 public class EventParticipationResponseDto {
 
     private Long id;
     private Long eventId;
     private Long musicianId;
+    private MusicianPublicDto musician;
     private EventParticipationStatus status;
 
     public static EventParticipationResponseDto from(EventParticipation participation) {
@@ -15,6 +18,7 @@ public class EventParticipationResponseDto {
         }
         if (participation.getMusician() != null) {
             response.setMusicianId(participation.getMusician().getId());
+            response.setMusician(MusicianPublicDto.from(participation.getMusician()));
         }
         response.setStatus(participation.getStatus());
         return response;
@@ -42,6 +46,14 @@ public class EventParticipationResponseDto {
 
     public void setMusicianId(Long musicianId) {
         this.musicianId = musicianId;
+    }
+
+    public MusicianPublicDto getMusician() {
+        return musician;
+    }
+
+    public void setMusician(MusicianPublicDto musician) {
+        this.musician = musician;
     }
 
     public EventParticipationStatus getStatus() {

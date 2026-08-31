@@ -4,6 +4,7 @@ import de.gigflow.backend.band.Band;
 import de.gigflow.backend.band.BandRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -63,6 +64,29 @@ public class EventService {
 
     public List<EventResponse> findAllEvents() {
         return eventRepository.findAll().stream().map(EventResponse::from).toList();
+    }
+
+    public List<EventResponse> findRehearsalsByConcert(Long concertId) {
+        return eventRepository.findByConcertId(concertId).stream()
+                .filter(e -> e.getType() == EventType.REHEARSAL)
+                .sorted(Comparator.comparing(Event::getDateTime))
+                .map(EventResponse::from)
+                .toList();
+    }
+
+    public Optional<PanelLayout> findPanelLayout(Long eventId) {
+        return eventRepository.findById(eventId).map(event -> PanelLayout.fromStored(event.getPanelLayout()));
+    }
+
+    public Optional<PanelLayout> updatePanelLayout(Long eventId, PanelLayout layout) {
+        Optional<Event> byId = eventRepository.findById(eventId);
+        if (byId.isEmpty()) {
+            return Optional.empty();
+        }
+        Event event = byId.get();
+        event.setPanelLayout(layout.toStored());
+        eventRepository.save(event);
+        return Optional.of(layout);
     }
 
     public void deleteEvent(Long id) {

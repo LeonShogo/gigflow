@@ -30,6 +30,10 @@ public class SetlistService {
         return setlistRepository.findById(id).map(SetlistResponse::from);
     }
 
+    public Optional<SetlistResponse> findSetlistByEvent(Long eventId) {
+        return setlistRepository.findByEventId(eventId).map(SetlistResponse::from);
+    }
+
     public List<SetlistResponse> findAllSetlists() {
         return setlistRepository.findAll().stream().map(SetlistResponse::from).toList();
     }

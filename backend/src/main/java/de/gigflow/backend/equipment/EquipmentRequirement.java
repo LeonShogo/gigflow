@@ -4,6 +4,8 @@ import de.gigflow.backend.event.Event;
 import de.gigflow.backend.musician.Musician;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -28,11 +30,13 @@ public class EquipmentRequirement {
     @JoinColumn(name = "equipment_id", nullable = false)
     private Equipment equipment;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private boolean availableOnSite;
+    private RequirementState availableOnSite = RequirementState.UNKNOWN;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private boolean needsToBeBrought;
+    private RequirementState needsToBeBrought = RequirementState.UNKNOWN;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "responsible_musician_id")
@@ -63,19 +67,27 @@ public class EquipmentRequirement {
     }
 
     public boolean isAvailableOnSite() {
+        return availableOnSite == RequirementState.YES;
+    }
+
+    public RequirementState getAvailableOnSiteState() {
         return availableOnSite;
     }
 
-    public void setAvailableOnSite(boolean availableOnSite) {
-        this.availableOnSite = availableOnSite;
+    public void setAvailableOnSite(RequirementState availableOnSite) {
+        this.availableOnSite = availableOnSite == null ? RequirementState.UNKNOWN : availableOnSite;
     }
 
     public boolean isNeedsToBeBrought() {
+        return needsToBeBrought == RequirementState.YES;
+    }
+
+    public RequirementState getNeedsToBeBroughtState() {
         return needsToBeBrought;
     }
 
-    public void setNeedsToBeBrought(boolean needsToBeBrought) {
-        this.needsToBeBrought = needsToBeBrought;
+    public void setNeedsToBeBrought(RequirementState needsToBeBrought) {
+        this.needsToBeBrought = needsToBeBrought == null ? RequirementState.UNKNOWN : needsToBeBrought;
     }
 
     public Musician getResponsibleMusician() {

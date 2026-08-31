@@ -5,6 +5,7 @@ public class SetlistEntryResponse {
     private Long id;
     private Long setlistId;
     private Long pieceId;
+    private String pieceTitle;
     private int position;
 
     public static SetlistEntryResponse from(SetlistEntry entry) {
@@ -15,6 +16,7 @@ public class SetlistEntryResponse {
         }
         if (entry.getPiece() != null) {
             response.setPieceId(entry.getPiece().getId());
+            response.setPieceTitle(entry.getPiece().getTitle());
         }
         response.setPosition(entry.getPosition());
         return response;
@@ -42,6 +44,14 @@ public class SetlistEntryResponse {
 
     public void setPieceId(Long pieceId) {
         this.pieceId = pieceId;
+    }
+
+    public String getPieceTitle() {
+        return pieceTitle;
+    }
+
+    public void setPieceTitle(String pieceTitle) {
+        this.pieceTitle = pieceTitle;
     }
 
     public int getPosition() {

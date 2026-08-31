@@ -1,0 +1,35 @@
+<section class="page">
+  <a class="back" routerLink="/">&larr; Alle Events</a>
+
+  <header class="head">
+    <div class="head__text">
+      <p class="eyebrow">Musiker:innen</p>
+      <h1 class="title">Band besetzen</h1>
+    </div>
+    <a class="head__add" routerLink="/musicians/new">+ Musiker hinzufügen</a>
+  </header>
+
+  @if (loading()) {
+    <p class="status">Musiker:innen werden geladen …</p>
+  } @else if (error(); as message) {
+    <p class="status status--error" role="alert">{{ message }}</p>
+  } @else {
+    <ul class="roster">
+      @for (musician of musicians(); track musician.id) {
+        <li>
+          <a class="row" [routerLink]="['/musicians', musician.id, 'edit']">
+            <span class="row__name">
+              {{ musician.firstName }} {{ musician.lastName }}
+            </span>
+            <span class="row__instrument">{{ musician.instrument || '—' }}</span>
+            <span class="row__email">{{ musician.email || '—' }}</span>
+          </a>
+        </li>
+      } @empty {
+        <li>
+          <p class="roster__empty">Noch keine Musiker:innen angelegt.</p>
+        </li>
+      }
+    </ul>
+  }
+</section>

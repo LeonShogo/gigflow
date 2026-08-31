@@ -1,0 +1,76 @@
+<section class="form-page">
+  <a class="back" routerLink="/">&larr; Alle Events</a>
+
+  <header class="head">
+    <p class="eyebrow">Neuer Termin</p>
+    <h1 class="title">Event erstellen</h1>
+  </header>
+
+  @if (choicesError(); as message) {
+    <p class="error" role="alert">{{ message }}</p>
+  }
+
+  <form class="form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <label class="field">
+      <span class="field__label">Titel</span>
+      <input class="field__input" type="text" formControlName="title" />
+      @if (form.controls.title.touched && form.controls.title.hasError('required')) {
+        <span class="field__hint">Bitte einen Titel angeben.</span>
+      }
+    </label>
+
+    <fieldset class="field">
+      <legend class="field__label">Art</legend>
+      <div class="segmented">
+        <label class="segmented__option">
+          <input type="radio" formControlName="type" value="CONCERT" />
+          <span>Gig</span>
+        </label>
+        <label class="segmented__option">
+          <input type="radio" formControlName="type" value="REHEARSAL" />
+          <span>Probe</span>
+        </label>
+      </div>
+    </fieldset>
+
+    <label class="field">
+      <span class="field__label">Datum</span>
+      <input class="field__input" type="date" formControlName="date" />
+      @if (form.controls.date.touched && form.controls.date.hasError('required')) {
+        <span class="field__hint">Bitte ein Datum angeben.</span>
+      }
+    </label>
+
+    <label class="field">
+      <span class="field__label">Uhrzeit</span>
+      <input class="field__input" type="time" formControlName="time" />
+      @if (form.controls.time.touched && form.controls.time.hasError('required')) {
+        <span class="field__hint">Bitte eine Uhrzeit angeben.</span>
+      } @else if (form.controls.time.touched && form.controls.time.hasError('pattern')) {
+        <span class="field__hint">Uhrzeit im Format HH:MM.</span>
+      }
+    </label>
+
+    @if (isRehearsal()) {
+      <label class="field">
+        <span class="field__label">Zugehöriger Gig (optional)</span>
+        <select class="field__input" formControlName="concert">
+          <option [ngValue]="null">— kein Gig —</option>
+          @for (concert of concerts(); track concert.id) {
+            <option [ngValue]="concert.id">{{ concert.title }}</option>
+          }
+        </select>
+      </label>
+    }
+
+    @if (submitError(); as message) {
+      <p class="error" role="alert">{{ message }}</p>
+    }
+
+    <div class="actions">
+      <button class="submit" type="submit" [disabled]="saving()">
+        {{ saving() ? 'Wird gespeichert …' : 'Event anlegen' }}
+      </button>
+    </div>
+  </form>
+</section>

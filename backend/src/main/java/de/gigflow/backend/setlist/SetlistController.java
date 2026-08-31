@@ -37,6 +37,13 @@ public class SetlistController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    @GetMapping("/event/{eventId}")
+    public ResponseEntity<SetlistResponse> getSetlistByEvent(@PathVariable Long eventId) {
+        Optional<SetlistResponse> setlist = setlistService.findSetlistByEvent(eventId);
+        return setlist.map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
     @PostMapping
     public ResponseEntity<SetlistResponse> createSetlist(@Valid @RequestBody SetlistRequest request) {
         try {
