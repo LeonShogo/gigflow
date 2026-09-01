@@ -12,6 +12,9 @@ dist/
 
 # Environment / Secrets 
 .env
+.env.gigflow
+uploads/
 
 # OS
 .DS_Store 
+.postgres-data-gigflow/

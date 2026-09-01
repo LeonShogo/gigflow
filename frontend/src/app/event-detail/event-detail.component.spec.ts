@@ -8,6 +8,7 @@ import { of } from 'rxjs';
 
 import { EventDetailComponent } from './event-detail.component';
 import type { EventItem } from '../dashboard/event.model';
+import { AuthService } from '../auth/auth.service';
 
 const CONCERT: EventItem = {
   id: 1,
@@ -26,7 +27,7 @@ const REHEARSAL: EventItem = {
 const EMPTY_SETLIST = { id: 10, eventId: 1 };
 
 const DEFAULT_LAYOUT = {
-  order: ['members', 'setlist', 'rehearsals', 'equipment', 'schedule'],
+  order: ['members', 'setlist', 'rehearsals', 'equipment', 'locations', 'schedule'],
   collapsed: {},
 };
 
@@ -46,6 +47,7 @@ describe('EventDetailComponent', () => {
     httpMock.expectOne('/api/events/by-concert/1').flush([]);
     httpMock.expectOne('/api/setlists/event/1').flush(EMPTY_SETLIST);
     httpMock.expectOne('/api/events/1/layout').flush(DEFAULT_LAYOUT);
+    httpMock.expectOne('/api/event-locations/event/1').flush([]);
     fixture.detectChanges();
     httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([]);
     httpMock.expectOne('/api/equipment-requirements/event/1').flush([])
@@ -54,23 +56,44 @@ describe('EventDetailComponent', () => {
   }
 
   /** Flushes a setlist with the given entries and returns the fixture. */
-  function loadConcertWithEntries(
-    fixture: ComponentFixture<EventDetailComponent>,
-    entries: unknown[],
-  ): void {
-    fixture.detectChanges();
-    httpMock.expectOne('/api/events/1').flush(CONCERT);
-    fixture.detectChanges();
-    httpMock.expectOne('/api/event-participations/event/1').flush([]);
-    httpMock.expectOne('/api/events/by-concert/1').flush([]);
-    httpMock.expectOne('/api/setlists/event/1').flush(EMPTY_SETLIST);
-    httpMock.expectOne('/api/events/1/layout').flush(DEFAULT_LAYOUT);
-    fixture.detectChanges();
-    httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush(entries);
-    httpMock.expectOne('/api/equipment-requirements/event/1').flush([])
-    httpMock.expectOne('/api/schedule-items/event/1').flush([]);
-    fixture.detectChanges();
-  }
+function loadConcertWithEntries(
+  fixture: ComponentFixture<EventDetailComponent>,
+  entries: unknown[],
+): void {
+  fixture.detectChanges();
+  httpMock.expectOne('/api/events/1').flush(CONCERT);
+  fixture.detectChanges();
+  httpMock.expectOne('/api/event-participations/event/1').flush([]);
+  httpMock.expectOne('/api/events/by-concert/1').flush([]);
+  httpMock.expectOne('/api/setlists/event/1').flush(EMPTY_SETLIST);
+  httpMock.expectOne('/api/events/1/layout').flush(DEFAULT_LAYOUT);
+  httpMock.expectOne('/api/event-locations/event/1').flush([]);
+  fixture.detectChanges();
+  httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush(entries);
+  httpMock.expectOne('/api/equipment-requirements/event/1').flush([])
+  httpMock.expectOne('/api/schedule-items/event/1').flush([]);
+  fixture.detectChanges();
+}
+
+/** Loads a CONCERT with the given locations for the "Orte & Logistik" panel. */
+function loadConcertWithLocations(
+  fixture: ComponentFixture<EventDetailComponent>,
+  locations: unknown[],
+): void {
+  fixture.detectChanges();
+  httpMock.expectOne('/api/events/1').flush(CONCERT);
+  fixture.detectChanges();
+  httpMock.expectOne('/api/event-participations/event/1').flush([]);
+  httpMock.expectOne('/api/events/by-concert/1').flush([]);
+  httpMock.expectOne('/api/setlists/event/1').flush(EMPTY_SETLIST);
+  httpMock.expectOne('/api/events/1/layout').flush(DEFAULT_LAYOUT);
+  httpMock.expectOne('/api/event-locations/event/1').flush(locations);
+  fixture.detectChanges();
+  httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([]);
+  httpMock.expectOne('/api/equipment-requirements/event/1').flush([]);
+  httpMock.expectOne('/api/schedule-items/event/1').flush([]);
+  fixture.detectChanges();
+}
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -97,7 +120,7 @@ describe('EventDetailComponent', () => {
     expect(el.querySelector('.title')?.textContent).toBe('Hafenrocker');
     expect(el.querySelector('.type')?.textContent?.trim()).toBe('Gig');
     const panels = el.querySelectorAll('.panel');
-    expect(panels.length).toBe(5);
+    expect(panels.length).toBe(6);
     expect(el.textContent).toContain('Setlist');
     expect(el.textContent).toContain('Equipment');
   });
@@ -137,6 +160,7 @@ describe('EventDetailComponent', () => {
     httpMock.expectOne('/api/events/by-concert/1').flush([]);
     httpMock.expectOne('/api/setlists/event/1').flush(EMPTY_SETLIST);
     httpMock.expectOne('/api/events/1/layout').flush(DEFAULT_LAYOUT);
+    httpMock.expectOne('/api/event-locations/event/1').flush([]);
     fixture.detectChanges();
     httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([]);
     httpMock.expectOne('/api/equipment-requirements/event/1').flush([])
@@ -178,6 +202,7 @@ describe('EventDetailComponent', () => {
     ]);
     httpMock.expectOne('/api/setlists/event/1').flush(EMPTY_SETLIST);
     httpMock.expectOne('/api/events/1/layout').flush(DEFAULT_LAYOUT);
+    httpMock.expectOne('/api/event-locations/event/1').flush([]);
     fixture.detectChanges();
     httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([]);
     httpMock.expectOne('/api/equipment-requirements/event/1').flush([])
@@ -230,6 +255,7 @@ describe('EventDetailComponent', () => {
       order: ['equipment', 'members', 'schedule', 'rehearsals', 'setlist'],
       collapsed: {},
     });
+    httpMock.expectOne('/api/event-locations/event/1').flush([]);
     fixture.detectChanges();
     httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([]);
     httpMock.expectOne('/api/equipment-requirements/event/1').flush([])
@@ -241,11 +267,30 @@ describe('EventDetailComponent', () => {
     expect((titles[1] as HTMLElement).textContent?.trim()).toBe('Musiker / Zusagen');
   });
 
-  it('should reorder panels via drag & drop and persist', () => {
+  it('should swap two panels via drag & drop and persist', () => {
     const fixture = setup('1');
     loadConcert(fixture);
 
     const board = fixture.debugElement.query(By.css('.board'));
+    const panelEls: HTMLElement[] = Array.from(
+      board.nativeElement.querySelectorAll(':scope > .panel'),
+    ) as HTMLElement[];
+    panelEls.forEach((el, i) => {
+      const left = i * 100;
+      el.getBoundingClientRect = () =>
+        ({
+          left,
+          top: 0,
+          width: 100,
+          height: 100,
+          right: left + 100,
+          bottom: 100,
+          x: left,
+          y: 0,
+          toJSON: () => ({}),
+        }) as DOMRect;
+    });
+
     const dropList = board.injector.get(CdkDropList) as CdkDropList<string[]>;
     dropList.dropped.emit({
       previousIndex: 0,
@@ -255,23 +300,30 @@ describe('EventDetailComponent', () => {
       previousContainer: dropList,
       isPointerOverContainer: true,
       distance: { x: 0, y: 0 },
-      dropPoint: { x: 0, y: 0 },
+      dropPoint: { x: 250, y: 50 },
       event: new MouseEvent('mouseup'),
     });
     fixture.detectChanges();
 
     const saveReq = httpMock.expectOne('/api/events/1/layout');
     expect(saveReq.request.method).toBe('PUT');
-    expect((saveReq.request.body as { order: string[] }).order[0]).toBe('setlist');
+    expect((saveReq.request.body as { order: string[] }).order).toEqual([
+      'rehearsals',
+      'setlist',
+      'members',
+      'equipment',
+      'locations',
+      'schedule',
+    ]);
     saveReq.flush({
-      order: ['setlist', 'rehearsals', 'members', 'equipment', 'schedule'],
+      order: ['rehearsals', 'setlist', 'members', 'equipment', 'locations', 'schedule'],
       collapsed: {},
     });
     fixture.detectChanges();
 
     const titles = fixture.nativeElement.querySelectorAll('.panel__title');
-    expect((titles[0] as HTMLElement).textContent?.trim()).toBe('Setlist');
-    expect((titles[1] as HTMLElement).textContent?.trim()).toBe('Proben zu diesem Gig');
+    expect((titles[0] as HTMLElement).textContent?.trim()).toBe('Proben zu diesem Gig');
+    expect((titles[1] as HTMLElement).textContent?.trim()).toBe('Setlist');
   });
 
   it('should collapse and reopen a section and persist', () => {
@@ -319,6 +371,7 @@ describe('EventDetailComponent', () => {
     httpMock.expectOne('/api/events/by-concert/1').flush([]);
     httpMock.expectOne('/api/setlists/event/1').flush(EMPTY_SETLIST);
     httpMock.expectOne('/api/events/1/layout').flush(DEFAULT_LAYOUT);
+    httpMock.expectOne('/api/event-locations/event/1').flush([]);
     fixture.detectChanges();
     httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([]);
     httpMock.expectOne('/api/equipment-requirements/event/1').flush([])
@@ -326,7 +379,7 @@ describe('EventDetailComponent', () => {
     fixture.detectChanges();
 
     const el: HTMLElement = fixture.nativeElement;
-    expect(el.querySelectorAll('.panel').length).toBe(5);
+    expect(el.querySelectorAll('.panel').length).toBe(6);
     expect(el.textContent).toContain('Noch keine Musiker:innen');
   });
 
@@ -524,6 +577,7 @@ describe('EventDetailComponent', () => {
     httpMock.expectOne('/api/events/by-concert/1').flush([]);
     httpMock.expectOne('/api/setlists/event/1').flush(EMPTY_SETLIST);
     httpMock.expectOne('/api/events/1/layout').flush(DEFAULT_LAYOUT);
+    httpMock.expectOne('/api/event-locations/event/1').flush([]);
     fixture.detectChanges();
     httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([]);
     httpMock.expectOne('/api/equipment-requirements/event/1').flush([
@@ -556,6 +610,7 @@ describe('EventDetailComponent', () => {
     httpMock.expectOne('/api/events/by-concert/1').flush([]);
     httpMock.expectOne('/api/setlists/event/1').flush(EMPTY_SETLIST);
     httpMock.expectOne('/api/events/1/layout').flush(DEFAULT_LAYOUT);
+    httpMock.expectOne('/api/event-locations/event/1').flush([]);
     fixture.detectChanges();
     httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([]);
     httpMock.expectOne('/api/equipment-requirements/event/1').flush([
@@ -638,6 +693,7 @@ describe('EventDetailComponent', () => {
     httpMock.expectOne('/api/events/by-concert/1').flush([]);
     httpMock.expectOne('/api/setlists/event/1').flush(EMPTY_SETLIST);
     httpMock.expectOne('/api/events/1/layout').flush(DEFAULT_LAYOUT);
+    httpMock.expectOne('/api/event-locations/event/1').flush([]);
     fixture.detectChanges();
     httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([]);
     httpMock.expectOne('/api/equipment-requirements/event/1').flush([]);
@@ -660,18 +716,18 @@ describe('EventDetailComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Noch kein Ablauf für diesen Gig erfasst.');
   });
 
-  it('should add a new schedule item', () => {
+  it('should add a new schedule item from a preset', () => {
     const fixture = setup('1');
     loadConcert(fixture);
 
     const comp = fixture.componentInstance as unknown as {
       scheduleFormOpen: { set(v: boolean): void };
-      scheduleLabel: { set(v: string): void };
+      scheduleType: { set(v: string): void };
       scheduleTime: { set(v: string): void };
       saveScheduleItem(): void;
     };
     comp.scheduleFormOpen.set(true);
-    comp.scheduleLabel.set('Soundcheck');
+    comp.scheduleType.set('Soundcheck');
     comp.scheduleTime.set('17:00');
     fixture.detectChanges();
 
@@ -680,11 +736,42 @@ describe('EventDetailComponent', () => {
 
     const req = httpMock.expectOne('/api/schedule-items');
     expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ eventId: 1, label: 'Soundcheck', time: '17:00' });
     req.flush({ id: 3, eventId: 1, label: 'Soundcheck', time: '17:00' });
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('Soundcheck');
     expect(fixture.nativeElement.textContent).toContain('Zeitpunkt hinzugefügt.');
+  });
+
+  it('should add a schedule item from a custom entry', () => {
+    const fixture = setup('1');
+    loadConcert(fixture);
+
+    const comp = fixture.componentInstance as unknown as {
+      scheduleFormOpen: { set(v: boolean): void };
+      scheduleType: { set(v: string): void };
+      scheduleCustom: { set(v: string): void };
+      scheduleTime: { set(v: string): void };
+      saveScheduleItem(): void;
+    };
+    comp.scheduleFormOpen.set(true);
+    comp.scheduleType.set('custom');
+    comp.scheduleCustom.set('Meet & Greet');
+    comp.scheduleTime.set('16:00');
+    fixture.detectChanges();
+
+    expect((fixture.nativeElement.querySelector('#schedule-custom') as HTMLInputElement)).toBeTruthy();
+
+    comp.saveScheduleItem();
+    fixture.detectChanges();
+
+    const req = httpMock.expectOne('/api/schedule-items');
+    expect(req.request.body).toEqual({ eventId: 1, label: 'Meet & Greet', time: '16:00' });
+    req.flush({ id: 4, eventId: 1, label: 'Meet & Greet', time: '16:00' });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Meet & Greet');
   });
 
   it('should edit an existing schedule item', () => {
@@ -696,6 +783,7 @@ describe('EventDetailComponent', () => {
     httpMock.expectOne('/api/events/by-concert/1').flush([]);
     httpMock.expectOne('/api/setlists/event/1').flush(EMPTY_SETLIST);
     httpMock.expectOne('/api/events/1/layout').flush(DEFAULT_LAYOUT);
+    httpMock.expectOne('/api/event-locations/event/1').flush([]);
     fixture.detectChanges();
     httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([]);
     httpMock.expectOne('/api/equipment-requirements/event/1').flush([]);
@@ -708,11 +796,11 @@ describe('EventDetailComponent', () => {
     fixture.detectChanges();
 
     const comp = fixture.componentInstance as unknown as {
-      scheduleLabel: { set(v: string): void };
+      scheduleType: { set(v: string): void };
       scheduleTime: { set(v: string): void };
       saveScheduleItem(): void;
     };
-    comp.scheduleLabel.set('Soundcheck (neu)');
+    comp.scheduleType.set('Pause');
     comp.scheduleTime.set('18:00');
     fixture.detectChanges();
     comp.saveScheduleItem();
@@ -720,11 +808,59 @@ describe('EventDetailComponent', () => {
 
     const req = httpMock.expectOne('/api/schedule-items/5');
     expect(req.request.method).toBe('PUT');
-    req.flush({ id: 5, eventId: 1, label: 'Soundcheck (neu)', time: '18:00' });
+    expect(req.request.body).toEqual({ eventId: 1, label: 'Pause', time: '18:00' });
+    req.flush({ id: 5, eventId: 1, label: 'Pause', time: '18:00' });
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).toContain('Soundcheck (neu)');
+    expect(fixture.nativeElement.textContent).toContain('Pause');
     expect(fixture.nativeElement.textContent).toContain('Zeitpunkt gespeichert.');
+  });
+
+  it('should edit a free-text schedule entry as a custom entry', () => {
+    const fixture = setup('1');
+    fixture.detectChanges();
+    httpMock.expectOne('/api/events/1').flush(CONCERT);
+    fixture.detectChanges();
+    httpMock.expectOne('/api/event-participations/event/1').flush([]);
+    httpMock.expectOne('/api/events/by-concert/1').flush([]);
+    httpMock.expectOne('/api/setlists/event/1').flush(EMPTY_SETLIST);
+    httpMock.expectOne('/api/events/1/layout').flush(DEFAULT_LAYOUT);
+    httpMock.expectOne('/api/event-locations/event/1').flush([]);
+    fixture.detectChanges();
+    httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([]);
+    httpMock.expectOne('/api/equipment-requirements/event/1').flush([]);
+    httpMock.expectOne('/api/schedule-items/event/1').flush([
+      { id: 6, eventId: 1, label: 'Meet & Greet', time: '16:00' },
+    ]);
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('.sched__btn') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const comp = fixture.componentInstance as unknown as {
+      scheduleType: { (): string };
+      scheduleCustom: { set(v: string): void };
+      scheduleTime: { set(v: string): void };
+      saveScheduleItem(): void;
+    };
+    expect(comp.scheduleType()).toBe('custom');
+    expect(
+      (fixture.nativeElement.querySelector('#schedule-custom') as HTMLInputElement).value,
+    ).toBe('Meet & Greet');
+
+    comp.scheduleCustom.set('Meet & Greet (neu)');
+    comp.scheduleTime.set('16:30');
+    fixture.detectChanges();
+    comp.saveScheduleItem();
+    fixture.detectChanges();
+
+    const req = httpMock.expectOne('/api/schedule-items/6');
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.body).toEqual({ eventId: 1, label: 'Meet & Greet (neu)', time: '16:30' });
+    req.flush({ id: 6, eventId: 1, label: 'Meet & Greet (neu)', time: '16:30' });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Meet & Greet (neu)');
   });
 
   it('should remove a schedule item', () => {
@@ -736,6 +872,7 @@ describe('EventDetailComponent', () => {
     httpMock.expectOne('/api/events/by-concert/1').flush([]);
     httpMock.expectOne('/api/setlists/event/1').flush(EMPTY_SETLIST);
     httpMock.expectOne('/api/events/1/layout').flush(DEFAULT_LAYOUT);
+    httpMock.expectOne('/api/event-locations/event/1').flush([]);
     fixture.detectChanges();
     httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([]);
     httpMock.expectOne('/api/equipment-requirements/event/1').flush([]);
@@ -837,6 +974,7 @@ describe('EventDetailComponent', () => {
     ]);
     httpMock.expectOne('/api/setlists/event/1').flush(EMPTY_SETLIST);
     httpMock.expectOne('/api/events/1/layout').flush(DEFAULT_LAYOUT);
+    httpMock.expectOne('/api/event-locations/event/1').flush([]);
     fixture.detectChanges();
     httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([]);
     httpMock.expectOne('/api/equipment-requirements/event/1').flush([])
@@ -861,6 +999,397 @@ describe('EventDetailComponent', () => {
 
     expect(fixture.nativeElement.textContent).toContain('Probe vom Gig gelöst.');
     expect(fixture.nativeElement.querySelector('.rehearsal')).toBeNull();
+  });
+
+  it('should offer self-join for an authenticated musician and join via /join', () => {
+    const fixture = setup('1');
+    fixture.detectChanges();
+    httpMock.expectOne('/api/events/1').flush(CONCERT);
+    fixture.detectChanges();
+    httpMock.expectOne('/api/event-participations/event/1').flush([]);
+    httpMock.expectOne('/api/events/by-concert/1').flush([]);
+    httpMock.expectOne('/api/setlists/event/1').flush(EMPTY_SETLIST);
+    httpMock.expectOne('/api/events/1/layout').flush(DEFAULT_LAYOUT);
+    httpMock.expectOne('/api/event-locations/event/1').flush([]);
+    fixture.detectChanges();
+    httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([]);
+    httpMock.expectOne('/api/equipment-requirements/event/1').flush([]);
+    httpMock.expectOne('/api/schedule-items/event/1').flush([]);
+    fixture.detectChanges();
+
+    const auth = TestBed.inject(AuthService);
+    auth.login({ email: 'm@gigflow.local', password: 'password' }).subscribe();
+    httpMock.expectOne('/api/auth/login').flush({
+      token: 't',
+      user: { id: 2, email: 'm@gigflow.local', organizer: false, musicianId: 3 },
+    });
+    fixture.detectChanges();
+
+    const joinBtn = fixture.nativeElement.querySelector('.members__add--primary') as HTMLButtonElement;
+    expect(joinBtn).toBeTruthy();
+    joinBtn.click();
+    fixture.detectChanges();
+
+    const req = httpMock.expectOne('/api/events/1/join');
+    expect(req.request.method).toBe('POST');
+    req.flush({ id: 20, eventId: 1, musicianId: 3, status: 'ACCEPTED' });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Teilnahme bestätigt.');
+    expect(fixture.nativeElement.querySelector('.members__self-hint')?.textContent).toContain('Zusage');
+  });
+
+  it('should not show the member-management add button for a non-organizer', () => {
+    const fixture = setup('1');
+    fixture.detectChanges();
+    httpMock.expectOne('/api/events/1').flush(CONCERT);
+    fixture.detectChanges();
+    httpMock.expectOne('/api/event-participations/event/1').flush([]);
+    httpMock.expectOne('/api/events/by-concert/1').flush([]);
+    httpMock.expectOne('/api/setlists/event/1').flush(EMPTY_SETLIST);
+    httpMock.expectOne('/api/events/1/layout').flush(DEFAULT_LAYOUT);
+    httpMock.expectOne('/api/event-locations/event/1').flush([]);
+    fixture.detectChanges();
+    httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([]);
+    httpMock.expectOne('/api/equipment-requirements/event/1').flush([]);
+    httpMock.expectOne('/api/schedule-items/event/1').flush([]);
+    fixture.detectChanges();
+
+    const auth = TestBed.inject(AuthService);
+    auth.login({ email: 'm@gigflow.local', password: 'password' }).subscribe();
+    httpMock.expectOne('/api/auth/login').flush({
+      token: 't',
+      user: { id: 2, email: 'm@gigflow.local', organizer: false, musicianId: 3 },
+    });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.members__add')?.textContent?.trim()).toBe('Ich mache mit');
+  });
+
+  it('should show a PDF badge and an open button for a piece with sheet music', () => {
+    const fixture = setup('1');
+    fixture.detectChanges();
+    httpMock.expectOne('/api/events/1').flush(CONCERT);
+    fixture.detectChanges();
+    httpMock.expectOne('/api/event-participations/event/1').flush([]);
+    httpMock.expectOne('/api/events/by-concert/1').flush([]);
+    httpMock.expectOne('/api/setlists/event/1').flush(EMPTY_SETLIST);
+    httpMock.expectOne('/api/events/1/layout').flush(DEFAULT_LAYOUT);
+    httpMock.expectOne('/api/event-locations/event/1').flush([]);
+    fixture.detectChanges();
+    httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([
+      { id: 5, setlistId: 10, pieceId: 3, pieceTitle: 'Hallo Welt', position: 0, hasSheetPdf: true },
+      { id: 6, setlistId: 10, pieceId: 4, pieceTitle: 'Nachtfahrt', position: 1, hasSheetPdf: false },
+    ]);
+    httpMock.expectOne('/api/equipment-requirements/event/1').flush([]);
+    httpMock.expectOne('/api/schedule-items/event/1').flush([]);
+    fixture.detectChanges();
+
+    const auth = TestBed.inject(AuthService);
+    auth.login({ email: 'o@gigflow.local', password: 'password' }).subscribe();
+    httpMock.expectOne('/api/auth/login').flush({
+      token: 't',
+      user: { id: 1, email: 'o@gigflow.local', organizer: true, musicianId: null },
+    });
+    fixture.detectChanges();
+
+    const first = fixture.nativeElement.querySelectorAll('.entry')[0] as HTMLElement;
+    expect(first.querySelector('.entry__sheet')?.textContent?.trim()).toBe('PDF');
+    expect(first.querySelector('.entry__btn--pdf')?.textContent?.trim()).toBe('Öffnen');
+
+    const second = fixture.nativeElement.querySelectorAll('.entry')[1] as HTMLElement;
+    expect(second.querySelector('.entry__sheet')).toBeNull();
+    expect(second.querySelector('.entry__btn--pdf')?.textContent?.trim()).toBe('PDF laden');
+  });
+
+  it('should upload a sheet PDF and show the badge afterwards', () => {
+    const fixture = setup('1');
+    fixture.detectChanges();
+    httpMock.expectOne('/api/events/1').flush(CONCERT);
+    fixture.detectChanges();
+    httpMock.expectOne('/api/event-participations/event/1').flush([]);
+    httpMock.expectOne('/api/events/by-concert/1').flush([]);
+    httpMock.expectOne('/api/setlists/event/1').flush(EMPTY_SETLIST);
+    httpMock.expectOne('/api/events/1/layout').flush(DEFAULT_LAYOUT);
+    httpMock.expectOne('/api/event-locations/event/1').flush([]);
+    fixture.detectChanges();
+    httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([
+      { id: 5, setlistId: 10, pieceId: 3, pieceTitle: 'Hallo Welt', position: 0, hasSheetPdf: false },
+    ]);
+    httpMock.expectOne('/api/equipment-requirements/event/1').flush([]);
+    httpMock.expectOne('/api/schedule-items/event/1').flush([]);
+    fixture.detectChanges();
+
+    const auth = TestBed.inject(AuthService);
+    auth.login({ email: 'o@gigflow.local', password: 'password' }).subscribe();
+    httpMock.expectOne('/api/auth/login').flush({
+      token: 't',
+      user: { id: 1, email: 'o@gigflow.local', organizer: true, musicianId: null },
+    });
+    fixture.detectChanges();
+
+    const first = fixture.nativeElement.querySelectorAll('.entry')[0] as HTMLElement;
+    (first.querySelector('.entry__btn--pdf') as HTMLButtonElement).click();
+
+    const input = fixture.nativeElement.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(['%PDF-1.4'], 'noten.pdf', { type: 'application/pdf' });
+    Object.defineProperty(input, 'files', { value: [file] });
+    input.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    const req = httpMock.expectOne('/api/pieces/3/sheet-pdf');
+    expect(req.request.method).toBe('POST');
+    req.flush({ id: 3, title: 'Hallo Welt', hasSheetPdf: true });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Noten hochgeladen.');
+    expect(first.querySelector('.entry__sheet')).toBeTruthy();
+  });
+
+  it('should download and open an existing sheet PDF inline', () => {
+    const fixture = setup('1');
+    fixture.detectChanges();
+    httpMock.expectOne('/api/events/1').flush(CONCERT);
+    fixture.detectChanges();
+    httpMock.expectOne('/api/event-participations/event/1').flush([]);
+    httpMock.expectOne('/api/events/by-concert/1').flush([]);
+    httpMock.expectOne('/api/setlists/event/1').flush(EMPTY_SETLIST);
+    httpMock.expectOne('/api/events/1/layout').flush(DEFAULT_LAYOUT);
+    httpMock.expectOne('/api/event-locations/event/1').flush([]);
+    fixture.detectChanges();
+    httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([
+      { id: 5, setlistId: 10, pieceId: 3, pieceTitle: 'Hallo Welt', position: 0, hasSheetPdf: true },
+    ]);
+    httpMock.expectOne('/api/equipment-requirements/event/1').flush([]);
+    httpMock.expectOne('/api/schedule-items/event/1').flush([]);
+    fixture.detectChanges();
+
+    const auth = TestBed.inject(AuthService);
+    auth.login({ email: 'o@gigflow.local', password: 'password' }).subscribe();
+    httpMock.expectOne('/api/auth/login').flush({
+      token: 't',
+      user: { id: 1, email: 'o@gigflow.local', organizer: true, musicianId: null },
+    });
+    fixture.detectChanges();
+
+    const first = fixture.nativeElement.querySelectorAll('.entry')[0] as HTMLElement;
+    (first.querySelector('.entry__btn--pdf') as HTMLButtonElement).click();
+    const req = httpMock.expectOne('/api/pieces/3/sheet-pdf');
+    expect(req.request.responseType).toBe('blob');
+    req.flush(new Blob(['%PDF-1.4'], { type: 'application/pdf' }));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).not.toContain('Noten konnten nicht geöffnet werden.');
+    expect(fixture.nativeElement.querySelector('app-sheet-viewer')).toBeTruthy();
+  });
+
+  it('should render locations with type, name, address, phone, note and maps link', () => {
+    const fixture = setup('1');
+    loadConcertWithLocations(fixture, [
+      {
+        id: 1,
+        eventId: 1,
+        type: 'VENUE',
+        name: 'Klangbar Hamburg',
+        address: 'Reeperbahn 42, 20359 Hamburg',
+        note: 'Backstage-Eingang hinten rechts',
+        phone: '+49 40 12345678',
+        mapsUrl: 'https://maps.google.com/?q=Klangbar+Hamburg',
+      },
+      {
+        id: 2,
+        eventId: 1,
+        type: 'HOTEL',
+        name: 'Hotel Meeresblick',
+        address: 'Stresemannstraße 120, 22769 Hamburg',
+        note: null,
+        phone: null,
+        mapsUrl: null,
+      },
+    ]);
+
+    const items = fixture.nativeElement.querySelectorAll('.loc');
+    expect(items.length).toBe(2);
+
+    const first = items[0] as HTMLElement;
+    expect(first.querySelector('.loc__type')?.textContent?.trim()).toBe('Venue / Club');
+    expect(first.querySelector('.loc__name')?.textContent?.trim()).toBe('Klangbar Hamburg');
+    expect(first.textContent).toContain('Reeperbahn 42, 20359 Hamburg');
+    expect(first.textContent).toContain('Tel: +49 40 12345678');
+    expect(first.textContent).toContain('Backstage-Eingang hinten rechts');
+    expect((first.querySelector('.loc__map') as HTMLAnchorElement).getAttribute('href')).toBe(
+      'https://maps.google.com/?q=Klangbar+Hamburg',
+    );
+    expect((first.querySelector('.loc__map') as HTMLAnchorElement).getAttribute('target')).toBe('_blank');
+    expect(fixture.nativeElement.textContent).toContain('Orte & Logistik');
+  });
+
+  it('should derive a maps link from name and address when no custom link is set', () => {
+    const fixture = setup('1');
+    loadConcertWithLocations(fixture, [
+      {
+        id: 3,
+        eventId: 1,
+        type: 'MEETING_POINT',
+        name: 'Treffpunkt Backstage',
+        address: 'Reeperbahn 42, 20359 Hamburg',
+        note: null,
+        phone: null,
+        mapsUrl: null,
+      },
+    ]);
+
+    const map = fixture.nativeElement.querySelector('.loc__map') as HTMLAnchorElement;
+    expect(map.getAttribute('href')).toBe(
+      'https://www.google.com/maps/search/?api=1&query=' +
+        encodeURIComponent('Treffpunkt Backstage, Reeperbahn 42, 20359 Hamburg'),
+    );
+  });
+
+  it('should add a new location via the form', () => {
+    const fixture = setup('1');
+    loadConcertWithLocations(fixture, []);
+
+    const addBtn = fixture.nativeElement.querySelector('.panel--locations .schedule__add') as HTMLButtonElement;
+    addBtn.click();
+    fixture.detectChanges();
+
+    const comp = fixture.componentInstance as unknown as {
+      locationType: { set(v: string): void };
+      locationName: { set(v: string): void };
+      locationAddress: { set(v: string): void };
+      locationPhone: { set(v: string): void };
+      saveLocation(): void;
+    };
+    comp.locationType.set('HOTEL');
+    comp.locationName.set('Hotel Stadt');
+    comp.locationAddress.set('Bahnhofstraße 1, 20095 Hamburg');
+    comp.locationPhone.set('040 555 666');
+    fixture.detectChanges();
+    comp.saveLocation();
+    fixture.detectChanges();
+
+    const req = httpMock.expectOne('/api/event-locations');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({
+      eventId: 1,
+      type: 'HOTEL',
+      name: 'Hotel Stadt',
+      address: 'Bahnhofstraße 1, 20095 Hamburg',
+      note: null,
+      phone: '040 555 666',
+      mapsUrl: null,
+    });
+    req.flush({
+      id: 9,
+      eventId: 1,
+      type: 'HOTEL',
+      name: 'Hotel Stadt',
+      address: 'Bahnhofstraße 1, 20095 Hamburg',
+      note: null,
+      phone: '040 555 666',
+      mapsUrl: null,
+    });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Hotel Stadt');
+    expect(fixture.nativeElement.textContent).toContain('Ort hinzugefügt.');
+  });
+
+  it('should edit an existing location via PUT', () => {
+    const fixture = setup('1');
+    loadConcertWithLocations(fixture, [
+      {
+        id: 5,
+        eventId: 1,
+        type: 'RESTAURANT',
+        name: 'Pizzeria Da Miro',
+        address: 'Kleine Straße 3',
+        note: null,
+        phone: null,
+        mapsUrl: null,
+      },
+    ]);
+
+    (fixture.nativeElement.querySelector('.panel--locations .sched__btn') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const comp = fixture.componentInstance as unknown as {
+      locationName: { set(v: string): void };
+      locationNote: { set(v: string): void };
+      saveLocation(): void;
+    };
+    comp.locationName.set('Pizzeria Da Miro (Tisch reserviert)');
+    comp.locationNote.set('Tisch für 8 Personen');
+    fixture.detectChanges();
+    comp.saveLocation();
+    fixture.detectChanges();
+
+    const req = httpMock.expectOne('/api/event-locations/5');
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.body).toEqual({
+      eventId: 1,
+      type: 'RESTAURANT',
+      name: 'Pizzeria Da Miro (Tisch reserviert)',
+      address: 'Kleine Straße 3',
+      note: 'Tisch für 8 Personen',
+      phone: null,
+      mapsUrl: null,
+    });
+    req.flush({
+      id: 5,
+      eventId: 1,
+      type: 'RESTAURANT',
+      name: 'Pizzeria Da Miro (Tisch reserviert)',
+      address: 'Kleine Straße 3',
+      note: 'Tisch für 8 Personen',
+      phone: null,
+      mapsUrl: null,
+    });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Pizzeria Da Miro (Tisch reserviert)');
+    expect(fixture.nativeElement.textContent).toContain('Ort gespeichert.');
+  });
+
+  it('should show an empty state when the concert has no locations', () => {
+    const fixture = setup('1');
+    loadConcertWithLocations(fixture, []);
+
+    expect(fixture.nativeElement.textContent).toContain('Noch keine Orte für diesen Gig erfasst.');
+  });
+
+  it('should remove a location after confirmation', () => {
+    const fixture = setup('1');
+    loadConcertWithLocations(fixture, [
+      {
+        id: 7,
+        eventId: 1,
+        type: 'VENUE',
+        name: 'Klangbar Hamburg',
+        address: 'Reeperbahn 42',
+        note: null,
+        phone: null,
+        mapsUrl: null,
+      },
+    ]);
+
+    const buttons = fixture.nativeElement.querySelectorAll(
+      '.panel--locations .sched__btn',
+    ) as NodeListOf<HTMLButtonElement>;
+    buttons[1].click();
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('.panel--locations .sched__btn--danger') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const req = httpMock.expectOne('/api/event-locations/7');
+    expect(req.request.method).toBe('DELETE');
+    req.flush(null, { status: 204, statusText: 'No Content' });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Ort entfernt.');
+    expect(fixture.nativeElement.textContent).toContain('Noch keine Orte für diesen Gig erfasst.');
   });
 });
     

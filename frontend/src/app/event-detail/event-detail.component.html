@@ -21,18 +21,18 @@
 
     @if (event.type === 'CONCERT') {
       <div
+        #board
         class="board"
         cdkDropList
-        cdkDropListOrientation="vertical"
         (cdkDropListDropped)="onPanelDrop($event)"
       >
         @for (panelKey of panelOrder(); track panelKey) {
           @switch (panelKey) {
             @case ('members') {
               <section class="panel panel--members" cdkDrag>
-                <div class="panel__head">
+                <div class="panel__head" cdkDragHandle>
                   <span class="panel__head-left">
-                    <span class="panel__drag" cdkDragHandle aria-label="Kachel verschieben">&vellip;</span>
+                    <span class="panel__drag" aria-hidden="true">&#8942;&#8942;</span>
                     <button
                       type="button"
                       class="panel__title-btn"
@@ -64,10 +64,43 @@
                           {{ confirmedCount() }} von {{ participations().length }} bestätigt
                         </span>
                       }
-                      <button type="button" class="members__add" (click)="togglePicker()">
-                        Musiker:in hinzufügen
-                      </button>
+                      @if (canManageMembers()) {
+                        <button type="button" class="members__add" (click)="togglePicker()">
+                          Musiker:in hinzufügen
+                        </button>
+                      }
                     </div>
+
+                    @if (canSelfJoin()) {
+                      <div class="members__self">
+                        @if (myParticipation(); as mine) {
+                          <label class="sr-only" for="self-status">Meine Zusage</label>
+                          <select
+                            id="self-status"
+                            class="member__status"
+                            [value]="mine.status"
+                            [disabled]="selfSaving()"
+                            (change)="changeOwnStatus($any($event.target).value)"
+                          >
+                            @for (status of statusOptions; track status) {
+                              <option [value]="status">{{ statusLabel(status) }}</option>
+                            }
+                          </select>
+                          <span class="members__self-hint">
+                            Dein Status: {{ statusLabel(mine.status) }}
+                          </span>
+                        } @else {
+                          <button
+                            type="button"
+                            class="members__add members__add--primary"
+                            (click)="joinSelf()"
+                            [disabled]="selfSaving()"
+                          >
+                            Ich mache mit
+                          </button>
+                        }
+                      </div>
+                    }
 
                     @if (participationFeedback(); as feedback) {
                       <p class="members__feedback" role="status">{{ feedback }}</p>
@@ -216,9 +249,9 @@
             }
             @case ('setlist') {
               <section class="panel panel--setlist panel--open" cdkDrag>
-                <div class="panel__head">
+                <div class="panel__head" cdkDragHandle>
                   <span class="panel__head-left">
-                    <span class="panel__drag" cdkDragHandle aria-label="Kachel verschieben">&vellip;</span>
+                    <span class="panel__drag" aria-hidden="true">&#8942;&#8942;</span>
                     <button
                       type="button"
                       class="panel__title-btn"
@@ -249,8 +282,38 @@
                         @for (entry of entries(); track entry.id; let i = $index) {
                           <li class="entry" cdkDrag>
                             <span class="entry__pos">{{ i + 1 }}</span>
-                            <span class="entry__title">{{ entry.pieceTitle }}</span>
+                            <span class="entry__title">
+                              {{ entry.pieceTitle }}
+                              @if (entry.hasSheetPdf) {
+                                <span class="entry__sheet" aria-label="Noten-PDF vorhanden">PDF</span>
+                              }
+                            </span>
                             <span class="entry__actions">
+                              @if (entry.hasSheetPdf) {
+                                <button
+                                  type="button"
+                                  class="entry__btn entry__btn--pdf"
+                                  (click)="openSheetPdf(entry)"
+                                  [disabled]="sheetUploading()[entry.pieceId]"
+                                  aria-label="Noten öffnen"
+                                >Öffnen</button>
+                                @if (canUploadSheets()) {
+                                  <button
+                                    type="button"
+                                    class="entry__btn entry__btn--danger"
+                                    (click)="removeSheetPdf(entry)"
+                                    [disabled]="sheetUploading()[entry.pieceId]"
+                                    aria-label="Noten entfernen"
+                                  >&times;</button>
+                                }
+                              } @else if (canUploadSheets()) {
+                                <button
+                                  type="button"
+                                  class="entry__btn entry__btn--pdf"
+                                  (click)="selectSheetPdf(entry)"
+                                  aria-label="Noten hochladen"
+                                >PDF laden</button>
+                              }
                               <button
                                 type="button"
                                 class="entry__btn"
@@ -277,6 +340,21 @@
                       </ol>
                     }
 
+                    @if (sheetFeedback(); as feedback) {
+                      <p class="panel__note" role="status">{{ feedback }}</p>
+                    }
+                    @if (sheetError(); as message) {
+                      <p class="panel__note panel__note--error" role="alert">{{ message }}</p>
+                    }
+
+                    <input
+                      #pdfInput
+                      class="sr-only"
+                      type="file"
+                      accept=".pdf,application/pdf"
+                      (change)="onSheetFileSelected($event)"
+                    />
+
                     <form class="setlist__add">
                       <label class="sr-only" for="piece-title">Neues Stück</label>
                       <input
@@ -300,9 +378,9 @@
             }
             @case ('rehearsals') {
               <section class="panel panel--rehearsals" cdkDrag>
-                <div class="panel__head">
+                <div class="panel__head" cdkDragHandle>
                   <span class="panel__head-left">
-                    <span class="panel__drag" cdkDragHandle aria-label="Kachel verschieben">&vellip;</span>
+                    <span class="panel__drag" aria-hidden="true">&#8942;&#8942;</span>
                     <button
                       type="button"
                       class="panel__title-btn"
@@ -464,9 +542,9 @@
             }
             @case ('equipment') {
               <section class="panel panel--equipment" cdkDrag>
-                <div class="panel__head">
+                <div class="panel__head" cdkDragHandle>
                   <span class="panel__head-left">
-                    <span class="panel__drag" cdkDragHandle aria-label="Kachel verschieben">&vellip;</span>
+                    <span class="panel__drag" aria-hidden="true">&#8942;&#8942;</span>
                     <button
                       type="button"
                       class="panel__title-btn"
@@ -658,11 +736,204 @@
                 }
               </section>
             }
+            @case ('locations') {
+              <section class="panel panel--locations" cdkDrag>
+                <div class="panel__head" cdkDragHandle>
+                  <span class="panel__head-left">
+                    <span class="panel__drag" aria-hidden="true">&#8942;&#8942;</span>
+                    <button
+                      type="button"
+                      class="panel__title-btn"
+                      (click)="togglePanel('locations')"
+                      [attr.aria-expanded]="!isCollapsed('locations')"
+                    >
+                      <h2 class="panel__title">Orte & Logistik</h2>
+                    </button>
+                  </span>
+                  <button
+                    type="button"
+                    class="panel__collapse"
+                    (click)="togglePanel('locations')"
+                    [attr.aria-expanded]="!isCollapsed('locations')"
+                  >{{ isCollapsed('locations') ? 'Öffnen' : 'Einklappen' }}</button>
+                </div>
+
+                @if (!isCollapsed('locations')) {
+                  @if (locationsLoading()) {
+                    <p class="panel__note">Orte werden geladen …</p>
+                  } @else if (locationsError(); as message) {
+                    <p class="panel__note panel__note--error" role="alert">{{ message }}</p>
+                  } @else {
+                    <div class="schedule__bar">
+                      <button
+                        type="button"
+                        class="schedule__add"
+                        (click)="toggleLocationForm()"
+                        [attr.aria-expanded]="locationFormOpen()"
+                      >
+                        {{ locationFormOpen() ? 'Formular schließen' : 'Ort hinzufügen' }}
+                      </button>
+                    </div>
+
+                    @if (locationsFeedback(); as feedback) {
+                      <p class="schedule__feedback" role="status">{{ feedback }}</p>
+                    }
+                    @if (locationsError(); as message) {
+                      <p class="schedule__feedback schedule__feedback--error" role="alert">{{ message }}</p>
+                    }
+
+                    @if (locationFormOpen()) {
+                      <form class="picker__new" (ngSubmit)="saveLocation()">
+                        <label class="sr-only" for="location-type">Ortstyp</label>
+                        <select
+                          id="location-type"
+                          class="picker__input locations__select"
+                          [value]="locationType()"
+                          (change)="onLocationType($event)"
+                        >
+                          <option value="" disabled>Ortstyp wählen</option>
+                          @for (option of locationTypes; track option.value) {
+                            <option [value]="option.value">{{ option.label }}</option>
+                          }
+                        </select>
+
+                        <label class="sr-only" for="location-name">Name</label>
+                        <input
+                          id="location-name"
+                          class="picker__input"
+                          [value]="locationName()"
+                          (input)="onLocationName($event)"
+                          placeholder="Name"
+                          required
+                        />
+
+                        <label class="sr-only" for="location-address">Adresse</label>
+                        <input
+                          id="location-address"
+                          class="picker__input"
+                          [value]="locationAddress()"
+                          (input)="onLocationAddress($event)"
+                          placeholder="Adresse"
+                          required
+                        />
+
+                        <label class="sr-only" for="location-note">Notiz (optional)</label>
+                        <input
+                          id="location-note"
+                          class="picker__input"
+                          [value]="locationNote()"
+                          (input)="onLocationNote($event)"
+                          placeholder="Notiz (optional)"
+                        />
+
+                        <label class="sr-only" for="location-phone">Telefonnummer (optional)</label>
+                        <input
+                          id="location-phone"
+                          class="picker__input"
+                          [value]="locationPhone()"
+                          (input)="onLocationPhone($event)"
+                          placeholder="Telefonnummer (optional)"
+                        />
+
+                        <label class="sr-only" for="location-maps">Karten-Link (optional)</label>
+                        <input
+                          id="location-maps"
+                          class="picker__input"
+                          [value]="locationMapsUrl()"
+                          (input)="onLocationMapsUrl($event)"
+                          placeholder="Karten-Link (optional)"
+                        />
+
+                        <div class="locations__form-actions">
+                          <button
+                            type="submit"
+                            class="picker__submit"
+                            [disabled]="!canSaveLocation()"
+                          >
+                            {{ editingLocationId() != null ? 'Speichern' : 'Hinzufügen' }}
+                          </button>
+                          @if (editingLocationId() != null) {
+                            <button
+                              type="button"
+                              class="sched__btn"
+                              (click)="cancelLocationEdit()"
+                            >Abbrechen</button>
+                          }
+                        </div>
+                      </form>
+                    }
+
+                    @if (locations().length === 0) {
+                      <p class="panel__note">Noch keine Orte für diesen Gig erfasst.</p>
+                    } @else {
+                      <ul class="locations">
+                        @for (location of locations(); track location.id) {
+                          <li class="loc">
+                            <div class="loc__main">
+                              <span class="loc__type">{{ locationTypeLabel(location.type) }}</span>
+                              <span class="loc__name">{{ location.name }}</span>
+                            </div>
+
+                            <div class="loc__meta">
+                              <span class="loc__address">{{ location.address }}</span>
+                              <a
+                                class="loc__map"
+                                [href]="mapsLink(location)"
+                                target="_blank"
+                                rel="noopener"
+                              >Karte öffnen</a>
+                              @if (location.phone) {
+                                <span class="loc__phone">Tel: {{ location.phone }}</span>
+                              }
+                            </div>
+
+                            @if (location.note) {
+                              <p class="loc__note">{{ location.note }}</p>
+                            }
+
+                            <div class="sched__actions">
+                              <button
+                                type="button"
+                                class="sched__btn"
+                                (click)="startEditLocation(location)"
+                                [disabled]="locationsSaving()[location.id]"
+                              >Bearbeiten</button>
+                              @if (!confirmingLocationRemoval()[location.id]) {
+                                <button
+                                  type="button"
+                                  class="sched__btn"
+                                  (click)="requestRemoveLocation(location)"
+                                  [disabled]="locationsSaving()[location.id]"
+                                >Entfernen</button>
+                              } @else {
+                                <span class="locations__confirm">
+                                  <button
+                                    type="button"
+                                    class="sched__btn sched__btn--danger"
+                                    (click)="confirmRemoveLocation(location)"
+                                    [disabled]="locationsSaving()[location.id]"
+                                  >Wirklich?</button>
+                                  <button
+                                    type="button"
+                                    class="sched__btn"
+                                    (click)="cancelRemoveLocation(location)"
+                                  >Abbrechen</button>
+                                </span>
+                              }
+                            </div>
+                          </li>
+                        }
+                      </ul>
+                    }
+                  }
+                }
+              </section>
+            }
             @case ('schedule') {
               <section class="panel panel--schedule" cdkDrag>
-                <div class="panel__head">
+                <div class="panel__head" cdkDragHandle>
                   <span class="panel__head-left">
-                    <span class="panel__drag" cdkDragHandle aria-label="Kachel verschieben">&vellip;</span>
+                    <span class="panel__drag" aria-hidden="true">&#8942;&#8942;</span>
                     <button
                       type="button"
                       class="panel__title-btn"
@@ -706,15 +977,32 @@
 
                     @if (scheduleFormOpen()) {
                       <form class="schedule__new" (ngSubmit)="saveScheduleItem()">
-                        <label class="sr-only" for="schedule-label">Bezeichnung</label>
-                        <input
-                          id="schedule-label"
-                          class="schedule__input"
-                          [value]="scheduleLabel()"
-                          (input)="onScheduleLabel($event)"
-                          placeholder="z. B. Soundcheck"
-                          required
-                        />
+                        <label class="sr-only" for="schedule-type">Ablaufart</label>
+                        <select
+                          id="schedule-type"
+                          class="schedule__select"
+                          [value]="scheduleType()"
+                          (change)="onScheduleType($event)"
+                        >
+                          <option value="" disabled>Ablaufart wählen</option>
+                          @for (preset of schedulePresets; track preset) {
+                            <option [value]="preset">{{ preset }}</option>
+                          }
+                          <option [value]="'custom'">Eigener Eintrag</option>
+                        </select>
+
+                        @if (scheduleType() === 'custom') {
+                          <label class="sr-only" for="schedule-custom">Eigener Eintrag</label>
+                          <input
+                            id="schedule-custom"
+                            class="schedule__input schedule__input--custom"
+                            [value]="scheduleCustom()"
+                            (input)="onScheduleCustom($event)"
+                            placeholder="Eigener Eintrag"
+                            required
+                          />
+                        }
+
                         <label class="sr-only" for="schedule-time">Uhrzeit</label>
                         <input
                           id="schedule-time"
@@ -747,57 +1035,21 @@
                       <ol class="schedule">
                         @for (item of scheduleItems(); track item.id) {
                           <li class="sched">
-                            <span class="sched__time">
-                              @if (editingScheduleId() === item.id) {
-                                <input
-                                  class="sched__edit-time"
-                                  type="time"
-                                  [value]="scheduleTime()"
-                                  (input)="onScheduleTime($event)"
-                                  aria-label="Uhrzeit bearbeiten"
-                                />
-                              } @else {
-                                {{ item.time }}
-                              }
-                            </span>
-
-                            @if (editingScheduleId() === item.id) {
-                              <input
-                                class="sched__edit-label"
-                                [value]="scheduleLabel()"
-                                (input)="onScheduleLabel($event)"
-                                aria-label="Bezeichnung bearbeiten"
-                              />
-                            } @else {
-                              <span class="sched__label">{{ item.label }}</span>
-                            }
-
+                            <span class="sched__time">{{ item.time }}</span>
+                            <span class="sched__label">{{ item.label }}</span>
                             <span class="sched__actions">
-                              @if (editingScheduleId() !== item.id) {
-                                <button
-                                  type="button"
-                                  class="sched__btn"
-                                  (click)="startEditSchedule(item)"
-                                  [disabled]="scheduleSaving()[item.id]"
-                                >Bearbeiten</button>
-                                <button
-                                  type="button"
-                                  class="sched__btn sched__btn--danger"
-                                  (click)="requestRemoveSchedule(item)"
-                                  [disabled]="scheduleSaving()[item.id]"
-                                >{{ scheduleSaving()[item.id] ? 'Entfernen …' : 'Entfernen' }}</button>
-                              } @else {
-                                <button
-                                  type="button"
-                                  class="sched__btn sched__btn--primary"
-                                  (click)="saveScheduleItem()"
-                                >Speichern</button>
-                                <button
-                                  type="button"
-                                  class="sched__btn"
-                                  (click)="cancelScheduleEdit()"
-                                >Abbrechen</button>
-                              }
+                              <button
+                                type="button"
+                                class="sched__btn"
+                                (click)="startEditSchedule(item)"
+                                [disabled]="scheduleSaving()[item.id]"
+                              >Bearbeiten</button>
+                              <button
+                                type="button"
+                                class="sched__btn sched__btn--danger"
+                                (click)="requestRemoveSchedule(item)"
+                                [disabled]="scheduleSaving()[item.id]"
+                              >{{ scheduleSaving()[item.id] ? 'Entfernen …' : 'Entfernen' }}</button>
                             </span>
                           </li>
                         }
@@ -809,9 +1061,9 @@
             }
             @default {
               <section class="panel" cdkDrag>
-                <div class="panel__head">
+                <div class="panel__head" cdkDragHandle>
                   <span class="panel__head-left">
-                    <span class="panel__drag" cdkDragHandle aria-label="Kachel verschieben">&vellip;</span>
+                    <span class="panel__drag" aria-hidden="true">&#8942;&#8942;</span>
                     <button
                       type="button"
                       class="panel__title-btn"
@@ -844,3 +1096,11 @@
     }
   }
 </section>
+
+@if (sheetFile(); as file) {
+  <app-sheet-viewer
+    [file]="file"
+    [title]="openSheetTitle() ?? ''"
+    (closeRequested)="closeSheet()"
+  ></app-sheet-viewer>
+}

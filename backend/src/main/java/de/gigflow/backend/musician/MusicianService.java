@@ -24,6 +24,14 @@ public class MusicianService {
         return MusicianResponse.from(musicianRepository.save(musician));
     }
 
+    public Musician createMusicianEntity(String firstName, String lastName, String instrument) {
+        Musician musician = new Musician();
+        musician.setFirstName(firstName);
+        musician.setLastName(lastName);
+        musician.setInstrument(instrument);
+        return musicianRepository.save(musician);
+    }
+
     public Optional<MusicianResponse> findMusicianById(Long id) {
         return musicianRepository.findById(id).map(MusicianResponse::from);
     }

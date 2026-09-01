@@ -1,15 +1,17 @@
 package de.gigflow.backend.event;
 
+import de.gigflow.backend.user.AuthenticatedUser;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -20,9 +22,11 @@ import java.util.Optional;
 public class EventController {
 
     private final EventService eventService;
+    private final EventParticipationService participationService;
 
-    public EventController(EventService eventService) {
+    public EventController(EventService eventService, EventParticipationService participationService) {
         this.eventService = eventService;
+        this.participationService = participationService;
     }
 
     @GetMapping
@@ -58,6 +62,24 @@ public class EventController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    /**
+     * Lets the logged-in musician register themselves for an event (status ACCEPTED).
+     */
+    @PostMapping("/{id}/join")
+    public ResponseEntity<?> joinEvent(@PathVariable Long id,
+                                       @AuthenticationPrincipal AuthenticatedUser currentUser) {
+        if (currentUser == null || currentUser.musicianId() == null) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ErrorBody("Kein Musiker-Konto verknüpft."));
+        }
+        try {
+            EventParticipationResponseDto joined = participationService.joinSelf(id, currentUser.musicianId());
+            return ResponseEntity.status(HttpStatus.CREATED).body(joined);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
     @PostMapping
     public ResponseEntity<EventResponse> createEvent(@Valid @RequestBody EventRequest request) {
         try {
@@ -82,5 +104,21 @@ public class EventController {
     public ResponseEntity<Void> deleteEvent(@PathVariable Long id) {
         eventService.deleteEvent(id);
         return ResponseEntity.noContent().build();
+    }
+
+    public static class ErrorBody {
+        private String message;
+
+        public ErrorBody(String message) {
+            this.message = message;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public void setMessage(String message) {
+            this.message = message;
+        }
     }
 }

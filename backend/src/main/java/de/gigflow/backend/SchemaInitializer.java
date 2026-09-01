@@ -29,6 +29,7 @@ public class SchemaInitializer implements CommandLineRunner {
         apply(List.of(
                 "alter table musicians add column if not exists email_public boolean not null default false",
                 "alter table events add column if not exists panel_layout varchar(2000)",
+                "alter table users add column if not exists organizer boolean not null default false",
                 // Convert equipment_requirement booleans to tri-state enum values.
                 // On a fresh DB ddl-auto creates these as varchar; the boolean forms
                 // only match the pre-existing boolean columns and are otherwise ignored.

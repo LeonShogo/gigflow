@@ -9,6 +9,7 @@ export interface SetlistEntry {
   pieceId: number;
   pieceTitle: string;
   position: number;
+  hasSheetPdf?: boolean;
 }
 
 export interface PieceRequest {
@@ -18,6 +19,7 @@ export interface PieceRequest {
 export interface Piece {
   id: number;
   title: string;
+  hasSheetPdf?: boolean;
 }
 
 export interface SetlistEntryRequest {

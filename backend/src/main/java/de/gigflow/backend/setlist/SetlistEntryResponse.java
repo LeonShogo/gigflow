@@ -6,6 +6,7 @@ public class SetlistEntryResponse {
     private Long setlistId;
     private Long pieceId;
     private String pieceTitle;
+    private boolean hasSheetPdf;
     private int position;
 
     public static SetlistEntryResponse from(SetlistEntry entry) {
@@ -17,6 +18,7 @@ public class SetlistEntryResponse {
         if (entry.getPiece() != null) {
             response.setPieceId(entry.getPiece().getId());
             response.setPieceTitle(entry.getPiece().getTitle());
+            response.setHasSheetPdf(entry.getPiece().getSheetPdfPath() != null);
         }
         response.setPosition(entry.getPosition());
         return response;
@@ -52,6 +54,14 @@ public class SetlistEntryResponse {
 
     public void setPieceTitle(String pieceTitle) {
         this.pieceTitle = pieceTitle;
+    }
+
+    public boolean getHasSheetPdf() {
+        return hasSheetPdf;
+    }
+
+    public void setHasSheetPdf(boolean hasSheetPdf) {
+        this.hasSheetPdf = hasSheetPdf;
     }
 
     public int getPosition() {

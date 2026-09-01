@@ -24,6 +24,10 @@ export class EventParticipationService {
     return this.http.post<EventParticipation>('/api/event-participations', request);
   }
 
+  joinSelf(eventId: number): Observable<EventParticipation> {
+    return this.http.post<EventParticipation>(`/api/events/${eventId}/join`, null);
+  }
+
   update(id: number, request: ParticipationRequest): Observable<EventParticipation> {
     return this.http.put<EventParticipation>(`/api/event-participations/${id}`, request);
   }

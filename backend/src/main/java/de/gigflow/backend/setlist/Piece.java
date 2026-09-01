@@ -20,6 +20,14 @@ public class Piece {
     @Column(nullable = false)
     private String title;
 
+    /** Stored filename of the sheet music PDF, relative to the upload directory. Null when absent. */
+    @Column(name = "sheet_pdf_path")
+    private String sheetPdfPath;
+
+    /** Original name of the uploaded PDF, used for the download Content-Disposition. */
+    @Column(name = "sheet_pdf_original_name")
+    private String sheetPdfOriginalName;
+
     public Long getId() {
         return id;
     }
@@ -34,5 +42,21 @@ public class Piece {
 
     public void setTitle(String title) {
         this.title = title;
+    }
+
+    public String getSheetPdfPath() {
+        return sheetPdfPath;
+    }
+
+    public void setSheetPdfPath(String sheetPdfPath) {
+        this.sheetPdfPath = sheetPdfPath;
+    }
+
+    public String getSheetPdfOriginalName() {
+        return sheetPdfOriginalName;
+    }
+
+    public void setSheetPdfOriginalName(String sheetPdfOriginalName) {
+        this.sheetPdfOriginalName = sheetPdfOriginalName;
     }
 }

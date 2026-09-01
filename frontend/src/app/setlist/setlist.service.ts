@@ -51,4 +51,18 @@ export class SetlistService {
       position,
     });
   }
+
+  uploadSheetPdf(pieceId: number, file: File): Observable<Piece> {
+    const formData = new FormData();
+    formData.append('file', file, file.name);
+    return this.http.post<Piece>(`/api/pieces/${pieceId}/sheet-pdf`, formData);
+  }
+
+  downloadSheetPdf(pieceId: number): Observable<Blob> {
+    return this.http.get(`/api/pieces/${pieceId}/sheet-pdf`, { responseType: 'blob' });
+  }
+
+  removeSheetPdf(pieceId: number): Observable<void> {
+    return this.http.delete<void>(`/api/pieces/${pieceId}/sheet-pdf`);
+  }
 }

@@ -1,1 +1,20 @@
+<header class="shell">
+  <div class="shell__brand">
+    <a routerLink="/" class="shell__logo">GigFlow</a>
+  </div>
+  <div class="shell__auth">
+    @if (isAuthenticated()) {
+      <span class="shell__user">
+        @if (isOrganizer()) {
+          <span class="shell__badge">Organizer</span>
+        }
+        {{ currentUser()?.email }}
+      </span>
+      <button type="button" class="shell__link" (click)="logout()">Abmelden</button>
+    } @else {
+      <a routerLink="/login" class="shell__link">Anmelden</a>
+    }
+  </div>
+</header>
+
 <router-outlet />

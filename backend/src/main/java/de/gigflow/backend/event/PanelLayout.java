@@ -20,7 +20,7 @@ import java.util.Set;
 public class PanelLayout {
 
     public static final List<String> DEFAULT_ORDER = List.of(
-            "members", "setlist", "rehearsals", "equipment", "schedule"
+            "members", "setlist", "rehearsals", "equipment", "locations", "schedule"
     );
 
     private static final String SECTION_SEPARATOR = "|";

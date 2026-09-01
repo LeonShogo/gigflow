@@ -1,7 +1,18 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  ViewChild,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { forkJoin, filter, map, switchMap, tap } from 'rxjs';
+
+import { SheetViewerComponent } from './sheet-viewer.component';
 
 import { formatDate, formatTime, typeLabel } from '../event-format';
 import type {
@@ -17,7 +28,7 @@ import {
 } from '../dashboard/event-participation.service';
 import type { Musician } from '../musicians/musician.model';
 import { MusicianService } from '../musicians/musician.service';
-import type { SetlistEntry } from '../setlist/setlist.model';
+import type { Piece, SetlistEntry } from '../setlist/setlist.model';
 import { SetlistService } from '../setlist/setlist.service';
 import type {
   Equipment,
@@ -31,19 +42,24 @@ import {
 } from '../equipment/equipment.service';
 import type { ScheduleItem, ScheduleItemRequest } from '../schedule/schedule.model';
 import { ScheduleService } from '../schedule/schedule.service';
+import type { EventLocation, LocationRequest, LocationType } from '../location/location.model';
+import { LOCATION_TYPES } from '../location/location.model';
+import { LocationService } from '../location/location.service';
+import { AuthService } from '../auth/auth.service';
 
 interface PanelMeta {
   title: string;
   description?: string;
 }
 
-const PANEL_ORDER_DEFAULT = ['members', 'setlist', 'rehearsals', 'equipment', 'schedule'];
+const PANEL_ORDER_DEFAULT = ['members', 'setlist', 'rehearsals', 'equipment', 'locations', 'schedule'];
 
 const PANEL_META: Record<string, PanelMeta> = {
   members: { title: 'Musiker / Zusagen' },
   setlist: { title: 'Setlist' },
   rehearsals: { title: 'Proben zu diesem Gig' },
   equipment: { title: 'Equipment', description: 'Instrumente & Technik' },
+  locations: { title: 'Orte & Logistik', description: 'Venue, Hotel, Catering & Treffpunkte' },
   schedule: { title: 'Ablauf / Zeiten', description: 'Aufbau, Soundcheck, Auftritt, Abbau' },
 };
 
@@ -53,9 +69,28 @@ const STATUS_LABELS: Record<ParticipationStatus, string> = {
   DECLINED: 'Abgesagt',
 };
 
+const SCHEDULE_CUSTOM = 'custom';
+
+const SCHEDULE_PRESETS = [
+  'Abfahrt',
+  'Ankunft',
+  'Hotel Check-in',
+  'Aufbau',
+  'Catering',
+  'Soundcheck',
+  'Einlass',
+  'Erstes Set',
+  'Pause',
+  'Zweites Set',
+  'Zugabe',
+  'Abbau',
+  'Hotel Check-out',
+  'Rückfahrt',
+];
+
 @Component({
   selector: 'app-event-detail',
-  imports: [RouterLink, DragDropModule],
+  imports: [RouterLink, FormsModule, DragDropModule, SheetViewerComponent],
   templateUrl: './event-detail.component.html',
   styleUrl: './event-detail.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -69,6 +104,8 @@ export class EventDetailComponent {
   private readonly equipmentService = inject(EquipmentService);
   private readonly equipmentRequirementService = inject(EquipmentRequirementService);
   private readonly scheduleService = inject(ScheduleService);
+  private readonly locationService = inject(LocationService);
+  protected readonly auth = inject(AuthService);
 
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
@@ -106,10 +143,23 @@ export class EventDetailComponent {
       this.newLastName().trim().length > 0,
   );
   protected readonly statusOptions: ParticipationStatus[] = ['INVITED', 'ACCEPTED', 'DECLINED'];
+  protected readonly canManageMembers = computed(() => this.auth.isOrganizer());
+  protected readonly canSelfJoin = computed(
+    () => this.auth.isAuthenticated() && this.auth.musicianId() != null,
+  );
+  protected readonly myMusicianId = computed(() => this.auth.musicianId());
+  protected readonly myParticipation = computed(() => {
+    const musicianId = this.myMusicianId();
+    if (musicianId == null) {
+      return null;
+    }
+    return this.participations().find((p) => p.musicianId === musicianId) ?? null;
+  });
+  protected readonly selfSaving = signal(false);
 
   protected readonly panelOrder = signal<string[]>(PANEL_ORDER_DEFAULT);
-  protected readonly panelCollapsed = signal<Record<string, boolean>>({});
-  protected readonly layoutLoading = signal(false);
+  @ViewChild('board') protected readonly boardRef?: ElementRef<HTMLDivElement>;
+  protected readonly panelCollapsed = signal<Record<string, boolean>>({});  protected readonly layoutLoading = signal(false);
   protected readonly layoutError = signal<string | null>(null);
 
   protected readonly setlistLoading = signal(false);
@@ -119,6 +169,15 @@ export class EventDetailComponent {
   protected readonly adding = signal(false);
   protected readonly newTitle = signal('');
   protected readonly canAdd = computed(() => this.adding() || !this.newTitle().trim());
+
+  protected readonly canUploadSheets = computed(() => this.auth.isOrganizer());
+  protected readonly sheetUploading = signal<Record<number, boolean>>({});
+  protected readonly sheetFeedback = signal<string | null>(null);
+  protected readonly sheetError = signal<string | null>(null);
+  protected readonly sheetFile = signal<File | null>(null);
+  protected readonly openSheetTitle = signal<string | null>(null);
+  protected pendingPdfPieceId = signal<number | null>(null);
+  @ViewChild('pdfInput') protected readonly pdfInputRef?: ElementRef<HTMLInputElement>;
 
   protected readonly rehearsals = signal<EventItem[]>([]);
   protected readonly rehearsalsLoading = signal(false);
@@ -183,10 +242,41 @@ export class EventDetailComponent {
   protected readonly scheduleFeedback = signal<string | null>(null);
   protected readonly scheduleFormOpen = signal(false);
   protected readonly editingScheduleId = signal<number | null>(null);
-  protected readonly scheduleLabel = signal('');
+  protected readonly scheduleType = signal('');
+  protected readonly scheduleCustom = signal('');
   protected readonly scheduleTime = signal('');
-  protected readonly canSaveSchedule = computed(
-    () => this.scheduleLabel().trim().length > 0 && this.scheduleTime().length > 0,
+  protected readonly canSaveSchedule = computed(() => {
+    if (!this.scheduleTime().length || !this.scheduleType()) {
+      return false;
+    }
+    if (this.scheduleType() === SCHEDULE_CUSTOM) {
+      return this.scheduleCustom().trim().length > 0;
+    }
+    return this.schedulePresets.includes(this.scheduleType());
+  });
+  protected readonly schedulePresets = SCHEDULE_PRESETS;
+
+  protected readonly locations = signal<EventLocation[]>([]);
+  protected readonly locationsLoading = signal(false);
+  protected readonly locationsError = signal<string | null>(null);
+  protected readonly locationsFeedback = signal<string | null>(null);
+  protected readonly locationsSaving = signal<Record<number, boolean>>({});
+  protected readonly confirmingLocationRemoval = signal<Record<number, boolean>>({});
+  protected readonly locationFormOpen = signal(false);
+  protected readonly editingLocationId = signal<number | null>(null);
+  protected readonly locationType = signal<LocationType | ''>('');
+  protected readonly locationName = signal('');
+  protected readonly locationAddress = signal('');
+  protected readonly locationNote = signal('');
+  protected readonly locationPhone = signal('');
+  protected readonly locationMapsUrl = signal('');
+  protected readonly locationTypes = LOCATION_TYPES;
+  protected readonly canSaveLocation = computed(
+    () =>
+      !this.locationsSaving()[-1] &&
+      this.locationType() !== '' &&
+      this.locationName().trim().length > 0 &&
+      this.locationAddress().trim().length > 0,
   );
 
   constructor() {
@@ -211,6 +301,7 @@ export class EventDetailComponent {
             this.loadPanelLayout(event.id);
             this.loadRequirements(event.id);
             this.loadScheduleItems(event.id);
+            this.loadLocations(event.id);
           }
         },
         error: () => {
@@ -309,6 +400,59 @@ export class EventDetailComponent {
     if (this.musicians().length === 0) {
       this.loadMusicians();
     }
+  }
+
+  protected joinSelf(): void {
+    const event = this.event();
+    if (!event || this.selfSaving()) {
+      return;
+    }
+    this.selfSaving.set(true);
+    this.participationError.set(null);
+    this.participationFeedback.set(null);
+    this.participationService.joinSelf(event.id).subscribe({
+      next: (created) => {
+        this.selfSaving.set(false);
+        this.participations.update((list) => [...list, created]);
+        this.participationFeedback.set('Teilnahme bestätigt.');
+      },
+      error: () => {
+        this.selfSaving.set(false);
+        this.participationError.set('Teilnahme fehlgeschlagen.');
+      },
+    });
+  }
+
+  protected changeOwnStatus(value: string): void {
+    const participation = this.myParticipation();
+    if (!participation || this.selfSaving()) {
+      return;
+    }
+    const status = value as ParticipationStatus;
+    if (!status || status === participation.status) {
+      return;
+    }
+    this.selfSaving.set(true);
+    this.participationError.set(null);
+    this.participationFeedback.set(null);
+    const request: ParticipationRequest = {
+      eventId: participation.eventId,
+      musicianId: participation.musicianId,
+      status,
+    };
+    this.participationService.update(participation.id, request).subscribe({
+      next: (updated) => {
+        this.selfSaving.set(false);
+        this.participations.update((list) =>
+          list.map((p) => (p.id === updated.id ? updated : p)),
+        );
+        this.participationFeedback.set('Deine Zusage wurde aktualisiert.');
+      },
+      error: () => {
+        this.selfSaving.set(false);
+        this.participationError.set('Zusage konnte nicht aktualisiert werden.');
+      },
+    });
   }
 
   private loadMusicians(): void {
@@ -431,14 +575,45 @@ export class EventDetailComponent {
 
   protected onPanelDrop(event: CdkDragDrop<string[]>): void {
     const order = this.panelOrder();
-    if (event.previousIndex === event.currentIndex) {
+    const targetIndex = this.resolvePanelTargetIndex(event);
+    if (event.previousIndex === targetIndex) {
       return;
     }
     const next = [...order];
-    const [moved] = next.splice(event.previousIndex, 1);
-    next.splice(event.currentIndex, 0, moved);
+    const tmp = next[event.previousIndex];
+    next[event.previousIndex] = next[targetIndex];
+    next[targetIndex] = tmp;
     this.panelOrder.set(next);
     this.saveLayout();
+  }
+
+  /**
+   * Determines which panel should be swapped with the dragged panel by matching
+   * the pointer position against the nearest panel's center. This is far more
+   * reliable than CDK's linear index in a responsive 2D grid (1/2/3 columns),
+   * where horizontal neighbours and backwards moves cause flickering.
+   */
+  private resolvePanelTargetIndex(event: CdkDragDrop<string[]>): number {
+    const panels = this.boardRef?.nativeElement?.querySelectorAll(':scope > .panel');
+    const count = panels?.length ?? 0;
+    if (!count) {
+      return event.currentIndex;
+    }
+    const x = event.dropPoint.x;
+    const y = event.dropPoint.y;
+    let best = event.currentIndex;
+    let bestDistance = Infinity;
+    for (let i = 0; i < count; i++) {
+      const rect = (panels![i] as HTMLElement).getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      const distance = Math.hypot(x - cx, y - cy);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        best = i;
+      }
+    }
+    return best;
   }
 
   private loadPanelLayout(eventId: number): void {
@@ -460,9 +635,16 @@ export class EventDetailComponent {
     order: string[];
     collapsed: Record<string, boolean>;
   }): void {
-    if (Array.isArray(layout.order) && layout.order.length > 0) {
-      this.panelOrder.set(layout.order);
+    const baseOrder = Array.isArray(layout.order) && layout.order.length > 0
+      ? layout.order.filter((key) => key !== 'sheet')
+      : [...PANEL_ORDER_DEFAULT];
+    const mergedOrder = [...baseOrder];
+    for (const key of PANEL_ORDER_DEFAULT) {
+      if (!mergedOrder.includes(key)) {
+        mergedOrder.push(key);
+      }
     }
+    this.panelOrder.set(mergedOrder);
     if (layout.collapsed) {
       this.panelCollapsed.set({ ...layout.collapsed });
     }
@@ -543,30 +725,48 @@ export class EventDetailComponent {
     }
     this.scheduleFormOpen.set(true);
     this.editingScheduleId.set(null);
-    this.scheduleLabel.set('');
+    this.scheduleType.set('');
+    this.scheduleCustom.set('');
     this.scheduleTime.set('');
   }
 
   protected startEditSchedule(item: ScheduleItem): void {
     this.editingScheduleId.set(item.id);
-    this.scheduleLabel.set(item.label);
     this.scheduleTime.set(item.time);
+    if (this.schedulePresets.includes(item.label)) {
+      this.scheduleType.set(item.label);
+      this.scheduleCustom.set('');
+    } else {
+      this.scheduleType.set(SCHEDULE_CUSTOM);
+      this.scheduleCustom.set(item.label);
+    }
     this.scheduleFormOpen.set(true);
   }
 
   protected cancelScheduleEdit(): void {
     this.scheduleFormOpen.set(false);
     this.editingScheduleId.set(null);
-    this.scheduleLabel.set('');
+    this.scheduleType.set('');
+    this.scheduleCustom.set('');
     this.scheduleTime.set('');
   }
 
-  protected onScheduleLabel(event: Event): void {
-    this.scheduleLabel.set((event.target as HTMLInputElement).value);
+  protected onScheduleType(event: Event): void {
+    this.scheduleType.set((event.target as HTMLSelectElement).value);
+  }
+
+  protected onScheduleCustom(event: Event): void {
+    this.scheduleCustom.set((event.target as HTMLInputElement).value);
   }
 
   protected onScheduleTime(event: Event): void {
     this.scheduleTime.set((event.target as HTMLInputElement).value);
+  }
+
+  private currentScheduleLabel(): string {
+    return this.scheduleType() === SCHEDULE_CUSTOM
+      ? this.scheduleCustom().trim()
+      : this.scheduleType();
   }
 
   protected saveScheduleItem(): void {
@@ -574,7 +774,7 @@ export class EventDetailComponent {
     if (!event || !this.canSaveSchedule()) {
       return;
     }
-    const label = this.scheduleLabel().trim();
+    const label = this.currentScheduleLabel();
     const time = this.scheduleTime();
     const editingId = this.editingScheduleId();
     this.scheduleError.set(null);
@@ -642,6 +842,179 @@ export class EventDetailComponent {
       error: () => {
         this.scheduleSaving.update((m) => ({ ...m, [item.id]: false }));
         this.scheduleError.set('Zeitpunkt konnte nicht entfernt werden.');
+      },
+    });
+  }
+
+  private loadLocations(eventId: number): void {
+    this.locationsLoading.set(true);
+    this.locationsError.set(null);
+    this.locationService.loadForEvent(eventId).subscribe({
+      next: (locations) => {
+        this.locations.set(locations);
+        this.locationsLoading.set(false);
+      },
+      error: () => {
+        this.locationsLoading.set(false);
+        this.locationsError.set('Orte konnten nicht geladen werden.');
+      },
+    });
+  }
+
+  protected locationTypeLabel(type: LocationType): string {
+    return LOCATION_TYPES.find((t) => t.value === type)?.label ?? type;
+  }
+
+  protected mapsLink(location: EventLocation): string {
+    const custom = location.mapsUrl?.trim();
+    if (custom) {
+      return custom;
+    }
+    const query = `${location.name}, ${location.address}`;
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+  }
+
+  protected toggleLocationForm(): void {
+    if (this.locationFormOpen()) {
+      this.locationFormOpen.set(false);
+      this.editingLocationId.set(null);
+      this.resetLocationForm();
+      return;
+    }
+    this.resetLocationForm();
+    this.locationFormOpen.set(true);
+  }
+
+  protected startEditLocation(location: EventLocation): void {
+    this.editingLocationId.set(location.id);
+    this.locationType.set(location.type);
+    this.locationName.set(location.name);
+    this.locationAddress.set(location.address);
+    this.locationNote.set(location.note ?? '');
+    this.locationPhone.set(location.phone ?? '');
+    this.locationMapsUrl.set(location.mapsUrl ?? '');
+    this.locationFormOpen.set(true);
+  }
+
+  protected cancelLocationEdit(): void {
+    this.locationFormOpen.set(false);
+    this.editingLocationId.set(null);
+    this.resetLocationForm();
+  }
+
+  private resetLocationForm(): void {
+    this.locationType.set('');
+    this.locationName.set('');
+    this.locationAddress.set('');
+    this.locationNote.set('');
+    this.locationPhone.set('');
+    this.locationMapsUrl.set('');
+    this.locationsError.set(null);
+  }
+
+  protected onLocationType(event: Event): void {
+    this.locationType.set((event.target as HTMLSelectElement).value as LocationType | '');
+  }
+
+  protected onLocationName(event: Event): void {
+    this.locationName.set((event.target as HTMLInputElement).value);
+  }
+
+  protected onLocationAddress(event: Event): void {
+    this.locationAddress.set((event.target as HTMLInputElement).value);
+  }
+
+  protected onLocationNote(event: Event): void {
+    this.locationNote.set((event.target as HTMLInputElement).value);
+  }
+
+  protected onLocationPhone(event: Event): void {
+    this.locationPhone.set((event.target as HTMLInputElement).value);
+  }
+
+  protected onLocationMapsUrl(event: Event): void {
+    this.locationMapsUrl.set((event.target as HTMLInputElement).value);
+  }
+
+  protected saveLocation(): void {
+    const event = this.event();
+    if (!event || !this.canSaveLocation()) {
+      return;
+    }
+    const request: LocationRequest = {
+      eventId: event.id,
+      type: this.locationType() as LocationType,
+      name: this.locationName().trim(),
+      address: this.locationAddress().trim(),
+      note: this.locationNote().trim() || null,
+      phone: this.locationPhone().trim() || null,
+      mapsUrl: this.locationMapsUrl().trim() || null,
+    };
+    const editingId = this.editingLocationId();
+    this.locationsError.set(null);
+    this.locationsFeedback.set(null);
+    if (editingId != null) {
+      this.locationsSaving.update((m) => ({ ...m, [editingId]: true }));
+      this.locationService.update(editingId, request).subscribe({
+        next: (updated) => {
+          this.locationsSaving.update((m) => ({ ...m, [editingId]: false }));
+          this.locations.update((list) =>
+            list.map((l) => (l.id === updated.id ? updated : l)),
+          );
+          this.cancelLocationEdit();
+          this.locationsFeedback.set('Ort gespeichert.');
+        },
+        error: () => {
+          this.locationsSaving.update((m) => ({ ...m, [editingId]: false }));
+          this.locationsError.set('Ort konnte nicht gespeichert werden.');
+        },
+      });
+      return;
+    }
+    this.locationsSaving.update((m) => ({ ...m, [-1]: true }));
+    this.locationService.create(request).subscribe({
+      next: (created) => {
+        this.locationsSaving.update((m) => {
+          const { [-1]: _remove, ...rest } = m;
+          return rest;
+        });
+        this.locations.update((list) => [...list, created]);
+        this.cancelLocationEdit();
+        this.locationsFeedback.set('Ort hinzugefügt.');
+      },
+      error: () => {
+        this.locationsSaving.update((m) => {
+          const { [-1]: _remove, ...rest } = m;
+          return rest;
+        });
+        this.locationsError.set('Ort konnte nicht hinzugefügt werden.');
+      },
+    });
+  }
+
+  protected requestRemoveLocation(location: EventLocation): void {
+    this.confirmingLocationRemoval.update((m) => ({ ...m, [location.id]: true }));
+  }
+
+  protected cancelRemoveLocation(location: EventLocation): void {
+    this.confirmingLocationRemoval.update((m) => ({ ...m, [location.id]: false }));
+  }
+
+  protected confirmRemoveLocation(location: EventLocation): void {
+    this.locationsSaving.update((m) => ({ ...m, [location.id]: true }));
+    this.locationsError.set(null);
+    this.locationsFeedback.set(null);
+    this.locationService.remove(location.id).subscribe({
+      next: () => {
+        this.locations.update((list) => list.filter((l) => l.id !== location.id));
+        this.locationsSaving.update((m) => ({ ...m, [location.id]: false }));
+        this.confirmingLocationRemoval.update((m) => ({ ...m, [location.id]: false }));
+        this.locationsFeedback.set('Ort entfernt.');
+      },
+      error: () => {
+        this.locationsSaving.update((m) => ({ ...m, [location.id]: false }));
+        this.confirmingLocationRemoval.update((m) => ({ ...m, [location.id]: false }));
+        this.locationsError.set('Ort konnte nicht entfernt werden.');
       },
     });
   }
@@ -1060,6 +1433,76 @@ export class EventDetailComponent {
     this.setlistService.removeEntry(entryId).subscribe({
       next: () => this.entries.update((list) => list.filter((e) => e.id !== entryId)),
       error: () => this.setlistError.set('Stück konnte nicht entfernt werden.'),
+    });
+  }
+
+  protected selectSheetPdf(entry: SetlistEntry): void {
+    this.pendingPdfPieceId.set(entry.pieceId);
+    this.sheetError.set(null);
+    this.sheetFeedback.set(null);
+    this.pdfInputRef?.nativeElement.click();
+  }
+
+  protected onSheetFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    const pieceId = this.pendingPdfPieceId();
+    input.value = '';
+    this.pendingPdfPieceId.set(null);
+    if (!pieceId || !file) {
+      return;
+    }
+    this.sheetUploading.update((m) => ({ ...m, [pieceId]: true }));
+    this.sheetError.set(null);
+    this.sheetFeedback.set(null);
+    this.setlistService.uploadSheetPdf(pieceId, file).subscribe({
+      next: (piece) => {
+        this.sheetUploading.update((m) => ({ ...m, [pieceId]: false }));
+        this.entries.update((list) =>
+          list.map((e) => (e.pieceId === pieceId ? { ...e, hasSheetPdf: piece.hasSheetPdf } : e)),
+        );
+        this.sheetFeedback.set('Noten hochgeladen.');
+      },
+      error: () => {
+        this.sheetUploading.update((m) => ({ ...m, [pieceId]: false }));
+        this.sheetError.set('Noten konnten nicht hochgeladen werden.');
+      },
+    });
+  }
+
+  protected openSheetPdf(entry: SetlistEntry): void {
+    this.sheetError.set(null);
+    this.sheetFeedback.set(null);
+    this.setlistService.downloadSheetPdf(entry.pieceId).subscribe({
+      next: (blob) => {
+        this.sheetFile.set(new File([blob], `${entry.pieceTitle}.pdf`, { type: 'application/pdf' }));
+        this.openSheetTitle.set(entry.pieceTitle);
+      },
+      error: () => this.sheetError.set('Noten konnten nicht geöffnet werden.'),
+    });
+  }
+
+  protected closeSheet(): void {
+    this.sheetFile.set(null);
+    this.openSheetTitle.set(null);
+  }
+
+  protected removeSheetPdf(entry: SetlistEntry): void {
+    this.sheetUploading.update((m) => ({ ...m, [entry.pieceId]: true }));
+    this.sheetError.set(null);
+    this.sheetFeedback.set(null);
+    this.setlistService.removeSheetPdf(entry.pieceId).subscribe({
+      next: () => {
+        this.sheetUploading.update((m) => ({ ...m, [entry.pieceId]: false }));
+        this.entries.update((list) =>
+          list.map((e) => (e.pieceId === entry.pieceId ? { ...e, hasSheetPdf: false } : e)),
+        );
+        this.sheetFeedback.set('Noten entfernt.');
+      },
+      error: () => {
+        this.sheetUploading.update((m) => ({ ...m, [entry.pieceId]: false }));
+        this.sheetError.set('Noten konnten nicht entfernt werden.');
+      },
     });
   }
 

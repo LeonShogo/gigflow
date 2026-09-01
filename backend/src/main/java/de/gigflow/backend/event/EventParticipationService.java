@@ -41,6 +41,28 @@ public class EventParticipationService {
         return EventParticipationResponseDto.from(participationRepository.save(participation));
     }
 
+    /**
+     * Registers a musician for an event with status ACCEPTED. Idempotent: if a
+     * participation already exists, the existing record is returned unchanged.
+     */
+    public EventParticipationResponseDto joinSelf(Long eventId, Long musicianId) {
+        Optional<EventParticipation> existing =
+                participationRepository.findByEventIdAndMusicianId(eventId, musicianId);
+        if (existing.isPresent()) {
+            return EventParticipationResponseDto.from(existing.get());
+        }
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new IllegalArgumentException("Event nicht gefunden: " + eventId));
+        Musician musician = musicianRepository.findById(musicianId)
+                .orElseThrow(() -> new IllegalArgumentException("Musiker:in nicht gefunden: " + musicianId));
+
+        EventParticipation participation = new EventParticipation();
+        participation.setEvent(event);
+        participation.setMusician(musician);
+        participation.setStatus(EventParticipationStatus.ACCEPTED);
+        return EventParticipationResponseDto.from(participationRepository.save(participation));
+    }
+
     @Transactional(readOnly = true)
     public Optional<EventParticipationResponseDto> findParticipationById(Long id) {
         return participationRepository.findById(id).map(EventParticipationResponseDto::from);

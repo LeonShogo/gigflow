@@ -1,0 +1,71 @@
+<div class="viewer-overlay" role="dialog" aria-label="Notenansicht">
+  <div class="viewer-overlay__bar">
+    <span class="viewer-overlay__title">{{ title() || 'Noten' }}</span>
+    <div class="viewer-overlay__controls">
+      <button
+        type="button"
+        class="viewer-overlay__btn"
+        (click)="zoomOut()"
+        [disabled]="!ready() || !canZoomOut()"
+        aria-label="Verkleinern"
+      >
+        &minus;
+      </button>
+      <button
+        type="button"
+        class="viewer-overlay__btn"
+        (click)="resetZoom()"
+        [disabled]="!ready()"
+        aria-label="Zoom zurücksetzen"
+      >
+        {{ zoomLabel() }}
+      </button>
+      <button
+        type="button"
+        class="viewer-overlay__btn"
+        (click)="zoomIn()"
+        [disabled]="!ready() || !canZoomIn()"
+        aria-label="Vergrößern"
+      >
+        +
+      </button>
+      <button
+        type="button"
+        class="viewer-overlay__btn"
+        (click)="fitToViewport()"
+        [disabled]="!ready()"
+        aria-label="An Bildschirm anpassen"
+      >
+        Anpassen
+      </button>
+      <button
+        type="button"
+        class="viewer-overlay__btn viewer-overlay__close"
+        (click)="closeRequested.emit()"
+        aria-label="Noten schließen"
+      >
+        &times;
+      </button>
+    </div>
+  </div>
+
+  @if (error(); as message) {
+    <p class="viewer-overlay__error" role="alert">{{ message }}</p>
+  } @else if (!ready()) {
+    <p class="viewer-overlay__note">Noten werden geladen …</p>
+  } @else {
+    <div #canvasContainer class="viewer-overlay__stage">
+      <canvas
+        #canvas
+        class="viewer-overlay__canvas"
+        role="img"
+        [attr.aria-label]="title() || 'Noten'"
+      ></canvas>
+    </div>
+    <p class="viewer-overlay__hint">
+      Seite {{ currentPage }}/{{ pageCount }} &middot; Trackpad: Scrollen zum Navigieren,
+      <kbd>Strg+Scrollen</kbd> zum Zoomen &middot; Tastatur: <kbd>&larr;</kbd
+      ><kbd>&rarr;</kbd> Blättern, <kbd>&uarr;</kbd><kbd>&darr;</kbd> Scrollen
+    </p>
+  }
+</div>

@@ -1,7 +1,11 @@
 package de.gigflow.backend.setlist;
 
 import jakarta.validation.Valid;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,8 +14,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 
@@ -57,5 +65,49 @@ public class PieceController {
     public ResponseEntity<Void> deletePiece(@PathVariable Long id) {
         pieceService.deletePiece(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/sheet-pdf")
+    public ResponseEntity<?> uploadSheetPdf(@PathVariable Long id, @RequestParam("file") MultipartFile file) {
+        try {
+            PieceResponse updated = pieceService.saveSheetPdf(id, file);
+            return ResponseEntity.ok(updated);
+        } catch (IllegalArgumentException e) {
+            if (e.getMessage() != null && e.getMessage().startsWith("Stück nicht gefunden")) {
+                return ResponseEntity.notFound().build();
+            }
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/{id}/sheet-pdf")
+    public ResponseEntity<Resource> downloadSheetPdf(@PathVariable Long id) {
+        Optional<PieceService.SheetPdfFile> sheetPdf = pieceService.loadSheetPdf(id);
+        if (sheetPdf.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        PieceService.SheetPdfFile file = sheetPdf.get();
+        String encodedName = URLEncoder.encode(file.originalName(), StandardCharsets.UTF_8)
+                .replace("+", "%20");
+        String disposition = "inline; filename*=UTF-8''" + encodedName;
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.set(HttpHeaders.CONTENT_DISPOSITION, disposition);
+        return ResponseEntity.ok()
+                .headers(headers)
+                .contentLength(file.path().toFile().length())
+                .body(new FileSystemResource(file.path()));
+    }
+
+    @DeleteMapping("/{id}/sheet-pdf")
+    public ResponseEntity<Void> deleteSheetPdf(@PathVariable Long id) {
+        try {
+            pieceService.removeSheetPdf(id);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 }
