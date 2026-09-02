@@ -22,7 +22,7 @@
 
 .head {
   padding-bottom: var(--space-3);
-  border-bottom: 2px solid var(--ink);
+  border-bottom: 1px solid var(--line);
   margin-bottom: var(--space-3);
 }
 
@@ -85,9 +85,10 @@
 
 .error {
   padding: var(--space-2);
-  border: 1px solid var(--accent);
+  border: 1px solid var(--danger);
   border-radius: var(--radius);
-  color: var(--accent-ink);
+  color: var(--danger-ink);
+  background: var(--danger-bg);
   font-size: 0.9rem;
 }
 
@@ -100,17 +101,22 @@
   font-size: 1rem;
   font-weight: 600;
   color: #fff;
-  background: var(--ink);
-  border: 1px solid var(--ink);
-  border-radius: var(--radius);
+  background: var(--gradient-brand);
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
   padding: 0.65rem 1.4rem;
   cursor: pointer;
-  transition: background-color 140ms ease, border-color 140ms ease;
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform var(--t-fast) ease,
+    box-shadow var(--t-fast) ease,
+    filter var(--t-fast) ease;
 }
 
 .submit:hover:not([disabled]) {
-  background: var(--accent);
-  border-color: var(--accent);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+  filter: saturate(1.15);
 }
 
 .submit[disabled] {

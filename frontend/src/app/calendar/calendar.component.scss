@@ -1,0 +1,308 @@
+.calendar {
+  width: 100%;
+  max-width: 76rem;
+  margin-inline: auto;
+  padding: var(--space-4) var(--space-2) var(--space-5);
+}
+
+.cal__head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--line);
+}
+
+.cal__kicker {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+  margin-bottom: var(--space-1);
+}
+
+.cal__heading {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(2rem, 5vw, 2.8rem);
+  letter-spacing: -0.015em;
+  line-height: 1;
+}
+
+.cal__controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: 0.15rem;
+}
+
+.cal__export {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  color: var(--accent-ink);
+  background: var(--paper-raised);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-pill);
+  padding: 0.35rem 0.9rem;
+  cursor: pointer;
+  transition:
+    border-color var(--t-fast) ease,
+    color var(--t-fast) ease,
+    background-color var(--t-fast) ease,
+    transform var(--t-fast) ease,
+    box-shadow var(--t-fast) ease;
+}
+
+.cal__export:hover {
+  color: var(--paper-raised);
+  background: var(--accent);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.cal__nav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  font-size: 1.3rem;
+  line-height: 1;
+  color: var(--accent-ink);
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition:
+    border-color var(--t-fast) ease,
+    color var(--t-fast) ease,
+    transform var(--t-fast) ease,
+    box-shadow var(--t-fast) ease;
+}
+
+.cal__nav:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.cal__today {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  color: var(--paper-raised);
+  background: var(--gradient-brand);
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  padding: 0.6rem 1.1rem;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform var(--t-fast) ease,
+    box-shadow var(--t-fast) ease,
+    filter var(--t-fast) ease;
+}
+
+.cal__today:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+  filter: saturate(1.15);
+}
+
+.cal__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: var(--space-3) 0 var(--space-2);
+}
+
+.cal__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.cal__legend-item::before {
+  content: "";
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: var(--radius-pill);
+}
+
+.cal__legend-item--concert::before {
+  background: var(--gradient-brand);
+}
+
+.cal__legend-item--rehearsal::before {
+  background: var(--gold);
+}
+
+.cal__status {
+  padding: var(--space-4) var(--space-2);
+  color: var(--ink-soft);
+}
+
+.cal__status--error {
+  color: var(--danger-ink);
+}
+
+.cal__scroll {
+  overflow-x: auto;
+  touch-action: pan-x pan-y;
+  padding-bottom: var(--space-2);
+}
+
+.cal__weeks {
+  min-width: 44rem;
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.cal__weekdays,
+.cal__week {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.cal__weekday {
+  padding: 0.6rem 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--ink-faint);
+  background: var(--paper-inset);
+  border-right: 1px solid var(--line);
+}
+
+.cal__weekday:nth-child(7n) {
+  border-right: 0;
+}
+
+.cal__day {
+  position: relative;
+  min-height: 6.5rem;
+  padding: var(--space-1) 0 0.4rem;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.cal__day:nth-child(7n) {
+  border-right: 0;
+}
+
+.cal__week:last-child .cal__day {
+  border-bottom: 0;
+}
+
+.cal__day--other {
+  background: var(--paper-inset);
+}
+
+.cal__daynum {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.7rem;
+  height: 1.7rem;
+  margin-left: 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+
+.cal__day--other .cal__daynum {
+  color: var(--ink-faint);
+}
+
+.cal__daynum--today {
+  color: var(--paper-raised);
+  background: var(--gradient-brand);
+  border-radius: var(--radius-pill);
+  font-weight: 700;
+}
+
+.cal__events {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.4rem 0.3rem;
+}
+
+.cal__event {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  min-width: 0;
+  padding: 0.28rem 0.45rem;
+  border-radius: var(--radius);
+  text-decoration: none;
+  font-size: 0.82rem;
+  line-height: 1.3;
+  overflow: hidden;
+  transition:
+    transform var(--t-fast) ease,
+    box-shadow var(--t-fast) ease,
+    filter var(--t-fast) ease;
+}
+
+.cal__event:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+  filter: saturate(1.15);
+}
+
+.cal__event--concert {
+  color: var(--paper-raised);
+  background: var(--gradient-brand);
+}
+
+.cal__event--rehearsal {
+  color: var(--gold-ink);
+  background: var(--gold-soft);
+  border: 1px solid var(--gold);
+}
+
+.cal__time {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
+
+.cal__event-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+@media (max-width: 48rem) {
+  .cal__controls {
+    margin-bottom: 0;
+  }
+
+  .cal__nav,
+  .cal__today {
+    min-height: 2.75rem;
+  }
+}

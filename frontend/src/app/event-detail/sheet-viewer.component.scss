@@ -49,6 +49,11 @@
   background: rgba(255, 255, 255, 0.15);
 }
 
+.viewer-overlay__btn:focus-visible {
+  outline-color: #fff;
+  outline-offset: 3px;
+}
+
 .viewer-overlay__btn[disabled] {
   opacity: 0.4;
   cursor: not-allowed;
@@ -60,6 +65,10 @@
   color: #fff;
   font-size: 1.4rem;
   line-height: 1;
+}
+
+.viewer-overlay__close:hover:not([disabled]) {
+  background: var(--danger-ink);
 }
 
 .viewer-overlay__stage {

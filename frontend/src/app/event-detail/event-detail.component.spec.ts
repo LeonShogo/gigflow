@@ -1352,6 +1352,62 @@ function loadConcertWithLocations(
     expect(fixture.nativeElement.textContent).toContain('Ort gespeichert.');
   });
 
+  it('should allow changing the type of an existing VENUE location', () => {
+    const fixture = setup('1');
+    loadConcertWithLocations(fixture, [
+      {
+        id: 6,
+        eventId: 1,
+        type: 'VENUE',
+        name: 'Klangbar',
+        address: 'Reeperbahn 1, 20359 Hamburg',
+        note: null,
+        phone: null,
+        mapsUrl: null,
+      },
+    ]);
+
+    (fixture.nativeElement.querySelector('.panel--locations .sched__btn') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const comp = fixture.componentInstance as unknown as {
+      locationType: { (): string };
+      saveLocation(): void;
+    };
+    const select = fixture.nativeElement.querySelector(
+      '#location-type',
+    ) as HTMLSelectElement;
+    expect(comp.locationType()).toBe('VENUE');
+    const optionLabels = Array.from(select.options).map((o) => o.textContent?.trim());
+    expect(optionLabels).toContain('Venue / Club');
+    expect(optionLabels).toContain('Hotel');
+
+    (fixture.componentInstance as unknown as {
+      onLocationTypeChange: (v: string) => void;
+    }).onLocationTypeChange('HOTEL');
+    fixture.detectChanges();
+    expect(comp.locationType()).toBe('HOTEL');
+
+    comp.saveLocation();
+    fixture.detectChanges();
+
+    const req = httpMock.expectOne('/api/event-locations/6');
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.body.type).toBe('HOTEL');
+    req.flush({
+      id: 6,
+      eventId: 1,
+      type: 'HOTEL',
+      name: 'Klangbar',
+      address: 'Reeperbahn 1, 20359 Hamburg',
+      note: null,
+      phone: null,
+      mapsUrl: null,
+    });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Hotel');
+  });
+
   it('should show an empty state when the concert has no locations', () => {
     const fixture = setup('1');
     loadConcertWithLocations(fixture, []);

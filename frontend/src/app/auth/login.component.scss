@@ -5,6 +5,29 @@
   padding: var(--space-5) var(--space-2) var(--space-5);
 }
 
+.auth__card {
+  position: relative;
+  overflow: hidden;
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-3);
+  box-shadow: var(--shadow-md);
+}
+
+.auth__card::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 5px;
+  background: var(--gradient-brand);
+}
+
+.auth__card h1 {
+  padding-top: var(--space-2);
+}
+
 .auth__back {
   display: inline-block;
   font-family: var(--font-mono);
@@ -12,8 +35,8 @@
   letter-spacing: 0.04em;
   color: var(--ink-soft);
   text-decoration: none;
-  margin-bottom: var(--space-4);
-  transition: color 140ms ease;
+  margin-bottom: var(--space-3);
+  transition: color var(--t-fast) ease;
 }
 
 .auth__back:hover {
@@ -21,19 +44,21 @@
 }
 
 .auth__title {
-  font-size: 1.6rem;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.9rem;
   margin-bottom: var(--space-3);
 }
 
 .auth__error {
-  color: var(--accent-ink);
+  color: var(--danger-ink);
   font-size: 0.92rem;
   margin-bottom: var(--space-2);
 }
 
 .auth__hint {
   font-size: 0.82rem;
-  color: var(--accent-ink);
+  color: var(--danger-ink);
 }
 
 .auth__form {
@@ -59,8 +84,9 @@
   padding: 0.6rem 0.7rem;
   background: var(--paper);
   color: var(--ink);
-  border: 1px solid var(--ink-soft);
+  border: 1px solid var(--line);
   border-radius: var(--radius);
+  transition: border-color var(--t-fast) ease;
 }
 
 .auth__field input:focus {
@@ -73,17 +99,23 @@
   font-family: var(--font-mono);
   font-size: 0.82rem;
   letter-spacing: 0.04em;
-  border: 1px solid var(--ink);
-  border-radius: var(--radius);
-  background: var(--ink);
-  color: var(--paper);
-  padding: 0.6rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: var(--gradient-brand);
+  color: var(--paper-raised);
+  padding: 0.7rem;
   cursor: pointer;
-  transition: opacity 140ms ease;
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform var(--t-fast) ease,
+    box-shadow var(--t-fast) ease,
+    filter var(--t-fast) ease;
 }
 
 .auth__submit:hover:not(:disabled) {
-  opacity: 0.85;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+  filter: saturate(1.15);
 }
 
 .auth__submit:disabled {
@@ -105,4 +137,11 @@
   padding: 0.2rem;
   cursor: pointer;
   text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  transition: color var(--t-fast) ease;
+}
+
+.auth__switch-btn:hover {
+  color: var(--ink);
 }

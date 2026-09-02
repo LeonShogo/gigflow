@@ -37,3 +37,20 @@ export function formatTime(dateTime: string): string {
   const minutes = String(parsed.getMinutes()).padStart(2, '0');
   return `${hours}:${minutes}`;
 }
+
+export function dateContext(dateTime: string, today = new Date()): string | null {
+  const parsed = new Date(dateTime);
+  const target = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+  const now = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const diff = Math.round((target.getTime() - now.getTime()) / 86_400_000);
+  if (diff === 0) {
+    return 'Heute';
+  }
+  if (diff === 1) {
+    return 'Morgen';
+  }
+  if (diff === 2) {
+    return 'Übermorgen';
+  }
+  return null;
+}

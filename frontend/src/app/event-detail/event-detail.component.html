@@ -17,6 +17,24 @@
           {{ formatTime(event.dateTime) }} Uhr
         </time>
       </div>
+
+      <p class="detail__actions">
+        <a
+          class="detail__print"
+          [routerLink]="['/events', event.id, 'print']"
+          attr.aria-label="Druckansicht für {{ event.title }} öffnen"
+        >
+          Druckansicht
+        </a>
+        <button
+          type="button"
+          class="detail__print"
+          (click)="exportToCalendar()"
+          attr.aria-label="{{ event.title }} zum Kalender hinzufügen"
+        >
+          Zum Kalender hinzufügen
+        </button>
+      </p>
     </header>
 
     @if (event.type === 'CONCERT') {
@@ -40,6 +58,7 @@
                       [attr.aria-expanded]="!isCollapsed('members')"
                     >
                       <h2 class="panel__title">Musiker / Zusagen</h2>
+                      <span class="panel__desc">{{ panelDescription('members') }}</span>
                     </button>
                   </span>
                   <button
@@ -111,7 +130,7 @@
 
                     @if (participations().length > 0) {
                       <ul class="members">
-                        @for (participation of participations(); track participation.id) {
+                        @for (participation of orderedParticipations(); track participation.id) {
                           <li class="member">
                             <div class="member__main">
                               <span class="member__name">
@@ -130,6 +149,8 @@
                               <select
                                 class="member__status"
                                 [id]="'status-' + participation.id"
+                                [class.member__status--accepted]="participation.status === 'ACCEPTED'"
+                                [class.member__status--declined]="participation.status === 'DECLINED'"
                                 [value]="participation.status"
                                 [disabled]="pauseSaving()[participation.id]"
                                 (change)="changeStatus(participation, $any($event.target).value)"
@@ -259,6 +280,7 @@
                       [attr.aria-expanded]="!isCollapsed('setlist')"
                     >
                       <h2 class="panel__title">Setlist</h2>
+                      <span class="panel__desc">{{ panelDescription('setlist') }}</span>
                     </button>
                   </span>
                   <button
@@ -388,6 +410,7 @@
                       [attr.aria-expanded]="!isCollapsed('rehearsals')"
                     >
                       <h2 class="panel__title">Proben zu diesem Gig</h2>
+                      <span class="panel__desc">{{ panelDescription('rehearsals') }}</span>
                     </button>
                   </span>
                   <button
@@ -552,6 +575,7 @@
                       [attr.aria-expanded]="!isCollapsed('equipment')"
                     >
                       <h2 class="panel__title">Equipment</h2>
+                      <span class="panel__desc">{{ panelDescription('equipment') }}</span>
                     </button>
                   </span>
                   <button
@@ -569,6 +593,11 @@
                     <p class="panel__note panel__note--error" role="alert">{{ message }}</p>
                   } @else {
                     <div class="equipment__bar">
+                      <span class="equipment__count">
+                        @if (requirements().length > 0) {
+                          {{ equipmentResolvedCount() }} von {{ requirements().length }} geklärt
+                        }
+                      </span>
                       <button type="button" class="equipment__add" (click)="toggleEquipmentPicker()">
                         Equipment hinzufügen
                       </button>
@@ -604,6 +633,7 @@
                                 [disabled]="requirementsSaving()[requirement.id]"
                                 aria-label="Vor Ort vorhanden: {{ stateLabel(requirement.availableOnSite) }}. Zum Umschalten klicken."
                               >
+                                <span class="eq__mark" aria-hidden="true">{{ stateMark(requirement.availableOnSite) }}</span>
                                 Vor Ort: {{ stateLabel(requirement.availableOnSite) }}
                               </button>
                               <button
@@ -615,6 +645,7 @@
                                 [disabled]="requirementsSaving()[requirement.id]"
                                 aria-label="Muss mitgebracht werden: {{ stateLabel(requirement.needsToBeBrought) }}. Zum Umschalten klicken."
                               >
+                                <span class="eq__mark" aria-hidden="true">{{ stateMark(requirement.needsToBeBrought) }}</span>
                                 Mitbringen: {{ stateLabel(requirement.needsToBeBrought) }}
                               </button>
                             </div>
@@ -748,6 +779,7 @@
                       [attr.aria-expanded]="!isCollapsed('locations')"
                     >
                       <h2 class="panel__title">Orte & Logistik</h2>
+                      <span class="panel__desc">{{ panelDescription('locations') }}</span>
                     </button>
                   </span>
                   <button
@@ -788,12 +820,13 @@
                         <select
                           id="location-type"
                           class="picker__input locations__select"
-                          [value]="locationType()"
-                          (change)="onLocationType($event)"
+                          [ngModel]="locationType()"
+                          name="locationType"
+                          (ngModelChange)="onLocationTypeChange($event)"
                         >
                           <option value="" disabled>Ortstyp wählen</option>
                           @for (option of locationTypes; track option.value) {
-                            <option [value]="option.value">{{ option.label }}</option>
+                            <option [ngValue]="option.value">{{ option.label }}</option>
                           }
                         </select>
 
@@ -941,6 +974,7 @@
                       [attr.aria-expanded]="!isCollapsed('schedule')"
                     >
                       <h2 class="panel__title">Ablauf / Zeiten</h2>
+                      <span class="panel__desc">{{ panelDescription('schedule') }}</span>
                     </button>
                   </span>
                   <button
@@ -1071,6 +1105,9 @@
                       [attr.aria-expanded]="!isCollapsed(panelKey)"
                     >
                       <h2 class="panel__title">{{ panelTitle(panelKey) }}</h2>
+                      @if (panelDescription(panelKey); as desc) {
+                        <span class="panel__desc">{{ desc }}</span>
+                      }
                     </button>
                   </span>
                   <button

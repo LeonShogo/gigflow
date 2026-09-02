@@ -1,27 +1,67 @@
 /* ------------------------------------------------------------------ */
 /*  GigFlow design tokens                                              */
-/*  Editorial / musical. Reduced. No SaaS-gradient, no glow.          */
+/*  Editorial / musical. Reduced. No SaaS-gradient, no glow.           */
+/*  Fonts: Fraunces (display serif), Instrument Sans (UI),             */
+/*         Spline Sans Mono (labels). System fallbacks stay offline.   */
 /* ------------------------------------------------------------------ */
 
-:root {
-  /* Surfaces */
-  --paper: #f4f1ea;
-  --paper-raised: #fbf9f4;
-  --ink: #1a1712;
-  --ink-soft: #57514a;
-  --ink-faint: #8b8479;
-  --line: #d9d2c6;
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Spline+Sans+Mono:wght@400;500;600&display=swap");
 
-  /* Accent — a single, confident stage red */
-  --accent: #b4231e;
-  --accent-ink: #8c1915;
+:root {
+  color-scheme: light;
+
+  /* Surfaces — warm backstage-paper, soft violet wash on top */
+  --paper: #f6f2ea;
+  --paper-raised: #fffdf8;
+  --paper-inset: #eee7d9;
+  --ink: #221710;
+  --ink-soft: #5c5348;
+  --ink-faint: #8f8677;
+  --line: #ded4c2;
+  --line-strong: #ccbfa6;
+
+  /* Accent — berry-to-stage-red identity */
+  --accent: #c22b1f;
+  --accent-ink: #96170b;
+  --accent-2: #5f1950;
+  --accent-soft: #f9e4dc;
+  --gold: #d3911f;
+  --gold-ink: #7a5208;
+  --gold-soft: #f8ecce;
+
+  /* Gradients */
+  --gradient-brand: linear-gradient(135deg, #5f1950 0%, #8f1635 55%, #c22b1f 100%);
+  --gradient-page: linear-gradient(180deg, #fbf6ec 0%, #f3eddf 55%, #efe7f0 120%);
+  --gradient-gold: linear-gradient(135deg, #d3911f 0%, #f0b53d 100%);
+
+  /* Status */
+  --ok: #2f7a3c;
+  --ok-bg: #e6f2e6;
+  --warn: #8a6510;
+  --warn-bg: #f6edd8;
+  --danger: #c22b1f;
+  --danger-ink: #96170b;
+  --danger-bg: #f9e4dc;
+
+  /* Focus ring */
+  --focus: #c22b1f;
+
+  /* Elevation */
+  --shadow-sm: 0 1px 3px rgb(55 28 12 / 0.12);
+  --shadow-md: 0 2px 8px rgb(95 25 80 / 0.12), 0 14px 34px rgb(95 25 80 / 0.16);
+  --shadow-drag: 0 6px 22px rgb(50 15 45 / 0.3);
+
+  /* Motion */
+  --t-fast: 140ms;
+  --t-base: 180ms;
 
   /* Type */
-  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia,
-    "Times New Roman", serif;
-  --font-body: "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
-  --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas,
-    monospace;
+  --font-display: "Fraunces", "Iowan Old Style", "Palatino Linotype", Palatino,
+    Georgia, "Times New Roman", serif;
+  --font-body: "Instrument Sans", "Helvetica Neue", Helvetica, Arial,
+    system-ui, sans-serif;
+  --font-mono: "Spline Sans Mono", ui-monospace, "SF Mono", "Cascadia Mono",
+    Menlo, Consolas, monospace;
 
   /* Rhythm */
   --space-1: 0.5rem;
@@ -30,7 +70,10 @@
   --space-4: 2.5rem;
   --space-5: 4rem;
 
-  --radius: 2px;
+  /* Shape — soft and curvy */
+  --radius: 14px;
+  --radius-lg: 22px;
+  --radius-pill: 999px;
 }
 
 * {
@@ -43,8 +86,14 @@ body {
   padding: 0;
 }
 
+html {
+  text-rendering: optimizeLegibility;
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
-  background: var(--paper);
+  background: var(--gradient-page);
+  background-attachment: fixed;
   color: var(--ink);
   font-family: var(--font-body);
   font-size: 16px;
@@ -68,19 +117,64 @@ button {
   font-family: inherit;
 }
 
+a,
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+
+/* One consistent keyboard focus ring everywhere. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* ------------------------------------------------------------------ */
-/*  Angular CDK drag & drop (setlist)                                  */
+/*  Angular CDK drag & drop (setlist, panels)                          */
 /*  The preview/placeholder are appended to <body>, so they are global */
 /* ------------------------------------------------------------------ */
 
 .cdk-drag-preview {
-  border: 1px solid var(--ink);
-  border-radius: var(--radius);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-lg);
   background: var(--paper-raised);
-  box-shadow: 0 3px 10px rgb(26 23 18 / 0.14);
-  opacity: 0.92;
+  box-shadow: var(--shadow-drag);
+  opacity: 0.95;
 }
 
 .cdk-drag-placeholder {
   opacity: 0.25;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Print / PDF (browser print)                                        */
+/*  @page cannot be scoped, so it lives here in the global stylesheet. */
+/* ------------------------------------------------------------------ */
+
+@page {
+  size: A4;
+  /* margin 0 suppresses the browser's own header/footer (URL & date). */
+  margin: 0;
+}
+
+@media print {
+  html,
+  body {
+    background: #fff;
+  }
 }

@@ -10,7 +10,7 @@ import { RouterLink } from '@angular/router';
 
 import type { EventItem, EventType } from './event.model';
 import { EventService } from './event.service';
-import { formatDate, formatTime, typeLabel } from '../event-format';
+import { formatDate, formatTime, typeLabel, dateContext } from '../event-format';
 
 type Filter = 'ALL' | EventType;
 
@@ -65,4 +65,6 @@ export class DashboardComponent {
   protected formatDate = formatDate;
 
   protected formatTime = formatTime;
+
+  protected dateContext = dateContext;
 }

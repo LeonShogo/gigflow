@@ -1,0 +1,82 @@
+<section class="calendar">
+  <header class="cal__head">
+    <div>
+      <p class="cal__kicker">Tourplan</p>
+      <h1 class="cal__heading">{{ monthLabel() }}</h1>
+    </div>
+
+    <div class="cal__controls">
+      <button
+        type="button"
+        class="cal__export"
+        (click)="exportAll()"
+        aria-label="Alle Termine als Kalenderdatei exportieren"
+      >&#8681;&nbsp;Export</button>
+      <button
+        type="button"
+        class="cal__nav"
+        (click)="prevMonth()"
+        aria-label="Vorheriger Monat"
+      >&#8249;</button>
+      <button type="button" class="cal__today" (click)="goToday()">Heute</button>
+      <button
+        type="button"
+        class="cal__nav"
+        (click)="nextMonth()"
+        aria-label="Nächster Monat"
+      >&#8250;</button>
+    </div>
+  </header>
+
+  <div class="cal__legend" role="list" aria-label="Legende">
+    <span class="cal__legend-item cal__legend-item--concert">Gig</span>
+    <span class="cal__legend-item cal__legend-item--rehearsal">Probe</span>
+  </div>
+
+  @if (loading()) {
+    <p class="cal__status">Kalender wird geladen …</p>
+  } @else if (error()) {
+    <p class="cal__status cal__status--error">{{ error() }}</p>
+  } @else {
+    <div class="cal__scroll">
+      <div class="cal__weeks" role="grid" aria-label="Monatsansicht">
+        <div class="cal__weekdays" role="row">
+          @for (day of weekdays; track day) {
+            <div class="cal__weekday" role="columnheader">{{ day }}</div>
+          }
+        </div>
+
+        @for (week of weeks(); track week[0].date.getTime()) {
+          <div class="cal__week" role="row">
+            @for (day of week; track day.date.getTime()) {
+              <div
+                class="cal__day"
+                [class.cal__day--other]="day.otherMonth"
+                role="gridcell"
+              >
+                <span
+                  class="cal__daynum"
+                  [class.cal__daynum--today]="day.isToday"
+                >{{ day.dayNumber }}</span>
+
+                <div class="cal__events">
+                  @for (event of day.events; track event.id) {
+                    <a
+                      class="cal__event"
+                      [class.cal__event--concert]="event.type === 'CONCERT'"
+                      [class.cal__event--rehearsal]="event.type === 'REHEARSAL'"
+                      [routerLink]="['/events', event.id]"
+                    >
+                      <span class="cal__time">{{ formatTime(event.dateTime) }}</span>
+                      <span class="cal__event-title">{{ event.title }}</span>
+                    </a>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  }
+</section>

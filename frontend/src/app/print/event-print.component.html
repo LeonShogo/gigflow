@@ -1,0 +1,205 @@
+<section class="print">
+  <header class="toolbar no-print">
+    @if (event(); as event) {
+      <a class="toolbar__link" [routerLink]="['/events', event.id]">&larr; Zurück zur Event-Ansicht</a>
+    } @else {
+      <span class="toolbar__placeholder"></span>
+    }
+    <div class="toolbar__segment" role="group" aria-label="Druckumfang">
+      <button
+        type="button"
+        class="seg"
+        [class.seg--on]="includeSetlist()"
+        [class.seg--left]="true"
+        [attr.aria-pressed]="includeSetlist()"
+        (click)="setSetlist(true)"
+        [disabled]="loading()"
+      >Mit Setlist &amp; Noten</button>
+      <button
+        type="button"
+        class="seg"
+        [class.seg--on]="!includeSetlist()"
+        [attr.aria-pressed]="!includeSetlist()"
+        (click)="setSetlist(false)"
+        [disabled]="loading()"
+      >Nur Event-Daten</button>
+    </div>
+    <button
+      type="button"
+      class="toolbar__btn"
+      (click)="print()"
+      [disabled]="loading()"
+    >Drucken / PDF</button>
+  </header>
+
+  @if (loading()) {
+    <p class="status">Gig-Sheet wird erstellt …</p>
+  } @else if (error(); as message) {
+    <p class="status status--error" role="alert">{{ message }}</p>
+  } @else if (event(); as event) {
+    <article class="sheet">
+      <header class="sheet__head">
+        <p class="sheet__type">
+          <span class="sheet__chip">{{ typeLabel(event.type) }}</span>
+          @if (event.bandName) {
+            <span class="sheet__band">{{ event.bandName }}</span>
+          }
+        </p>
+        <h1 class="sheet__title">{{ event.title }}</h1>
+        <p class="sheet__date">
+          <time [attr.datetime]="event.dateTime">{{ formatDate(event.dateTime) }}</time>
+          <time class="sheet__time" [attr.datetime]="event.dateTime">
+            {{ formatTime(event.dateTime) }} Uhr
+          </time>
+        </p>
+      </header>
+
+      <div class="sheet__grid">
+        @if (scheduleItems().length > 0) {
+          <section class="block">
+            <h2 class="block__title">Ablauf / Zeiten</h2>
+            <ol class="rows">
+              @for (item of scheduleItems(); track item.id) {
+                <li class="row">
+                  <span class="row__time">{{ item.time }}</span>
+                  <span class="row__label">{{ item.label }}</span>
+                </li>
+              }
+            </ol>
+          </section>
+        }
+
+        @if (locations().length > 0) {
+          <section class="block">
+            <h2 class="block__title">Orte &amp; Logistik</h2>
+            <ul class="rows">
+              @for (location of locations(); track location.id) {
+                <li class="loc">
+                  <p class="loc__line">
+                    <span class="loc__type">{{ locationTypeLabel(location.type) }}</span>
+                    <span class="loc__name">{{ location.name }}</span>
+                  </p>
+                  <p class="loc__address">{{ location.address }}</p>
+                  @if (location.phone) {
+                    <p class="loc__phone">Tel: {{ location.phone }}</p>
+                  }
+                  @if (location.note) {
+                    <p class="loc__note">{{ location.note }}</p>
+                  }
+                </li>
+              }
+            </ul>
+          </section>
+        }
+
+        @if (participations().length > 0) {
+          <section class="block">
+            <h2 class="block__title">Musiker / Zusagen</h2>
+            <p class="block__count">
+              {{ confirmedCount() }} von {{ participations().length }} bestätigt
+            </p>
+            <ul class="rows">
+              @for (participation of sortedParticipations(); track participation.id) {
+                <li class="row">
+                  <span class="row__main">
+                    {{ participation.musician?.firstName }} {{ participation.musician?.lastName }}
+                    @if (participation.musician?.instrument) {
+                      <span class="row__meta">({{ participation.musician?.instrument }})</span>
+                    }
+                  </span>
+                  <span
+                    class="row__status"
+                    [class.row__status--yes]="participation.status === 'ACCEPTED'"
+                  >{{ statusLabel(participation.status) }}</span>
+                </li>
+              }
+            </ul>
+          </section>
+        }
+
+        @if (includeSetlist()) {
+          @if (entries().length > 0) {
+            <section class="block block--setlist">
+              <h2 class="block__title">Setlist</h2>
+              <ol class="rows">
+                @for (entry of sortedEntries(); track entry.id; let i = $index) {
+                  <li class="row">
+                    <span class="row__pos">{{ i + 1 }}</span>
+                    <span class="row__label">{{ entry.pieceTitle }}</span>
+                  </li>
+                }
+              </ol>
+            </section>
+          } @else {
+            <p class="status no-print">Keine Setlist hinterlegt.</p>
+          }
+        }
+
+        @if (requirements().length > 0) {
+          <section class="block">
+            <h2 class="block__title">Equipment</h2>
+            <ul class="rows">
+              @for (requirement of requirements(); track requirement.id) {
+                <li class="row">
+                  <span class="row__main">
+                    {{ requirement.equipmentName }}
+                    @if (requirement.category) {
+                      <span class="row__meta">({{ requirement.category }})</span>
+                    }
+                  </span>
+                  <span class="row__aside">
+                    <span class="row__chip">Vor Ort: {{ stateLabel(requirement.availableOnSite) }}</span>
+                    <span class="row__chip">Mitbringen: {{ stateLabel(requirement.needsToBeBrought) }}</span>
+                    @if (requirement.responsibleMusician) {
+                      <span class="row__chip">
+                        {{ requirement.responsibleMusician.firstName }} {{ requirement.responsibleMusician.lastName }}
+                      </span>
+                    }
+                  </span>
+                </li>
+              }
+            </ul>
+          </section>
+        }
+
+        @if (rehearsals().length > 0) {
+          <section class="block">
+            <h2 class="block__title">Proben zu diesem Gig</h2>
+            <ul class="rows">
+              @for (rehearsal of rehearsals(); track rehearsal.id) {
+                <li class="row">
+                  <span class="row__main">{{ rehearsal.title }}</span>
+                  <span class="row__meta">
+                    {{ formatDate(rehearsal.dateTime) }}, {{ formatTime(rehearsal.dateTime) }} Uhr
+                  </span>
+                </li>
+              }
+            </ul>
+          </section>
+        }
+      </div>
+
+      @if (includeSetlist() && entries().length > 0) {
+        <section class="block">
+          <h2 class="block__title">Notenblätter</h2>
+          @if (sheetsLoading()) {
+            <p class="status no-print">Notenblätter werden vorbereitet …</p>
+          } @else if (sheetFiles().length === 0) {
+            <p class="status no-print">
+              Für dieses Ereignis sind keine Notenblätter hinterlegt.
+            </p>
+          } @else {
+            @for (file of sheetFiles(); track file.entryId) {
+              <div class="notes">
+                <h3 class="notes__title">{{ file.title }}</h3>
+                @for (src of file.sources; track $index) {
+                  <img class="notes__page" [src]="src" alt="Notenblatt: {{ file.title }}" />
+                }
+              </div>
+            }
+          }
+        </section>
+      }
+    </article>
+  }
+</section>

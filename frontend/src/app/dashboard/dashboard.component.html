@@ -1,13 +1,10 @@
 <section class="dashboard">
-  <header class="masthead">
-    <div class="masthead__title">
-      <p class="wordmark">GigFlow</p>
-      <h1 class="title">GigFlow</h1>
+  <header class="page-head">
+    <div class="page-head__text">
+      <p class="kicker">Tourplan</p>
+      <h1 class="title">Termine</h1>
     </div>
-    <div class="masthead__actions">
-      <a class="masthead__link" routerLink="/musicians">Musiker:innen</a>
-      <a class="masthead__add" routerLink="/events/new">+ Neues Event</a>
-    </div>
+    <a class="page-head__add" routerLink="/events/new">+ Neues Event</a>
   </header>
 
   <nav class="filters" aria-label="Events filtern">
@@ -54,6 +51,12 @@
             </div>
 
             <div class="event__meta">
+              @if (dateContext(event.dateTime); as ctx) {
+                <span
+                  class="event__ctx"
+                  [class.event__ctx--today]="ctx === 'Heute'"
+                >{{ ctx }}</span>
+              }
               <time class="event__date" [attr.datetime]="event.dateTime">
                 {{ formatDate(event.dateTime) }}
               </time>

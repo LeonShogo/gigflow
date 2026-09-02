@@ -14,6 +14,12 @@ export const routes: Routes = [
     loadComponent: () => import('./auth/login.component').then((m) => m.LoginComponent),
   },
   {
+    path: 'calendar',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./calendar/calendar.component').then((m) => m.CalendarComponent),
+  },
+  {
     path: 'events/new',
     canActivate: [organizerGuard],
     loadComponent: () =>
@@ -24,6 +30,17 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () =>
       import('./event-detail/event-detail.component').then((m) => m.EventDetailComponent),
+  },
+  {
+    path: 'events/:id/print',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./print/event-print.component').then((m) => m.EventPrintComponent),
+  },
+  {
+    path: 'print-demo',
+    loadComponent: () =>
+      import('./print/event-print-demo.component').then((m) => m.EventPrintDemoComponent),
   },
   {
     path: 'musicians',

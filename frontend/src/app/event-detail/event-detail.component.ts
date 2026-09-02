@@ -46,6 +46,7 @@ import type { EventLocation, LocationRequest, LocationType } from '../location/l
 import { LOCATION_TYPES } from '../location/location.model';
 import { LocationService } from '../location/location.service';
 import { AuthService } from '../auth/auth.service';
+import { buildIcs, downloadIcs, eventFilename, eventToIcal } from '../ical';
 
 interface PanelMeta {
   title: string;
@@ -55,9 +56,9 @@ interface PanelMeta {
 const PANEL_ORDER_DEFAULT = ['members', 'setlist', 'rehearsals', 'equipment', 'locations', 'schedule'];
 
 const PANEL_META: Record<string, PanelMeta> = {
-  members: { title: 'Musiker / Zusagen' },
-  setlist: { title: 'Setlist' },
-  rehearsals: { title: 'Proben zu diesem Gig' },
+  members: { title: 'Musiker / Zusagen', description: 'Besetzung & Zusagen' },
+  setlist: { title: 'Setlist', description: 'Spielreihenfolge & Noten' },
+  rehearsals: { title: 'Proben zu diesem Gig', description: 'Vorbereitung für diesen Gig' },
   equipment: { title: 'Equipment', description: 'Instrumente & Technik' },
   locations: { title: 'Orte & Logistik', description: 'Venue, Hotel, Catering & Treffpunkte' },
   schedule: { title: 'Ablauf / Zeiten', description: 'Aufbau, Soundcheck, Auftritt, Abbau' },
@@ -132,6 +133,16 @@ export class EventDetailComponent {
   protected readonly confirmedCount = computed(
     () => this.participations().filter((p) => p.status === 'ACCEPTED').length,
   );
+  protected readonly orderedParticipations = computed(() => {
+    const priority: Record<ParticipationStatus, number> = {
+      ACCEPTED: 0,
+      INVITED: 1,
+      DECLINED: 2,
+    };
+    return [...this.participations()].sort(
+      (a, b) => priority[a.status] - priority[b.status],
+    );
+  });
   protected readonly participatingIds = computed(() => new Set(this.participations().map((p) => p.musicianId)));
   protected readonly availableMusicians = computed(() =>
     this.musicians().filter((m) => !this.participatingIds().has(m.id)),
@@ -234,6 +245,12 @@ export class EventDetailComponent {
     () => !this.newEquipmentSaving() && this.newEquipmentName().trim().length > 0,
   );
   protected readonly stateOptions: RequirementState[] = ['UNKNOWN', 'YES', 'NO'];
+  protected readonly equipmentResolvedCount = computed(
+    () =>
+      this.requirements().filter(
+        (r) => r.availableOnSite !== 'UNKNOWN' || r.needsToBeBrought !== 'UNKNOWN',
+      ).length,
+  );
 
   protected readonly scheduleItems = signal<ScheduleItem[]>([]);
   protected readonly scheduleLoading = signal(false);
@@ -687,6 +704,16 @@ export class EventDetailComponent {
     return 'Offen';
   }
 
+  protected stateMark(state: RequirementState): string {
+    if (state === 'YES') {
+      return '●';
+    }
+    if (state === 'NO') {
+      return '×';
+    }
+    return '·';
+  }
+
   private loadRequirements(eventId: number): void {
     this.requirementsLoading.set(true);
     this.requirementsError.set(null);
@@ -874,6 +901,50 @@ export class EventDetailComponent {
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
   }
 
+  /**
+   * Exports the current event as an .ics file. The end time (if any) is
+   * derived from the latest "Ablauf"-entry, the venue from the VENUE
+   * location, and the description contains the setlist for concerts.
+   */
+  protected exportToCalendar(): void {
+    const event = this.event();
+    if (!event) {
+      return;
+    }
+    const start = new Date(event.dateTime);
+
+    const latest = [...this.scheduleItems()]
+      .sort((a, b) => a.time.localeCompare(b.time))
+      .at(-1);
+    let end: Date | undefined;
+    if (latest) {
+      const [hours, minutes] = latest.time.split(':').map(Number);
+      const candidate = new Date(
+        start.getFullYear(),
+        start.getMonth(),
+        start.getDate(),
+        hours,
+        minutes,
+      );
+      if (candidate.getTime() > start.getTime()) {
+        end = candidate;
+      }
+    }
+
+    const venue = this.locations().find((l) => l.type === 'VENUE') ?? this.locations()[0];
+    const location = venue ? `${venue.name}, ${venue.address}` : undefined;
+
+    const setlist = [...this.entries()]
+      .sort((a, b) => a.position - b.position)
+      .map((e) => e.pieceTitle);
+    const setlistDescription = setlist.length
+      ? `Setlist: ${setlist.join(' → ')}`
+      : undefined;
+
+    const ical = eventToIcal(event, { end, location, description: setlistDescription });
+    downloadIcs(buildIcs([ical]), eventFilename(event));
+  }
+
   protected toggleLocationForm(): void {
     if (this.locationFormOpen()) {
       this.locationFormOpen.set(false);
@@ -912,8 +983,8 @@ export class EventDetailComponent {
     this.locationsError.set(null);
   }
 
-  protected onLocationType(event: Event): void {
-    this.locationType.set((event.target as HTMLSelectElement).value as LocationType | '');
+  protected onLocationTypeChange(value: LocationType): void {
+    this.locationType.set(value);
   }
 
   protected onLocationName(event: Event): void {
