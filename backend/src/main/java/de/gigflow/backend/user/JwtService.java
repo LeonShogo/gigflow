@@ -3,6 +3,7 @@ package de.gigflow.backend.user;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
@@ -16,11 +17,9 @@ public class JwtService {
     private final SecretKey key;
     private final long validitySeconds = 60 * 60 * 24 * 7;
 
-    public JwtService() {
-        // Long enough secret that is stable across restarts; override via env in production.
-        String secret = System.getenv("JWT_SECRET");
-        if (secret == null || secret.length() < 32) {
-            secret = "gigflow-dev-secret-change-me-please-0000000001";
+    public JwtService(@Value("${app.jwt-secret}") String secret) {
+        if (secret.length() < 32) {
+            throw new IllegalStateException("JWT_SECRET muss mindestens 32 Zeichen lang sein.");
         }
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }

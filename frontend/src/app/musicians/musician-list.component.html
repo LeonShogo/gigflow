@@ -16,7 +16,7 @@
   } @else {
     <ul class="roster">
       @for (musician of musicians(); track musician.id) {
-        <li>
+        <li class="roster__item">
           <a class="row" [routerLink]="['/musicians', musician.id, 'edit']">
             <span class="row__name">
               {{ musician.firstName }} {{ musician.lastName }}
@@ -24,6 +24,35 @@
             <span class="row__instrument">{{ musician.instrument || '—' }}</span>
             <span class="row__email">{{ musician.email || '—' }}</span>
           </a>
+
+          @if (canDelete()) {
+            <div class="row__delete-zone">
+              @if (confirmingDelete()[musician.id]) {
+                <div class="row__confirm">
+                  <span class="row__confirm-label">„{{ musicianName(musician) }}“ wirklich löschen?</span>
+                  <button
+                    type="button"
+                    class="row__confirm-btn"
+                    (click)="cancelDelete(musician)"
+                  >Abbrechen</button>
+                  <button
+                    type="button"
+                    class="row__confirm-btn row__confirm-btn--danger"
+                    (click)="confirmDelete(musician)"
+                    [disabled]="deleting()[musician.id]"
+                  >Löschen</button>
+                </div>
+              } @else {
+                <button
+                  type="button"
+                  class="row__delete"
+                  (click)="requestDelete(musician)"
+                  [attr.aria-label]="'Musiker:in löschen: ' + musicianName(musician)"
+                  title="Löschen"
+                >&times;</button>
+              }
+            </div>
+          }
         </li>
       } @empty {
         <li>
@@ -31,5 +60,9 @@
         </li>
       }
     </ul>
+
+    @if (deleteError(); as message) {
+      <p class="status status--error" role="alert">{{ message }}</p>
+    }
   }
 </section>

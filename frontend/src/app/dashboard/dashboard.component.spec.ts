@@ -4,6 +4,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
 
 import { DashboardComponent } from './dashboard.component';
+import { AuthService } from '../auth/auth.service';
 import type { EventItem } from './event.model';
 
 const MOCK_EVENTS: EventItem[] = [
@@ -105,5 +106,55 @@ describe('DashboardComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('p[role="alert"]')).toBeTruthy();
+  });
+
+  it('should delete an event after confirmation and update the list', () => {
+    const fixture = TestBed.createComponent(DashboardComponent);
+    fixture.detectChanges();
+    httpMock.expectOne('/api/events').flush(MOCK_EVENTS);
+    fixture.detectChanges();
+
+    const auth = TestBed.inject(AuthService);
+    auth.login({ email: 'o@gigflow.local', password: 'password' }).subscribe();
+    httpMock.expectOne('/api/auth/login').flush({
+      token: 't',
+      user: { id: 1, email: 'o@gigflow.local', organizer: true, musicianId: null },
+    });
+    fixture.detectChanges();
+
+    const items = fixture.nativeElement.querySelectorAll('.events__item');
+    const firstDelete = items[0].querySelector('.event__delete') as HTMLButtonElement;
+    expect(firstDelete).toBeTruthy();
+    firstDelete.click();
+    fixture.detectChanges();
+    expect(items[0].textContent).toContain('Donnerstagsprobe');
+
+    (items[0].querySelector('.event__confirm-btn--danger') as HTMLButtonElement).click();
+    const req = httpMock.expectOne('/api/events/2');
+    expect(req.request.method).toBe('DELETE');
+    req.flush(null, { status: 204, statusText: 'No Content' });
+    fixture.detectChanges();
+
+    const titles = Array.from(
+      fixture.nativeElement.querySelectorAll('.event__title'),
+    ).map((node) => (node as HTMLElement).textContent);
+    expect(titles).toEqual(['Hafenrocker', 'Lagerfeuer-Open-Air']);
+  });
+
+  it('should hide the delete action for non-organizers', () => {
+    const fixture = TestBed.createComponent(DashboardComponent);
+    fixture.detectChanges();
+    httpMock.expectOne('/api/events').flush(MOCK_EVENTS);
+    fixture.detectChanges();
+
+    const auth = TestBed.inject(AuthService);
+    auth.login({ email: 'm@gigflow.local', password: 'password' }).subscribe();
+    httpMock.expectOne('/api/auth/login').flush({
+      token: 't',
+      user: { id: 2, email: 'm@gigflow.local', organizer: false, musicianId: 3 },
+    });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.event__delete')).toBeNull();
   });
 });

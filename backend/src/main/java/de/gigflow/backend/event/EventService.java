@@ -2,7 +2,18 @@ package de.gigflow.backend.event;
 
 import de.gigflow.backend.band.Band;
 import de.gigflow.backend.band.BandRepository;
+import de.gigflow.backend.equipment.EquipmentRequirement;
+import de.gigflow.backend.equipment.EquipmentRequirementRepository;
+import de.gigflow.backend.location.EventLocation;
+import de.gigflow.backend.location.EventLocationRepository;
+import de.gigflow.backend.schedule.ScheduleItem;
+import de.gigflow.backend.schedule.ScheduleItemRepository;
+import de.gigflow.backend.setlist.Setlist;
+import de.gigflow.backend.setlist.SetlistEntry;
+import de.gigflow.backend.setlist.SetlistEntryRepository;
+import de.gigflow.backend.setlist.SetlistRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
 import java.util.List;
@@ -13,10 +24,30 @@ public class EventService {
 
     private final EventRepository eventRepository;
     private final BandRepository bandRepository;
+    private final EventParticipationRepository participationRepository;
+    private final SetlistRepository setlistRepository;
+    private final SetlistEntryRepository setlistEntryRepository;
+    private final ScheduleItemRepository scheduleItemRepository;
+    private final EventLocationRepository eventLocationRepository;
+    private final EquipmentRequirementRepository equipmentRequirementRepository;
 
-    public EventService(EventRepository eventRepository, BandRepository bandRepository) {
+    public EventService(
+            EventRepository eventRepository,
+            BandRepository bandRepository,
+            EventParticipationRepository participationRepository,
+            SetlistRepository setlistRepository,
+            SetlistEntryRepository setlistEntryRepository,
+            ScheduleItemRepository scheduleItemRepository,
+            EventLocationRepository eventLocationRepository,
+            EquipmentRequirementRepository equipmentRequirementRepository) {
         this.eventRepository = eventRepository;
         this.bandRepository = bandRepository;
+        this.participationRepository = participationRepository;
+        this.setlistRepository = setlistRepository;
+        this.setlistEntryRepository = setlistEntryRepository;
+        this.scheduleItemRepository = scheduleItemRepository;
+        this.eventLocationRepository = eventLocationRepository;
+        this.equipmentRequirementRepository = equipmentRequirementRepository;
     }
 
     public EventResponse createEvent(EventRequest request) {
@@ -89,7 +120,41 @@ public class EventService {
         return Optional.of(layout);
     }
 
+    @Transactional
     public void deleteEvent(Long id) {
-        eventRepository.deleteById(id);
+        Event event = eventRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Event nicht gefunden: " + id));
+        deleteEventDeep(event);
+    }
+
+    /**
+     * Deletes an event together with all of its dependent data so no orphaned or
+     * dangling records remain. If the event is a concert, its linked rehearsals
+     * are deleted first (they belong to the gig). Each rehearsal is itself an
+     * event, so it is cleaned up recursively via {@link #deleteEventDeep(Event)}.
+     */
+    private void deleteEventDeep(Event event) {
+        // Rehearsals pointing to this concert are fully deleted together with their dependents.
+        List<Event> linkedRehearsals = eventRepository.findByConcertId(event.getId()).stream()
+                .filter(e -> e.getType() == EventType.REHEARSAL)
+                .toList();
+        for (Event rehearsal : linkedRehearsals) {
+            deleteEventDeep(rehearsal);
+        }
+
+        // Setlist (one-to-one) and its entries.
+        Optional<Setlist> setlist = setlistRepository.findByEventId(event.getId());
+        setlist.ifPresent(sl -> {
+            List<SetlistEntry> entries = setlistEntryRepository.findBySetlistIdOrderByPositionAsc(sl.getId());
+            setlistEntryRepository.deleteAll(entries);
+            setlistRepository.delete(sl);
+        });
+
+        participationRepository.deleteAll(participationRepository.findByEventId(event.getId()));
+        scheduleItemRepository.deleteAll(scheduleItemRepository.findByEventId(event.getId()));
+        eventLocationRepository.deleteAll(eventLocationRepository.findByEventId(event.getId()));
+        equipmentRequirementRepository.deleteAll(equipmentRequirementRepository.findByEventId(event.getId()));
+
+        eventRepository.delete(event);
     }
 }

@@ -1,0 +1,14 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" rx="96" fill="#2f7fe0"/>
+  <g fill="#ffffff">
+    <!-- double eighth note (beamed) -->
+    <ellipse cx="218" cy="360" rx="40" ry="28"/>
+    <ellipse cx="320" cy="352" rx="40" ry="28"/>
+    <!-- left stem -->
+    <rect x="246" y="130" width="22" height="238" rx="11"/>
+    <!-- right stem -->
+    <rect x="350" y="122" width="22" height="238" rx="11"/>
+    <!-- beam -->
+    <path d="M234 128 q72 -34 150 -14 l0 26 q-72 -16 -150 14 z"/>
+  </g>
+</svg>

@@ -34,7 +34,35 @@
         >
           Zum Kalender hinzufügen
         </button>
+        @if (canDelete()) {
+          @if (confirmingDelete()) {
+            <span class="detail__delete-confirm">
+              <span class="detail__delete-label">„{{ event.title }}“ wirklich löschen?</span>
+              <button
+                type="button"
+                class="detail__print"
+                (click)="cancelDelete()"
+              >Abbrechen</button>
+              <button
+                type="button"
+                class="detail__print detail__print--danger"
+                (click)="confirmDelete()"
+                [disabled]="deleting()"
+              >Löschen</button>
+            </span>
+          } @else {
+            <button
+              type="button"
+              class="detail__print detail__print--delete"
+              (click)="requestDelete()"
+              attr.aria-label="Termin löschen: {{ event.title }}"
+            >Löschen</button>
+          }
+        }
       </p>
+      @if (deleteError(); as message) {
+        <p class="status status--error" role="alert">{{ message }}</p>
+      }
     </header>
 
     @if (event.type === 'CONCERT') {
@@ -47,7 +75,7 @@
         @for (panelKey of panelOrder(); track panelKey) {
           @switch (panelKey) {
             @case ('members') {
-              <section class="panel panel--members" cdkDrag>
+              <section class="panel panel--members" [class.panel--collapsed]="isCollapsed('members')" cdkDrag>
                 <div class="panel__head" cdkDragHandle>
                   <span class="panel__head-left">
                     <span class="panel__drag" aria-hidden="true">&#8942;&#8942;</span>
@@ -269,7 +297,7 @@
               </section>
             }
             @case ('setlist') {
-              <section class="panel panel--setlist panel--open" cdkDrag>
+              <section class="panel panel--setlist panel--open" [class.panel--collapsed]="isCollapsed('setlist')" cdkDrag>
                 <div class="panel__head" cdkDragHandle>
                   <span class="panel__head-left">
                     <span class="panel__drag" aria-hidden="true">&#8942;&#8942;</span>
@@ -308,6 +336,18 @@
                               {{ entry.pieceTitle }}
                               @if (entry.hasSheetPdf) {
                                 <span class="entry__sheet" aria-label="Noten-PDF vorhanden">PDF</span>
+                              }
+                              @if (entry.hasDemoAudio) {
+                                <span class="entry__sheet entry__sheet--audio" aria-label="Demo-Audio vorhanden">Demo</span>
+                              }
+                              @if (entry.youtubeUrl) {
+                                <a
+                                  class="entry__sheet entry__sheet--youtube"
+                                  [href]="entry.youtubeUrl"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  aria-label="YouTube-Link öffnen"
+                                >YouTube</a>
                               }
                             </span>
                             <span class="entry__actions">
@@ -350,6 +390,55 @@
                                 [disabled]="i === entries().length - 1"
                                 aria-label="Nach unten"
                               >&darr;</button>
+                              @if (entry.hasDemoAudio) {
+                                <button
+                                  type="button"
+                                  class="entry__btn entry__btn--audio"
+                                  (click)="toggleDemo(entry)"
+                                  [disabled]="mediaUploading()[entry.pieceId]"
+                                  aria-label="Demo abspielen"
+                                >{{ demoPlaying()?.pieceId === entry.pieceId ? 'Stop' : 'Demo' }}</button>
+                                @if (canUploadSheets()) {
+                                  <button
+                                    type="button"
+                                    class="entry__btn entry__btn--audio-remove"
+                                    (click)="removeDemoAudio(entry)"
+                                    [disabled]="mediaUploading()[entry.pieceId]"
+                                    aria-label="Demo entfernen"
+                                  >&times;</button>
+                                }
+                              } @else if (canUploadSheets()) {
+                                <button
+                                  type="button"
+                                  class="entry__btn entry__btn--audio"
+                                  (click)="selectDemoAudio(entry)"
+                                  aria-label="Demo-Audio hochladen"
+                                >Audio laden</button>
+                              }
+                              @if (entry.youtubeUrl) {
+                                <button
+                                  type="button"
+                                  class="entry__btn entry__btn--youtube"
+                                  (click)="openYoutube(entry)"
+                                  aria-label="YouTube-Link öffnen"
+                                >YouTube</button>
+                                @if (canUploadSheets()) {
+                                  <button
+                                    type="button"
+                                    class="entry__btn entry__btn--youtube-edit"
+                                    (click)="editYoutube(entry)"
+                                    [disabled]="mediaUploading()[entry.pieceId]"
+                                    aria-label="YouTube-Link ändern"
+                                  >&hellip;</button>
+                                }
+                              } @else if (canUploadSheets()) {
+                                <button
+                                  type="button"
+                                  class="entry__btn entry__btn--youtube"
+                                  (click)="editYoutube(entry)"
+                                  aria-label="YouTube-Link hinzufügen"
+                                >YouTube</button>
+                              }
                               <button
                                 type="button"
                                 class="entry__btn entry__btn--danger"
@@ -357,6 +446,48 @@
                                 aria-label="Stück entfernen"
                               >&times;</button>
                             </span>
+                            @if (demoPlaying()?.pieceId === entry.pieceId) {
+                              <div class="entry__player">
+                                <audio controls autoplay [src]="demoPlaying()?.url ?? null" aria-label="Demo-Wiedergabe"></audio>
+                                <button
+                                  type="button"
+                                  class="entry__btn"
+                                  (click)="stopDemo()"
+                                  aria-label="Wiedergabe beenden"
+                                >Schließen</button>
+                              </div>
+                            }
+                            @if (canUploadSheets() && youtubeEditing()[entry.pieceId]) {
+                              <div class="entry__link-form">
+                                <label class="sr-only" [for]="'youtube-' + entry.id">YouTube-Link</label>
+                                <input
+                                  class="setlist__input"
+                                  [id]="'youtube-' + entry.id"
+                                  type="url"
+                                  placeholder="https://www.youtube.com/watch?v=…"
+                                  [value]="youtubeDraft()[entry.pieceId]"
+                                  (input)="onYoutubeDraftInput(entry, $event)"
+                                  (keydown.enter)="saveYoutube(entry)"
+                                />
+                                <button
+                                  type="button"
+                                  class="setlist__submit"
+                                  (click)="saveYoutube(entry)"
+                                  [disabled]="mediaUploading()[entry.pieceId]"
+                                >Speichern</button>
+                                <button
+                                  type="button"
+                                  class="entry__btn entry__btn--media-danger"
+                                  (click)="removeYoutube(entry)"
+                                  [disabled]="mediaUploading()[entry.pieceId]"
+                                >Entfernen</button>
+                                <button
+                                  type="button"
+                                  class="entry__btn"
+                                  (click)="cancelYoutubeEdit(entry)"
+                                >Abbrechen</button>
+                              </div>
+                            }
                           </li>
                         }
                       </ol>
@@ -368,6 +499,12 @@
                     @if (sheetError(); as message) {
                       <p class="panel__note panel__note--error" role="alert">{{ message }}</p>
                     }
+                    @if (mediaFeedback(); as feedback) {
+                      <p class="panel__note" role="status">{{ feedback }}</p>
+                    }
+                    @if (mediaError(); as message) {
+                      <p class="panel__note panel__note--error" role="alert">{{ message }}</p>
+                    }
 
                     <input
                       #pdfInput
@@ -375,6 +512,13 @@
                       type="file"
                       accept=".pdf,application/pdf"
                       (change)="onSheetFileSelected($event)"
+                    />
+                    <input
+                      #audioInput
+                      class="sr-only"
+                      type="file"
+                      accept="audio/mpeg,.mp3"
+                      (change)="onAudioFileSelected($event)"
                     />
 
                     <form class="setlist__add">
@@ -399,7 +543,7 @@
               </section>
             }
             @case ('rehearsals') {
-              <section class="panel panel--rehearsals" cdkDrag>
+              <section class="panel panel--rehearsals" [class.panel--collapsed]="isCollapsed('rehearsals')" cdkDrag>
                 <div class="panel__head" cdkDragHandle>
                   <span class="panel__head-left">
                     <span class="panel__drag" aria-hidden="true">&#8942;&#8942;</span>
@@ -564,7 +708,7 @@
               </section>
             }
             @case ('equipment') {
-              <section class="panel panel--equipment" cdkDrag>
+              <section class="panel panel--equipment" [class.panel--collapsed]="isCollapsed('equipment')" cdkDrag>
                 <div class="panel__head" cdkDragHandle>
                   <span class="panel__head-left">
                     <span class="panel__drag" aria-hidden="true">&#8942;&#8942;</span>
@@ -768,7 +912,7 @@
               </section>
             }
             @case ('locations') {
-              <section class="panel panel--locations" cdkDrag>
+              <section class="panel panel--locations" [class.panel--collapsed]="isCollapsed('locations')" cdkDrag>
                 <div class="panel__head" cdkDragHandle>
                   <span class="panel__head-left">
                     <span class="panel__drag" aria-hidden="true">&#8942;&#8942;</span>
@@ -963,7 +1107,7 @@
               </section>
             }
             @case ('schedule') {
-              <section class="panel panel--schedule" cdkDrag>
+              <section class="panel panel--schedule" [class.panel--collapsed]="isCollapsed('schedule')" cdkDrag>
                 <div class="panel__head" cdkDragHandle>
                   <span class="panel__head-left">
                     <span class="panel__drag" aria-hidden="true">&#8942;&#8942;</span>
@@ -1069,7 +1213,7 @@
                       <ol class="schedule">
                         @for (item of scheduleItems(); track item.id) {
                           <li class="sched">
-                            <span class="sched__time">{{ item.time }}</span>
+                            <span class="sched__time">{{ formatTimeOnly(item.time) }}</span>
                             <span class="sched__label">{{ item.label }}</span>
                             <span class="sched__actions">
                               <button
@@ -1094,7 +1238,7 @@
               </section>
             }
             @default {
-              <section class="panel" cdkDrag>
+              <section class="panel" [class.panel--collapsed]="isCollapsed(panelKey)" cdkDrag>
                 <div class="panel__head" cdkDragHandle>
                   <span class="panel__head-left">
                     <span class="panel__drag" aria-hidden="true">&#8942;&#8942;</span>

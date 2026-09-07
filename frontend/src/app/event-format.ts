@@ -38,6 +38,15 @@ export function formatTime(dateTime: string): string {
   return `${hours}:${minutes}`;
 }
 
+export function formatTimeOnly(time: string): string {
+  const match = /^(\d{1,2}):(\d{2})/.exec(time);
+  if (!match) {
+    return time;
+  }
+  const hours = String(Number(match[1])).padStart(2, '0');
+  return `${hours}:${match[2]}`;
+}
+
 export function dateContext(dateTime: string, today = new Date()): string | null {
   const parsed = new Date(dateTime);
   const target = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());

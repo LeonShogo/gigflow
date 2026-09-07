@@ -101,22 +101,20 @@
   font-size: 1rem;
   font-weight: 600;
   color: #fff;
-  background: var(--gradient-brand);
+  background: var(--accent);
   border: 1px solid transparent;
-  border-radius: var(--radius-pill);
-  padding: 0.65rem 1.4rem;
+  border-radius: var(--radius);
+  padding: 0.7rem 1.4rem;
   cursor: pointer;
   box-shadow: var(--shadow-sm);
   transition:
-    transform var(--t-fast) ease,
-    box-shadow var(--t-fast) ease,
-    filter var(--t-fast) ease;
+    background-color var(--t-fast) ease,
+    box-shadow var(--t-fast) ease;
 }
 
 .submit:hover:not([disabled]) {
-  transform: translateY(-1px);
+  background: var(--accent-2);
   box-shadow: var(--shadow-md);
-  filter: saturate(1.15);
 }
 
 .submit[disabled] {

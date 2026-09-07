@@ -1,6 +1,11 @@
 package de.gigflow.backend.musician;
 
+import de.gigflow.backend.band.BandMembershipRepository;
+import de.gigflow.backend.equipment.EquipmentRequirementRepository;
+import de.gigflow.backend.event.EventParticipationRepository;
+import de.gigflow.backend.user.UserRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -9,9 +14,22 @@ import java.util.Optional;
 public class MusicianService {
 
     private final MusicianRepository musicianRepository;
+    private final EventParticipationRepository participationRepository;
+    private final BandMembershipRepository bandMembershipRepository;
+    private final EquipmentRequirementRepository equipmentRequirementRepository;
+    private final UserRepository userRepository;
 
-    public MusicianService(MusicianRepository musicianRepository) {
+    public MusicianService(
+            MusicianRepository musicianRepository,
+            EventParticipationRepository participationRepository,
+            BandMembershipRepository bandMembershipRepository,
+            EquipmentRequirementRepository equipmentRequirementRepository,
+            UserRepository userRepository) {
         this.musicianRepository = musicianRepository;
+        this.participationRepository = participationRepository;
+        this.bandMembershipRepository = bandMembershipRepository;
+        this.equipmentRequirementRepository = equipmentRequirementRepository;
+        this.userRepository = userRepository;
     }
 
     public MusicianResponse createMusician(MusicianRequest request) {
@@ -51,7 +69,38 @@ public class MusicianService {
         return MusicianResponse.from(musicianRepository.save(existing));
     }
 
+    /**
+     * Deletes a musician, but only if no dependent records reference them.
+     * Deleting a musician who still has participations, band memberships,
+     * responsible equipment or a linked user account would create orphans,
+     * so those cases are rejected with a clear German error message.
+     */
+    @Transactional
     public void deleteMusician(Long id) {
-        musicianRepository.deleteById(id);
+        Musician musician = musicianRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Musiker:in nicht gefunden: " + id));
+
+        if (!participationRepository.findByMusicianId(id).isEmpty()) {
+            throw new IllegalArgumentException(
+                    "„" + musician.getFirstName() + " " + musician.getLastName()
+                            + "“ kann nicht gelöscht werden: noch zu Gigs/Proben zugeordnet.");
+        }
+        if (!bandMembershipRepository.findByMusicianId(id).isEmpty()) {
+            throw new IllegalArgumentException(
+                    "„" + musician.getFirstName() + " " + musician.getLastName()
+                            + "“ kann nicht gelöscht werden: noch einer Band zugeordnet.");
+        }
+        if (!equipmentRequirementRepository.findByResponsibleMusicianId(id).isEmpty()) {
+            throw new IllegalArgumentException(
+                    "„" + musician.getFirstName() + " " + musician.getLastName()
+                            + "“ kann nicht gelöscht werden: noch als Verantwortliche:r für Equipment hinterlegt.");
+        }
+        if (!userRepository.findByMusicianId(id).isEmpty()) {
+            throw new IllegalArgumentException(
+                    "„" + musician.getFirstName() + " " + musician.getLastName()
+                            + "“ kann nicht gelöscht werden: es besteht noch ein verknüpftes Benutzerkonto.");
+        }
+
+        musicianRepository.delete(musician);
     }
 }

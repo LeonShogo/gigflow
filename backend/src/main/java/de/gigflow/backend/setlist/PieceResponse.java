@@ -5,12 +5,16 @@ public class PieceResponse {
     private Long id;
     private String title;
     private boolean hasSheetPdf;
+    private boolean hasDemoAudio;
+    private String youtubeUrl;
 
     public static PieceResponse from(Piece piece) {
         PieceResponse response = new PieceResponse();
         response.setId(piece.getId());
         response.setTitle(piece.getTitle());
         response.setHasSheetPdf(piece.getSheetPdfPath() != null);
+        response.setHasDemoAudio(piece.getDemoAudioPath() != null);
+        response.setYoutubeUrl(piece.getYoutubeUrl());
         return response;
     }
 
@@ -36,5 +40,21 @@ public class PieceResponse {
 
     public void setHasSheetPdf(boolean hasSheetPdf) {
         this.hasSheetPdf = hasSheetPdf;
+    }
+
+    public boolean getHasDemoAudio() {
+        return hasDemoAudio;
+    }
+
+    public void setHasDemoAudio(boolean hasDemoAudio) {
+        this.hasDemoAudio = hasDemoAudio;
+    }
+
+    public String getYoutubeUrl() {
+        return youtubeUrl;
+    }
+
+    public void setYoutubeUrl(String youtubeUrl) {
+        this.youtubeUrl = youtubeUrl;
     }
 }

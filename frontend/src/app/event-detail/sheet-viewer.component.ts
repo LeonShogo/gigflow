@@ -45,7 +45,9 @@ export class SheetViewerComponent {
   private readonly pdfDoc = signal<PDFDocumentProxy | null>(null);
   protected readonly pages = signal<PdfPage[]>([]);
   protected readonly pageIndex = signal(0);
-  protected readonly zoom = signal<number | typeof ZOOM_FIT>(DEFAULT_ZOOM);
+  protected readonly zoom = signal<number | typeof ZOOM_FIT>(
+    typeof window !== 'undefined' && window.innerWidth < 640 ? ZOOM_FIT : DEFAULT_ZOOM,
+  );
   protected readonly ready = signal(false);
   protected readonly error = signal<string | null>(null);
 

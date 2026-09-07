@@ -110,4 +110,61 @@ public class PieceController {
             return ResponseEntity.notFound().build();
         }
     }
+
+    @PostMapping("/{id}/demo-audio")
+    public ResponseEntity<?> uploadDemoAudio(@PathVariable Long id, @RequestParam("file") MultipartFile file) {
+        try {
+            PieceResponse updated = pieceService.saveDemoAudio(id, file);
+            return ResponseEntity.ok(updated);
+        } catch (IllegalArgumentException e) {
+            if (e.getMessage() != null && e.getMessage().startsWith("Stück nicht gefunden")) {
+                return ResponseEntity.notFound().build();
+            }
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/{id}/demo-audio")
+    public ResponseEntity<Resource> downloadDemoAudio(@PathVariable Long id) {
+        Optional<PieceService.DemoAudioFile> demoAudio = pieceService.loadDemoAudio(id);
+        if (demoAudio.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        PieceService.DemoAudioFile file = demoAudio.get();
+        String encodedName = URLEncoder.encode(file.originalName(), StandardCharsets.UTF_8)
+                .replace("+", "%20");
+        String disposition = "inline; filename*=UTF-8''" + encodedName;
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType("audio/mpeg"));
+        headers.set(HttpHeaders.CONTENT_DISPOSITION, disposition);
+        return ResponseEntity.ok()
+                .headers(headers)
+                .contentLength(file.path().toFile().length())
+                .body(new FileSystemResource(file.path()));
+    }
+
+    @DeleteMapping("/{id}/demo-audio")
+    public ResponseEntity<Void> deleteDemoAudio(@PathVariable Long id) {
+        try {
+            pieceService.removeDemoAudio(id);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PutMapping("/{id}/youtube")
+    public ResponseEntity<?> updateYoutubeUrl(@PathVariable Long id, @RequestBody PieceYoutubeRequest request) {
+        try {
+            PieceResponse updated = pieceService.setYoutubeUrl(id, request.getYoutubeUrl());
+            return ResponseEntity.ok(updated);
+        } catch (IllegalArgumentException e) {
+            if (e.getMessage() != null && e.getMessage().startsWith("Stück nicht gefunden")) {
+                return ResponseEntity.notFound().build();
+            }
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 }

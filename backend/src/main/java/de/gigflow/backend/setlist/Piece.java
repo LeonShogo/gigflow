@@ -28,6 +28,18 @@ public class Piece {
     @Column(name = "sheet_pdf_original_name")
     private String sheetPdfOriginalName;
 
+    /** Stored filename of the demo audio MP3, relative to the upload directory. Null when absent. */
+    @Column(name = "demo_audio_path")
+    private String demoAudioPath;
+
+    /** Original name of the uploaded MP3, used for the download Content-Disposition. */
+    @Column(name = "demo_audio_original_name")
+    private String demoAudioOriginalName;
+
+    /** Optional YouTube link for the piece, e.g. a rehearsal or demo recording. */
+    @Column(name = "youtube_url", length = 500)
+    private String youtubeUrl;
+
     public Long getId() {
         return id;
     }
@@ -58,5 +70,29 @@ public class Piece {
 
     public void setSheetPdfOriginalName(String sheetPdfOriginalName) {
         this.sheetPdfOriginalName = sheetPdfOriginalName;
+    }
+
+    public String getDemoAudioPath() {
+        return demoAudioPath;
+    }
+
+    public void setDemoAudioPath(String demoAudioPath) {
+        this.demoAudioPath = demoAudioPath;
+    }
+
+    public String getDemoAudioOriginalName() {
+        return demoAudioOriginalName;
+    }
+
+    public void setDemoAudioOriginalName(String demoAudioOriginalName) {
+        this.demoAudioOriginalName = demoAudioOriginalName;
+    }
+
+    public String getYoutubeUrl() {
+        return youtubeUrl;
+    }
+
+    public void setYoutubeUrl(String youtubeUrl) {
+        this.youtubeUrl = youtubeUrl;
     }
 }

@@ -65,4 +65,22 @@ export class SetlistService {
   removeSheetPdf(pieceId: number): Observable<void> {
     return this.http.delete<void>(`/api/pieces/${pieceId}/sheet-pdf`);
   }
+
+  uploadDemoAudio(pieceId: number, file: File): Observable<Piece> {
+    const formData = new FormData();
+    formData.append('file', file, file.name);
+    return this.http.post<Piece>(`/api/pieces/${pieceId}/demo-audio`, formData);
+  }
+
+  downloadDemoAudio(pieceId: number): Observable<Blob> {
+    return this.http.get(`/api/pieces/${pieceId}/demo-audio`, { responseType: 'blob' });
+  }
+
+  removeDemoAudio(pieceId: number): Observable<void> {
+    return this.http.delete<void>(`/api/pieces/${pieceId}/demo-audio`);
+  }
+
+  setYoutubeUrl(pieceId: number, youtubeUrl: string | null): Observable<Piece> {
+    return this.http.put<Piece>(`/api/pieces/${pieceId}/youtube`, { youtubeUrl });
+  }
 }

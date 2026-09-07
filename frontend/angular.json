@@ -29,6 +29,7 @@
                 "input": "public"
               }
             ],
+            "serviceWorker": "ngsw-config.json",
             "styles": ["src/styles.scss"]
           },
           "configurations": {
@@ -41,7 +42,7 @@
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "22kB",
+                  "maximumWarning": "23kB",
                   "maximumError": "24kB"
                 }
               ],

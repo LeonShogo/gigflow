@@ -10,6 +10,8 @@ export interface SetlistEntry {
   pieceTitle: string;
   position: number;
   hasSheetPdf?: boolean;
+  hasDemoAudio?: boolean;
+  youtubeUrl?: string | null;
 }
 
 export interface PieceRequest {
@@ -20,6 +22,8 @@ export interface Piece {
   id: number;
   title: string;
   hasSheetPdf?: boolean;
+  hasDemoAudio?: boolean;
+  youtubeUrl?: string | null;
 }
 
 export interface SetlistEntryRequest {

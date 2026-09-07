@@ -1183,6 +1183,191 @@ function loadConcertWithLocations(
     expect(fixture.nativeElement.querySelector('app-sheet-viewer')).toBeTruthy();
   });
 
+  it('should show Demo and YouTube badges and play a demo inline', () => {
+    const fixture = setup('1');
+    fixture.detectChanges();
+    httpMock.expectOne('/api/events/1').flush(CONCERT);
+    fixture.detectChanges();
+    httpMock.expectOne('/api/event-participations/event/1').flush([]);
+    httpMock.expectOne('/api/events/by-concert/1').flush([]);
+    httpMock.expectOne('/api/setlists/event/1').flush(EMPTY_SETLIST);
+    httpMock.expectOne('/api/events/1/layout').flush(DEFAULT_LAYOUT);
+    httpMock.expectOne('/api/event-locations/event/1').flush([]);
+    fixture.detectChanges();
+    httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([
+      {
+        id: 5,
+        setlistId: 10,
+        pieceId: 3,
+        pieceTitle: 'Hallo Welt',
+        position: 0,
+        hasSheetPdf: true,
+        hasDemoAudio: true,
+        youtubeUrl: 'https://youtu.be/abc123',
+      },
+    ]);
+    httpMock.expectOne('/api/equipment-requirements/event/1').flush([]);
+    httpMock.expectOne('/api/schedule-items/event/1').flush([]);
+    fixture.detectChanges();
+
+    const auth = TestBed.inject(AuthService);
+    auth.login({ email: 'o@gigflow.local', password: 'password' }).subscribe();
+    httpMock.expectOne('/api/auth/login').flush({
+      token: 't',
+      user: { id: 1, email: 'o@gigflow.local', organizer: true, musicianId: null },
+    });
+    fixture.detectChanges();
+
+    const first = fixture.nativeElement.querySelectorAll('.entry')[0] as HTMLElement;
+    expect(first.querySelector('.entry__sheet--audio')?.textContent?.trim()).toBe('Demo');
+    expect(first.querySelector('.entry__sheet--youtube')?.textContent?.trim()).toBe('YouTube');
+    expect((first.querySelector('.entry__sheet--youtube') as HTMLAnchorElement).getAttribute('href')).toBe(
+      'https://youtu.be/abc123',
+    );
+
+    (first.querySelector('.entry__btn--audio') as HTMLButtonElement).click();
+    const req = httpMock.expectOne('/api/pieces/3/demo-audio');
+    expect(req.request.responseType).toBe('blob');
+    req.flush(new Blob([new Uint8Array([1, 2, 3])], { type: 'audio/mpeg' }));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.entry__player audio')).toBeTruthy();
+  });
+
+  it('should upload a demo audio MP3 and show the badge afterwards', () => {
+    const fixture = setup('1');
+    fixture.detectChanges();
+    httpMock.expectOne('/api/events/1').flush(CONCERT);
+    fixture.detectChanges();
+    httpMock.expectOne('/api/event-participations/event/1').flush([]);
+    httpMock.expectOne('/api/events/by-concert/1').flush([]);
+    httpMock.expectOne('/api/setlists/event/1').flush(EMPTY_SETLIST);
+    httpMock.expectOne('/api/events/1/layout').flush(DEFAULT_LAYOUT);
+    httpMock.expectOne('/api/event-locations/event/1').flush([]);
+    fixture.detectChanges();
+    httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([
+      { id: 5, setlistId: 10, pieceId: 3, pieceTitle: 'Hallo Welt', position: 0, hasSheetPdf: false },
+    ]);
+    httpMock.expectOne('/api/equipment-requirements/event/1').flush([]);
+    httpMock.expectOne('/api/schedule-items/event/1').flush([]);
+    fixture.detectChanges();
+
+    const auth = TestBed.inject(AuthService);
+    auth.login({ email: 'o@gigflow.local', password: 'password' }).subscribe();
+    httpMock.expectOne('/api/auth/login').flush({
+      token: 't',
+      user: { id: 1, email: 'o@gigflow.local', organizer: true, musicianId: null },
+    });
+    fixture.detectChanges();
+
+    const first = fixture.nativeElement.querySelectorAll('.entry')[0] as HTMLElement;
+    expect(first.querySelector('.entry__btn--audio')?.textContent?.trim()).toBe('Audio laden');
+    (first.querySelector('.entry__btn--audio') as HTMLButtonElement).click();
+
+    const inputs = fixture.nativeElement.querySelectorAll('input[type="file"]');
+    const input = inputs[1] as HTMLInputElement;
+    const file = new File(['abc'], 'demo.mp3', { type: 'audio/mpeg' });
+    Object.defineProperty(input, 'files', { value: [file] });
+    input.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    const req = httpMock.expectOne('/api/pieces/3/demo-audio');
+    expect(req.request.method).toBe('POST');
+    req.flush({ id: 3, title: 'Hallo Welt', hasDemoAudio: true });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Demo hochgeladen.');
+    expect(first.querySelector('.entry__sheet--audio')).toBeTruthy();
+  });
+
+  it('should remove a demo audio and drop the badge', () => {
+    const fixture = setup('1');
+    fixture.detectChanges();
+    httpMock.expectOne('/api/events/1').flush(CONCERT);
+    fixture.detectChanges();
+    httpMock.expectOne('/api/event-participations/event/1').flush([]);
+    httpMock.expectOne('/api/events/by-concert/1').flush([]);
+    httpMock.expectOne('/api/setlists/event/1').flush(EMPTY_SETLIST);
+    httpMock.expectOne('/api/events/1/layout').flush(DEFAULT_LAYOUT);
+    httpMock.expectOne('/api/event-locations/event/1').flush([]);
+    fixture.detectChanges();
+    httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([
+      { id: 5, setlistId: 10, pieceId: 3, pieceTitle: 'Hallo Welt', position: 0, hasDemoAudio: true },
+    ]);
+    httpMock.expectOne('/api/equipment-requirements/event/1').flush([]);
+    httpMock.expectOne('/api/schedule-items/event/1').flush([]);
+    fixture.detectChanges();
+
+    const auth = TestBed.inject(AuthService);
+    auth.login({ email: 'o@gigflow.local', password: 'password' }).subscribe();
+    httpMock.expectOne('/api/auth/login').flush({
+      token: 't',
+      user: { id: 1, email: 'o@gigflow.local', organizer: true, musicianId: null },
+    });
+    fixture.detectChanges();
+
+    const first = fixture.nativeElement.querySelectorAll('.entry')[0] as HTMLElement;
+    (first.querySelector('.entry__btn--audio-remove') as HTMLButtonElement).click();
+    const req = httpMock.expectOne('/api/pieces/3/demo-audio');
+    expect(req.request.method).toBe('DELETE');
+    req.flush(null, { status: 204, statusText: 'No Content' });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Demo entfernt.');
+    expect(first.querySelector('.entry__sheet--audio')).toBeNull();
+  });
+
+  it('should save and show a YouTube link via the inline form', () => {
+    const fixture = setup('1');
+    fixture.detectChanges();
+    httpMock.expectOne('/api/events/1').flush(CONCERT);
+    fixture.detectChanges();
+    httpMock.expectOne('/api/event-participations/event/1').flush([]);
+    httpMock.expectOne('/api/events/by-concert/1').flush([]);
+    httpMock.expectOne('/api/setlists/event/1').flush(EMPTY_SETLIST);
+    httpMock.expectOne('/api/events/1/layout').flush(DEFAULT_LAYOUT);
+    httpMock.expectOne('/api/event-locations/event/1').flush([]);
+    fixture.detectChanges();
+    httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([
+      { id: 5, setlistId: 10, pieceId: 3, pieceTitle: 'Hallo Welt', position: 0 },
+    ]);
+    httpMock.expectOne('/api/equipment-requirements/event/1').flush([]);
+    httpMock.expectOne('/api/schedule-items/event/1').flush([]);
+    fixture.detectChanges();
+
+    const auth = TestBed.inject(AuthService);
+    auth.login({ email: 'o@gigflow.local', password: 'password' }).subscribe();
+    httpMock.expectOne('/api/auth/login').flush({
+      token: 't',
+      user: { id: 1, email: 'o@gigflow.local', organizer: true, musicianId: null },
+    });
+    fixture.detectChanges();
+
+    const first = fixture.nativeElement.querySelectorAll('.entry')[0] as HTMLElement;
+    (first.querySelector('.entry__btn--youtube') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const input = first.querySelector('.entry__link-form input') as HTMLInputElement;
+    expect(input).toBeTruthy();
+    input.value = 'https://www.youtube.com/watch?v=abc123';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    (first.querySelector('.entry__link-form .setlist__submit') as HTMLButtonElement).click();
+    const req = httpMock.expectOne('/api/pieces/3/youtube');
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.body).toEqual({
+      youtubeUrl: 'https://www.youtube.com/watch?v=abc123',
+    });
+    req.flush({ id: 3, title: 'Hallo Welt', youtubeUrl: 'https://www.youtube.com/watch?v=abc123' });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('YouTube-Link gespeichert.');
+    expect((first.querySelector('.entry__sheet--youtube') as HTMLAnchorElement).getAttribute('href')).toBe(
+      'https://www.youtube.com/watch?v=abc123',
+    );
+  });
+
   it('should render locations with type, name, address, phone, note and maps link', () => {
     const fixture = setup('1');
     loadConcertWithLocations(fixture, [
@@ -1446,6 +1631,46 @@ function loadConcertWithLocations(
 
     expect(fixture.nativeElement.textContent).toContain('Ort entfernt.');
     expect(fixture.nativeElement.textContent).toContain('Noch keine Orte für diesen Gig erfasst.');
+  });
+
+  it('should show a delete action for organizers and delete the event after confirmation', () => {
+    const fixture = setup('1');
+    loadConcert(fixture);
+
+    const auth = TestBed.inject(AuthService);
+    auth.login({ email: 'o@gigflow.local', password: 'password' }).subscribe();
+    httpMock.expectOne('/api/auth/login').flush({
+      token: 't',
+      user: { id: 1, email: 'o@gigflow.local', organizer: true, musicianId: null },
+    });
+    fixture.detectChanges();
+
+    const deleteTrigger = fixture.nativeElement.querySelector('.detail__print--delete') as HTMLButtonElement;
+    expect(deleteTrigger).toBeTruthy();
+    deleteTrigger.click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Hafenrocker');
+    (fixture.nativeElement.querySelector('.detail__print--danger') as HTMLButtonElement).click();
+    const req = httpMock.expectOne('/api/events/1');
+    expect(req.request.method).toBe('DELETE');
+    req.flush(null, { status: 204, statusText: 'No Content' });
+    fixture.detectChanges();
+  });
+
+  it('should hide the delete action for non-organizers', () => {
+    const fixture = setup('1');
+    loadConcert(fixture);
+
+    const auth = TestBed.inject(AuthService);
+    auth.login({ email: 'm@gigflow.local', password: 'password' }).subscribe();
+    httpMock.expectOne('/api/auth/login').flush({
+      token: 't',
+      user: { id: 2, email: 'm@gigflow.local', organizer: false, musicianId: 3 },
+    });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.detail__print--delete')).toBeNull();
   });
 });
     

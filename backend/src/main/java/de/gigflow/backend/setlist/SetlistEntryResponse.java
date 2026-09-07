@@ -7,6 +7,8 @@ public class SetlistEntryResponse {
     private Long pieceId;
     private String pieceTitle;
     private boolean hasSheetPdf;
+    private boolean hasDemoAudio;
+    private String youtubeUrl;
     private int position;
 
     public static SetlistEntryResponse from(SetlistEntry entry) {
@@ -19,6 +21,8 @@ public class SetlistEntryResponse {
             response.setPieceId(entry.getPiece().getId());
             response.setPieceTitle(entry.getPiece().getTitle());
             response.setHasSheetPdf(entry.getPiece().getSheetPdfPath() != null);
+            response.setHasDemoAudio(entry.getPiece().getDemoAudioPath() != null);
+            response.setYoutubeUrl(entry.getPiece().getYoutubeUrl());
         }
         response.setPosition(entry.getPosition());
         return response;
@@ -62,6 +66,22 @@ public class SetlistEntryResponse {
 
     public void setHasSheetPdf(boolean hasSheetPdf) {
         this.hasSheetPdf = hasSheetPdf;
+    }
+
+    public boolean getHasDemoAudio() {
+        return hasDemoAudio;
+    }
+
+    public void setHasDemoAudio(boolean hasDemoAudio) {
+        this.hasDemoAudio = hasDemoAudio;
+    }
+
+    public String getYoutubeUrl() {
+        return youtubeUrl;
+    }
+
+    public void setYoutubeUrl(String youtubeUrl) {
+        this.youtubeUrl = youtubeUrl;
     }
 
     public int getPosition() {

@@ -9,12 +9,12 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { forkJoin, filter, map, switchMap, tap } from 'rxjs';
 
 import { SheetViewerComponent } from './sheet-viewer.component';
 
-import { formatDate, formatTime, typeLabel } from '../event-format';
+import { formatDate, formatTime, formatTimeOnly, typeLabel } from '../event-format';
 import type {
   EventItem,
   EventParticipation,
@@ -98,6 +98,7 @@ const SCHEDULE_PRESETS = [
 })
 export class EventDetailComponent {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly eventService = inject(EventService);
   private readonly participationService = inject(EventParticipationService);
   private readonly musicianService = inject(MusicianService);
@@ -111,6 +112,11 @@ export class EventDetailComponent {
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
   protected readonly event = signal<EventItem | null>(null);
+
+  protected readonly confirmingDelete = signal(false);
+  protected readonly deleting = signal(false);
+  protected readonly deleteError = signal<string | null>(null);
+  protected readonly canDelete = computed(() => this.auth.isOrganizer());
 
   protected readonly participations = signal<EventParticipation[]>([]);
   protected readonly participantsLoading = signal(true);
@@ -189,6 +195,15 @@ export class EventDetailComponent {
   protected readonly openSheetTitle = signal<string | null>(null);
   protected pendingPdfPieceId = signal<number | null>(null);
   @ViewChild('pdfInput') protected readonly pdfInputRef?: ElementRef<HTMLInputElement>;
+
+  protected readonly mediaUploading = signal<Record<number, boolean>>({});
+  protected readonly mediaFeedback = signal<string | null>(null);
+  protected readonly mediaError = signal<string | null>(null);
+  protected readonly demoPlaying = signal<{ pieceId: number; title: string; url: string } | null>(null);
+  protected readonly youtubeEditing = signal<Record<number, boolean>>({});
+  protected readonly youtubeDraft = signal<Record<number, string>>({});
+  protected pendingAudioPieceId = signal<number | null>(null);
+  @ViewChild('audioInput') protected readonly audioInputRef?: ElementRef<HTMLInputElement>;
 
   protected readonly rehearsals = signal<EventItem[]>([]);
   protected readonly rehearsalsLoading = signal(false);
@@ -906,6 +921,36 @@ export class EventDetailComponent {
    * derived from the latest "Ablauf"-entry, the venue from the VENUE
    * location, and the description contains the setlist for concerts.
    */
+  protected requestDelete(): void {
+    this.deleteError.set(null);
+    this.confirmingDelete.set(true);
+  }
+
+  protected cancelDelete(): void {
+    this.confirmingDelete.set(false);
+  }
+
+  protected confirmDelete(): void {
+    const current = this.event();
+    if (!current) {
+      return;
+    }
+    this.deleting.set(true);
+    this.deleteError.set(null);
+    this.eventService.deleteEvent(current.id).subscribe({
+      next: () => {
+        this.deleting.set(false);
+        this.confirmingDelete.set(false);
+        this.router.navigate(['/']);
+      },
+      error: () => {
+        this.deleting.set(false);
+        this.confirmingDelete.set(false);
+        this.deleteError.set('Termin konnte nicht gelöscht werden.');
+      },
+    });
+  }
+
   protected exportToCalendar(): void {
     const event = this.event();
     if (!event) {
@@ -1577,6 +1622,141 @@ export class EventDetailComponent {
     });
   }
 
+  protected toggleDemo(entry: SetlistEntry): void {
+    const current = this.demoPlaying();
+    if (current?.pieceId === entry.pieceId) {
+      this.stopDemo();
+      return;
+    }
+    this.stopDemo();
+    this.mediaError.set(null);
+    this.mediaFeedback.set(null);
+    this.setlistService.downloadDemoAudio(entry.pieceId).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        this.demoPlaying.set({ pieceId: entry.pieceId, title: entry.pieceTitle, url });
+      },
+      error: () => this.mediaError.set('Demo konnte nicht geladen werden.'),
+    });
+  }
+
+  protected stopDemo(): void {
+    const current = this.demoPlaying();
+    if (current) {
+      URL.revokeObjectURL(current.url);
+      this.demoPlaying.set(null);
+    }
+  }
+
+  protected selectDemoAudio(entry: SetlistEntry): void {
+    this.pendingAudioPieceId.set(entry.pieceId);
+    this.mediaError.set(null);
+    this.mediaFeedback.set(null);
+    this.audioInputRef?.nativeElement.click();
+  }
+
+  protected onAudioFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    const pieceId = this.pendingAudioPieceId();
+    input.value = '';
+    this.pendingAudioPieceId.set(null);
+    if (!pieceId || !file) {
+      return;
+    }
+    this.mediaUploading.update((m) => ({ ...m, [pieceId]: true }));
+    this.mediaError.set(null);
+    this.mediaFeedback.set(null);
+    this.setlistService.uploadDemoAudio(pieceId, file).subscribe({
+      next: (piece) => {
+        this.mediaUploading.update((m) => ({ ...m, [pieceId]: false }));
+        this.entries.update((list) =>
+          list.map((e) => (e.pieceId === pieceId ? { ...e, hasDemoAudio: piece.hasDemoAudio } : e)),
+        );
+        this.mediaFeedback.set('Demo hochgeladen.');
+      },
+      error: () => {
+        this.mediaUploading.update((m) => ({ ...m, [pieceId]: false }));
+        this.mediaError.set('Demo konnte nicht hochgeladen werden.');
+      },
+    });
+  }
+
+  protected removeDemoAudio(entry: SetlistEntry): void {
+    const current = this.demoPlaying();
+    if (current?.pieceId === entry.pieceId) {
+      this.stopDemo();
+    }
+    this.mediaUploading.update((m) => ({ ...m, [entry.pieceId]: true }));
+    this.mediaError.set(null);
+    this.mediaFeedback.set(null);
+    this.setlistService.removeDemoAudio(entry.pieceId).subscribe({
+      next: () => {
+        this.mediaUploading.update((m) => ({ ...m, [entry.pieceId]: false }));
+        this.entries.update((list) =>
+          list.map((e) => (e.pieceId === entry.pieceId ? { ...e, hasDemoAudio: false } : e)),
+        );
+        this.mediaFeedback.set('Demo entfernt.');
+      },
+      error: () => {
+        this.mediaUploading.update((m) => ({ ...m, [entry.pieceId]: false }));
+        this.mediaError.set('Demo konnte nicht entfernt werden.');
+      },
+    });
+  }
+
+  protected openYoutube(entry: SetlistEntry): void {
+    if (entry.youtubeUrl) {
+      window.open(entry.youtubeUrl, '_blank', 'noopener,noreferrer');
+    }
+  }
+
+  protected editYoutube(entry: SetlistEntry): void {
+    this.youtubeDraft.update((d) => ({ ...d, [entry.pieceId]: entry.youtubeUrl ?? '' }));
+    this.youtubeEditing.update((e) => ({ ...e, [entry.pieceId]: true }));
+    this.mediaError.set(null);
+    this.mediaFeedback.set(null);
+  }
+
+  protected onYoutubeDraftInput(entry: SetlistEntry, event: Event): void {
+    this.youtubeDraft.update((d) => ({ ...d, [entry.pieceId]: (event.target as HTMLInputElement).value }));
+  }
+
+  protected cancelYoutubeEdit(entry: SetlistEntry): void {
+    const nextDraft = { ...this.youtubeDraft() };
+    delete nextDraft[entry.pieceId];
+    this.youtubeDraft.set(nextDraft);
+    const nextEditing = { ...this.youtubeEditing() };
+    delete nextEditing[entry.pieceId];
+    this.youtubeEditing.set(nextEditing);
+  }
+
+  protected saveYoutube(entry: SetlistEntry): void {
+    const url = (this.youtubeDraft()[entry.pieceId] ?? '').trim() || null;
+    this.mediaUploading.update((m) => ({ ...m, [entry.pieceId]: true }));
+    this.mediaError.set(null);
+    this.mediaFeedback.set(null);
+    this.setlistService.setYoutubeUrl(entry.pieceId, url).subscribe({
+      next: (piece) => {
+        this.mediaUploading.update((m) => ({ ...m, [entry.pieceId]: false }));
+        this.entries.update((list) =>
+          list.map((e) => (e.pieceId === entry.pieceId ? { ...e, youtubeUrl: piece.youtubeUrl ?? null } : e)),
+        );
+        this.cancelYoutubeEdit(entry);
+        this.mediaFeedback.set(url ? 'YouTube-Link gespeichert.' : 'YouTube-Link entfernt.');
+      },
+      error: () => {
+        this.mediaUploading.update((m) => ({ ...m, [entry.pieceId]: false }));
+        this.mediaError.set('YouTube-Link konnte nicht gespeichert werden.');
+      },
+    });
+  }
+
+  protected removeYoutube(entry: SetlistEntry): void {
+    this.youtubeDraft.update((d) => ({ ...d, [entry.pieceId]: '' }));
+    this.saveYoutube(entry);
+  }
+
   protected moveEntry(index: number, delta: -1 | 1): void {
     const entries = this.entries();
     const target = index + delta;
@@ -1635,4 +1815,6 @@ export class EventDetailComponent {
   protected formatDate = formatDate;
 
   protected formatTime = formatTime;
+
+  protected formatTimeOnly = formatTimeOnly;
 }

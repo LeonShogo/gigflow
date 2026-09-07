@@ -1,66 +1,69 @@
 /* ------------------------------------------------------------------ */
 /*  GigFlow design tokens                                              */
-/*  Editorial / musical. Reduced. No SaaS-gradient, no glow.           */
-/*  Fonts: Fraunces (display serif), Instrument Sans (UI),             */
-/*         Spline Sans Mono (labels). System fallbacks stay offline.   */
+/*  Prod / tour-sheet. Cool neutral base, strong typography,           */
+/*  restrained shape. No SaaS gradients, no glow, no warm burgundy.    */
+/*  Fonts: Barlow Condensed (display), Inter (UI),                     */
+/*         JetBrains Mono (labels/numbers). System fallbacks offline.  */
 /* ------------------------------------------------------------------ */
 
-@import url("https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Spline+Sans+Mono:wght@400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap");
 
 :root {
   color-scheme: light;
 
-  /* Surfaces — warm backstage-paper, soft violet wash on top */
-  --paper: #f6f2ea;
-  --paper-raised: #fffdf8;
-  --paper-inset: #eee7d9;
-  --ink: #221710;
-  --ink-soft: #5c5348;
-  --ink-faint: #8f8677;
-  --line: #ded4c2;
-  --line-strong: #ccbfa6;
+  /* Surfaces — cool gray-white base */
+  --paper: #f7f8fa;
+  --paper-raised: #ffffff;
+  --paper-inset: #eceef1;
+  --ink: #1a1d21;
+  --ink-soft: #4d565e;
+  --ink-faint: #8a929b;
+  --line: #e2e6ea;
+  --line-strong: #c8cfd6;
 
-  /* Accent — berry-to-stage-red identity */
-  --accent: #c22b1f;
-  --accent-ink: #96170b;
-  --accent-2: #5f1950;
-  --accent-soft: #f9e4dc;
-  --gold: #d3911f;
-  --gold-ink: #7a5208;
-  --gold-soft: #f8ecce;
+  /* Accent — calm, professional light blue */
+  --accent: #2f7fe0;
+  --accent-ink: #1f5bb0;
+  --accent-2: #1e4f8f;
+  --accent-soft: #e8f1fc;
+  --accent-line: rgba(47, 127, 224, 0.35);
+  --gold: #d0a32a;
+  --gold-ink: #8a6a10;
+  --gold-soft: #faf3dd;
+  --gold-line: rgba(208, 163, 42, 0.4);
 
-  /* Gradients */
-  --gradient-brand: linear-gradient(135deg, #5f1950 0%, #8f1635 55%, #c22b1f 100%);
-  --gradient-page: linear-gradient(180deg, #fbf6ec 0%, #f3eddf 55%, #efe7f0 120%);
-  --gradient-gold: linear-gradient(135deg, #d3911f 0%, #f0b53d 100%);
+  /* Gradients — reserved for small accents only */
+  --gradient-brand: linear-gradient(135deg, #3b82d9 0%, #2f7fe0 100%);
+  --gradient-page: linear-gradient(180deg, #fbfcfd 0%, #f2f4f7 100%);
+  --gradient-gold: linear-gradient(135deg, #d0a32a 0%, #e3bb4c 100%);
 
   /* Status */
-  --ok: #2f7a3c;
-  --ok-bg: #e6f2e6;
-  --warn: #8a6510;
-  --warn-bg: #f6edd8;
-  --danger: #c22b1f;
-  --danger-ink: #96170b;
-  --danger-bg: #f9e4dc;
+  --ok: #1f8a4c;
+  --ok-bg: #e7f6ed;
+  --warn: #8a650a;
+  --warn-bg: #faf3dd;
+  --danger: #d3382f;
+  --danger-ink: #a92b24;
+  --danger-bg: #fdecea;
 
   /* Focus ring */
-  --focus: #c22b1f;
+  --focus: #2f7fe0;
 
-  /* Elevation */
-  --shadow-sm: 0 1px 3px rgb(55 28 12 / 0.12);
-  --shadow-md: 0 2px 8px rgb(95 25 80 / 0.12), 0 14px 34px rgb(95 25 80 / 0.16);
-  --shadow-drag: 0 6px 22px rgb(50 15 45 / 0.3);
+  /* Elevation — subtle, neutral */
+  --shadow-sm: 0 1px 2px rgb(16 24 34 / 0.06), 0 1px 4px rgb(16 24 34 / 0.05);
+  --shadow-md: 0 2px 6px rgb(16 24 34 / 0.08), 0 10px 26px rgb(16 24 34 / 0.1);
+  --shadow-drag: 0 10px 30px rgb(16 24 34 / 0.18);
 
   /* Motion */
-  --t-fast: 140ms;
-  --t-base: 180ms;
+  --t-fast: 120ms;
+  --t-base: 160ms;
 
   /* Type */
-  --font-display: "Fraunces", "Iowan Old Style", "Palatino Linotype", Palatino,
-    Georgia, "Times New Roman", serif;
-  --font-body: "Instrument Sans", "Helvetica Neue", Helvetica, Arial,
-    system-ui, sans-serif;
-  --font-mono: "Spline Sans Mono", ui-monospace, "SF Mono", "Cascadia Mono",
+  --font-display: "Barlow Condensed", "Arial Narrow", "Helvetica Neue", Arial,
+    sans-serif;
+  --font-body: "Inter", "Helvetica Neue", Helvetica, Arial, system-ui,
+    sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", "Cascadia Mono",
     Menlo, Consolas, monospace;
 
   /* Rhythm */
@@ -70,9 +73,9 @@
   --space-4: 2.5rem;
   --space-5: 4rem;
 
-  /* Shape — soft and curvy */
-  --radius: 14px;
-  --radius-lg: 22px;
+  /* Shape — restrained, professional (8–12px), pill only for status */
+  --radius: 10px;
+  --radius-lg: 12px;
   --radius-pill: 999px;
 }
 
@@ -92,8 +95,7 @@ html {
 }
 
 body {
-  background: var(--gradient-page);
-  background-attachment: fixed;
+  background: var(--paper);
   color: var(--ink);
   font-family: var(--font-body);
   font-size: 16px;
@@ -150,7 +152,7 @@ button {
 /* ------------------------------------------------------------------ */
 
 .cdk-drag-preview {
-  border: 1px solid var(--accent);
+  border: 1px solid var(--accent-line);
   border-radius: var(--radius-lg);
   background: var(--paper-raised);
   box-shadow: var(--shadow-drag);
@@ -159,6 +161,58 @@ button {
 
 .cdk-drag-placeholder {
   opacity: 0.25;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Mobile & touch foundation                                          */
+/* ------------------------------------------------------------------ */
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Prevent any horizontal scroll from overflowing the viewport. */
+html,
+body {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
+body {
+  padding:
+    env(safe-area-inset-top)
+    env(safe-area-inset-right)
+    env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
+}
+
+/* Touch feedback without relying on :hover (also works on desktop fans). */
+@media (hover: none) {
+  a,
+  button,
+  select,
+  [role="button"] {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Larger touch targets for compact controls on touch devices. */
+@media (hover: none) and (max-width: 64rem) {
+  .entry__btn,
+  .member__remove,
+  .eq__remove-btn,
+  .rehearsal__unlink-btn,
+  .sched__btn,
+  .detail__print,
+  .picker__add,
+  .panel__collapse {
+    min-height: 2.4rem;
+  }
+
+  .entry__btn,
+  .picker__add {
+    min-width: 2.6rem;
+  }
 }
 
 /* ------------------------------------------------------------------ */

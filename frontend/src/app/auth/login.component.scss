@@ -20,8 +20,8 @@
   position: absolute;
   inset-inline: 0;
   top: 0;
-  height: 5px;
-  background: var(--gradient-brand);
+  height: 4px;
+  background: var(--accent);
 }
 
 .auth__card h1 {
@@ -96,26 +96,24 @@
 }
 
 .auth__submit {
-  font-family: var(--font-mono);
-  font-size: 0.82rem;
-  letter-spacing: 0.04em;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
   border: 1px solid transparent;
-  border-radius: var(--radius-pill);
-  background: var(--gradient-brand);
-  color: var(--paper-raised);
-  padding: 0.7rem;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: #fff;
+  padding: 0.75rem;
   cursor: pointer;
   box-shadow: var(--shadow-sm);
   transition:
-    transform var(--t-fast) ease,
-    box-shadow var(--t-fast) ease,
-    filter var(--t-fast) ease;
+    background-color var(--t-fast) ease,
+    box-shadow var(--t-fast) ease;
 }
 
 .auth__submit:hover:not(:disabled) {
-  transform: translateY(-1px);
+  background: var(--accent-2);
   box-shadow: var(--shadow-md);
-  filter: saturate(1.15);
 }
 
 .auth__submit:disabled {

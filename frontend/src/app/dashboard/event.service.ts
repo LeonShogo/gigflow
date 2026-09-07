@@ -56,5 +56,9 @@ export class EventService {
   updateEvent(id: number, request: EventRequest): Observable<EventItem> {
     return this.http.put<EventItem>(`/api/events/${id}`, request);
   }
+
+  deleteEvent(id: number): Observable<void> {
+    return this.http.delete<void>(`/api/events/${id}`);
+  }
 }
 

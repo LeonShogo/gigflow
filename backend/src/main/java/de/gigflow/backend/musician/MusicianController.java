@@ -54,8 +54,31 @@ public class MusicianController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteMusician(@PathVariable Long id) {
-        musicianService.deleteMusician(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<?> deleteMusician(@PathVariable Long id) {
+        try {
+            musicianService.deleteMusician(id);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            if (e.getMessage() != null && e.getMessage().startsWith("Musiker:in nicht gefunden")) {
+                return ResponseEntity.notFound().build();
+            }
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorBody(e.getMessage()));
+        }
+    }
+
+    public static class ErrorBody {
+        private String message;
+
+        public ErrorBody(String message) {
+            this.message = message;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public void setMessage(String message) {
+            this.message = message;
+        }
     }
 }

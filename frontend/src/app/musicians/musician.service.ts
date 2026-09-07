@@ -23,4 +23,8 @@ export class MusicianService {
   updateMusician(id: number, request: MusicianRequest): Observable<Musician> {
     return this.http.put<Musician>(`/api/musicians/${id}`, request);
   }
+
+  deleteMusician(id: number): Observable<void> {
+    return this.http.delete<void>(`/api/musicians/${id}`);
+  }
 }

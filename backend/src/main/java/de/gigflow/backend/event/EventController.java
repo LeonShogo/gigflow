@@ -102,8 +102,12 @@ public class EventController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteEvent(@PathVariable Long id) {
-        eventService.deleteEvent(id);
-        return ResponseEntity.noContent().build();
+        try {
+            eventService.deleteEvent(id);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     public static class ErrorBody {

@@ -1,0 +1,32 @@
+{
+  "index": "/index.html",
+  "assetGroups": [
+    {
+      "name": "app",
+      "installMode": "prefetch",
+      "updateMode": "prefetch",
+      "resources": {
+        "files": [
+          "/index.html",
+          "/manifest.webmanifest",
+          "/assets/icons/*.png",
+          "/assets/svg/*.svg",
+          "/favicon.ico",
+          "/*.css",
+          "/*.js"
+        ]
+      }
+    },
+    {
+      "name": "fonts",
+      "installMode": "lazy",
+      "updateMode": "prefetch",
+      "resources": {
+        "urls": [
+          "https://fonts.googleapis.com/css2*",
+          "https://fonts.gstatic.com/*"
+        ]
+      }
+    }
+  ]
+}

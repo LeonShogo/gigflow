@@ -38,7 +38,10 @@ public class SchemaInitializer implements CommandLineRunner {
                 "alter table equipment_requirement alter column available_on_site set default 'UNKNOWN'",
                 "alter table equipment_requirement alter column needs_to_be_brought type varchar(20) using (case needs_to_be_brought when true then 'YES' else 'NO' end)",
                 "alter table equipment_requirement alter column needs_to_be_brought set not null",
-                "alter table equipment_requirement alter column needs_to_be_brought set default 'UNKNOWN'"
+                "alter table equipment_requirement alter column needs_to_be_brought set default 'UNKNOWN'",
+                "alter table piece add column if not exists demo_audio_path varchar(255)",
+                "alter table piece add column if not exists demo_audio_original_name varchar(255)",
+                "alter table piece add column if not exists youtube_url varchar(500)"
         ));
     }
 

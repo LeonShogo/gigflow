@@ -114,3 +114,43 @@
   font-family: inherit;
   font-size: 0.78rem;
 }
+
+@media (max-width: 40rem) {
+  .viewer-overlay {
+    padding: env(safe-area-inset-top) var(--space-1) env(safe-area-inset-bottom);
+  }
+
+  .viewer-overlay__bar {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: rgba(0, 0, 0, 0.85);
+    padding-bottom: var(--space-2);
+  }
+
+  .viewer-overlay__title {
+    flex-basis: 100%;
+    font-size: 1rem;
+    text-align: center;
+  }
+
+  .viewer-overlay__controls {
+    flex: 1 1 100%;
+    justify-content: space-between;
+    gap: var(--space-1);
+  }
+
+  .viewer-overlay__btn {
+    min-width: 2.75rem;
+    height: 2.75rem;
+    padding: 0 var(--space-1);
+  }
+
+  .viewer-overlay__close {
+    min-width: 3rem;
+  }
+
+  .viewer-overlay__stage {
+    padding: var(--space-1);
+  }
+}

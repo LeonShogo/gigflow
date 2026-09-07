@@ -27,7 +27,7 @@
   } @else {
     <ul class="events">
       @for (event of filteredEvents(); track event.id) {
-        <li>
+        <li class="events__item">
           <a
             class="event"
             [class.event--concert]="event.type === 'CONCERT'"
@@ -65,6 +65,35 @@
               </time>
             </div>
           </a>
+
+          @if (canDelete()) {
+            <div class="event__delete-zone">
+              @if (confirmingDelete()[event.id]) {
+                <div class="event__confirm">
+                  <span class="event__confirm-label">„{{ event.title }}“ wirklich löschen?</span>
+                  <button
+                    type="button"
+                    class="event__confirm-btn"
+                    (click)="cancelDelete(event)"
+                  >Abbrechen</button>
+                  <button
+                    type="button"
+                    class="event__confirm-btn event__confirm-btn--danger"
+                    (click)="confirmDelete(event)"
+                    [disabled]="deleting()[event.id]"
+                  >Löschen</button>
+                </div>
+              } @else {
+                <button
+                  type="button"
+                  class="event__delete"
+                  (click)="requestDelete(event)"
+                  [attr.aria-label]="'Termin löschen: ' + event.title"
+                  title="Löschen"
+                >&times;</button>
+              }
+            </div>
+          }
         </li>
       } @empty {
         <li>
@@ -74,5 +103,9 @@
         </li>
       }
     </ul>
+
+    @if (deleteError(); as message) {
+      <p class="status status--error" role="alert">{{ message }}</p>
+    }
   }
 </section>

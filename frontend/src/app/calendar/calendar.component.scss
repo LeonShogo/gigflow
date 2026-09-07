@@ -96,26 +96,23 @@
 }
 
 .cal__today {
-  font-family: var(--font-mono);
-  font-size: 0.78rem;
-  letter-spacing: 0.04em;
-  color: var(--paper-raised);
-  background: var(--gradient-brand);
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--accent);
   border: 1px solid transparent;
-  border-radius: var(--radius-pill);
-  padding: 0.6rem 1.1rem;
+  border-radius: var(--radius);
+  padding: 0.55rem 1.1rem;
   cursor: pointer;
   box-shadow: var(--shadow-sm);
   transition:
-    transform var(--t-fast) ease,
-    box-shadow var(--t-fast) ease,
-    filter var(--t-fast) ease;
+    background-color var(--t-fast) ease,
+    box-shadow var(--t-fast) ease;
 }
 
 .cal__today:hover {
-  transform: translateY(-1px);
+  background: var(--accent-2);
   box-shadow: var(--shadow-md);
-  filter: saturate(1.15);
 }
 
 .cal__legend {
@@ -143,7 +140,7 @@
 }
 
 .cal__legend-item--concert::before {
-  background: var(--gradient-brand);
+  background: var(--accent);
 }
 
 .cal__legend-item--rehearsal::before {
@@ -233,8 +230,8 @@
 }
 
 .cal__daynum--today {
-  color: var(--paper-raised);
-  background: var(--gradient-brand);
+  color: #fff;
+  background: var(--accent);
   border-radius: var(--radius-pill);
   font-weight: 700;
 }
@@ -270,8 +267,8 @@
 }
 
 .cal__event--concert {
-  color: var(--paper-raised);
-  background: var(--gradient-brand);
+  color: #fff;
+  background: var(--accent);
 }
 
 .cal__event--rehearsal {
@@ -304,5 +301,41 @@
   .cal__nav,
   .cal__today {
     min-height: 2.75rem;
+  }
+}
+
+@media (max-width: 40rem) {
+  .calendar {
+    padding: var(--space-3) var(--space-2) var(--space-5);
+  }
+
+  .cal__head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .cal__controls {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .cal__nav {
+    min-width: 3rem;
+  }
+
+  .cal__today {
+    flex: 1 1 auto;
+    text-align: center;
+    min-height: 3rem;
+  }
+
+  .cal__export {
+    flex: 1 1 auto;
+    justify-content: center;
+    min-height: 3rem;
+  }
+
+  .cal__legend {
+    gap: var(--space-3);
   }
 }
