@@ -65,6 +65,7 @@
                       class="cal__event"
                       [class.cal__event--concert]="event.type === 'CONCERT'"
                       [class.cal__event--rehearsal]="event.type === 'REHEARSAL'"
+                      [attr.aria-label]="formatTime(event.dateTime) + ' ' + event.title"
                       [routerLink]="['/events', event.id]"
                     >
                       <span class="cal__time">{{ formatTime(event.dateTime) }}</span>

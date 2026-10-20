@@ -337,5 +337,48 @@
 
   .cal__legend {
     gap: var(--space-3);
+    padding: var(--space-2) 0 var(--space-1);
+  }
+
+  .cal__weeks {
+    min-width: 0;
+  }
+
+  .cal__weekday {
+    padding: 0.4rem 0.1rem;
+    font-size: 0.58rem;
+    letter-spacing: 0.05em;
+  }
+
+  .cal__day {
+    min-height: 3.4rem;
+    padding: 0.1rem 0 0.15rem;
+  }
+
+  .cal__daynum {
+    min-width: 1.35rem;
+    height: 1.35rem;
+    margin-left: 0.15rem;
+    font-size: 0.72rem;
+  }
+
+  .cal__events {
+    gap: 0.15rem;
+    padding: 0.15rem 0.12rem;
+  }
+
+  .cal__event {
+    padding: 0.14rem 0.24rem;
+    border-radius: 0.3rem;
+    font-size: 0.62rem;
+    gap: 0;
+  }
+
+  .cal__event-title {
+    display: none;
+  }
+
+  .cal__time {
+    font-size: 0.6rem;
   }
 }

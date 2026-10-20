@@ -31,6 +31,7 @@
           <a
             class="event"
             [class.event--concert]="event.type === 'CONCERT'"
+            [class.event--rehearsal]="event.type === 'REHEARSAL'"
             [routerLink]="['/events', event.id]"
           >
             <span class="event__tick" aria-hidden="true"></span>
