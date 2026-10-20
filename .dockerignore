@@ -1,0 +1,10 @@
+.git
+.idea
+**/.idea
+**/.angular
+**/dist
+**/node_modules
+**/target
+backend/.env
+backend/.postgres-data-gigflow
+backend/uploads

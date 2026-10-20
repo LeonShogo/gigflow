@@ -52,7 +52,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/**").hasRole("ORGANIZER")
                         .requestMatchers(HttpMethod.DELETE, "/api/**").hasRole("ORGANIZER")
                         // Reads are available to any authenticated account.
-                        .anyRequest().authenticated())
+                        .requestMatchers("/api/**").authenticated()
+                        // Angular routes and static PWA assets are public; the client guards protected views.
+                        .anyRequest().permitAll())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

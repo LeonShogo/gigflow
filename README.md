@@ -47,6 +47,24 @@ Der Dev-Server läuft unter `http://localhost:4200`. API-Aufrufe werden via Prox
 
 Beim ersten Start werden automatisch Demo-Bands, Musiker:innen und Events per `DataInitializer` angelegt.
 
+## HTTPS-Testdeployment auf Render
+
+Der Render-Blueprint baut Frontend und Backend in einen gemeinsamen Docker-Container. Render stellt eine HTTPS-URL und eine PostgreSQL-Datenbank bereit; dadurch bleiben alle Frontend-Aufrufe unter `/api` auf derselben Domain.
+
+1. Den aktuellen Stand zu GitHub pushen.
+2. Im [Render Dashboard](https://dashboard.render.com/blueprints) **New Blueprint Instance** auswählen.
+3. Das Repository `LeonShogo/gigflow` verbinden und den Blueprint aus `render.yaml` anwenden.
+4. Nach dem erfolgreichen Deployment die von Render angezeigte `https://...onrender.com`-URL öffnen.
+
+Demo-Logins:
+
+- Organizer: `organizer@gigflow.local` / `organizer123`
+- Musiker: `musiker@gigflow.local` / `musiker1234`
+
+Auf Android kann die App anschließend in Chrome über **App installieren**, auf iOS in Safari über **Teilen > Zum Home-Bildschirm** installiert werden.
+
+Das kostenlose Testdeployment verwendet ein flüchtiges Container-Dateisystem. Hochgeladene PDFs und MP3s können deshalb bei einem Neustart oder Redeployment verloren gehen; die PostgreSQL-Daten liegen separat in Render Postgres.
+
 ## API-Überblick
 
 | Pfad | Beschreibung |

@@ -9,8 +9,8 @@
         "files": [
           "/index.html",
           "/manifest.webmanifest",
-          "/assets/icons/*.png",
-          "/assets/svg/*.svg",
+          "/icons/*.png",
+          "/svg/*.svg",
           "/favicon.ico",
           "/*.css",
           "/*.js"
