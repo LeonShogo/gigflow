@@ -28,5 +28,47 @@
         ]
       }
     }
+  ],
+  "dataGroups": [
+    {
+      "name": "sheet-pdfs",
+      "urls": ["/api/pieces/*/sheet-pdf"],
+      "cacheConfig": {
+        "strategy": "performance",
+        "maxSize": 200,
+        "maxAge": "30d",
+        "timeout": "10s"
+      }
+    },
+    {
+      "name": "demo-audio",
+      "urls": ["/api/pieces/*/demo-audio"],
+      "cacheConfig": {
+        "strategy": "performance",
+        "maxSize": 100,
+        "maxAge": "30d",
+        "timeout": "10s"
+      }
+    },
+    {
+      "name": "api-reads",
+      "urls": [
+        "/api/bands**",
+        "/api/equipment**",
+        "/api/event-locations**",
+        "/api/event-participations**",
+        "/api/events**",
+        "/api/musicians**",
+        "/api/schedule-items**",
+        "/api/setlist-entries**",
+        "/api/setlists**"
+      ],
+      "cacheConfig": {
+        "strategy": "freshness",
+        "maxSize": 200,
+        "maxAge": "7d",
+        "timeout": "10s"
+      }
+    }
   ]
 }
