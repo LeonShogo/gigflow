@@ -84,8 +84,44 @@
 .shell__auth {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-1);
   flex-shrink: 0;
+}
+
+.shell__theme {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0.45rem 0.7rem;
+  color: var(--ink-soft);
+  background: var(--paper-inset);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition:
+    color var(--t-fast) ease,
+    background-color var(--t-fast) ease,
+    border-color var(--t-fast) ease;
+}
+
+.shell__theme:hover {
+  color: var(--ink);
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+}
+
+.shell__theme-icon {
+  width: 1rem;
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.shell__theme-label {
+  font-size: 0.78rem;
+  font-weight: 600;
 }
 
 .shell__user {
@@ -154,6 +190,10 @@
   }
 
   .shell__user {
+    display: none;
+  }
+
+  .shell__theme-label {
     display: none;
   }
 }

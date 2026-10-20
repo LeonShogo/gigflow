@@ -10,6 +10,17 @@
     <meta name="theme-color" content="#2f7fe0" />
     <meta name="description" content="Tourplan & Produktions-Tool für Musiker:innen" />
     <link rel="manifest" href="/manifest.webmanifest" />
+    <script>
+      let savedTheme = null;
+      try {
+        savedTheme = localStorage.getItem('gigflow-theme');
+      } catch {
+        // The operating system preference remains available without browser storage.
+      }
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.dataset['theme'] =
+        savedTheme === 'dark' || (savedTheme !== 'light' && prefersDark) ? 'dark' : 'light';
+    </script>
 
     <!-- iOS standalone -->
     <meta name="mobile-web-app-capable" content="yes" />

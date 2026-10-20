@@ -24,6 +24,23 @@
   </nav>
 
   <div class="shell__auth">
+    <button
+      type="button"
+      class="shell__theme"
+      [attr.aria-label]="isDarkMode() ? 'Hellen Modus aktivieren' : 'Dunklen Modus aktivieren'"
+      [attr.aria-pressed]="isDarkMode()"
+      [title]="isDarkMode() ? 'Hellen Modus aktivieren' : 'Dunklen Modus aktivieren'"
+      (click)="toggleTheme()"
+    >
+      <span class="shell__theme-icon" aria-hidden="true">
+        @if (isDarkMode()) {
+          &#9728;
+        } @else {
+          &#9790;
+        }
+      </span>
+      <span class="shell__theme-label">{{ isDarkMode() ? 'Hell' : 'Dunkel' }}</span>
+    </button>
     @if (isAuthenticated()) {
       <span class="shell__user">
         @if (isOrganizer()) {
