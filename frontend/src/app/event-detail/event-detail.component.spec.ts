@@ -9,6 +9,7 @@ import { of } from 'rxjs';
 import { EventDetailComponent } from './event-detail.component';
 import type { EventItem } from '../dashboard/event.model';
 import { AuthService } from '../auth/auth.service';
+import { expectNoA11yViolations } from '../testing/expect-no-axe-violations';
 
 const CONCERT: EventItem = {
   id: 1,
@@ -123,6 +124,12 @@ function loadConcertWithLocations(
     expect(panels.length).toBe(6);
     expect(el.textContent).toContain('Setlist');
     expect(el.textContent).toContain('Equipment');
+  });
+
+  it('has no axe accessibility violations in the loaded state', async () => {
+    const fixture = setup();
+    loadConcert(fixture);
+    await expectNoA11yViolations(fixture.nativeElement);
   });
 
   it('should render participants with name, instrument, status and opt-in email', () => {
