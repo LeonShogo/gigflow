@@ -1027,9 +1027,9 @@
                             class="picker__submit"
                             [disabled]="!canSaveLocation()"
                           >
-                            {{ editingLocationId() != null ? 'Speichern' : 'Hinzufügen' }}
+                            {{ editingLocationId() !== null ? 'Speichern' : 'Hinzufügen' }}
                           </button>
-                          @if (editingLocationId() != null) {
+                          @if (editingLocationId() !== null) {
                             <button
                               type="button"
                               class="sched__btn"
@@ -1196,9 +1196,9 @@
                             class="schedule__submit"
                             [disabled]="!canSaveSchedule()"
                           >
-                            {{ editingScheduleId() != null ? 'Speichern' : 'Hinzufügen' }}
+                            {{ editingScheduleId() !== null ? 'Speichern' : 'Hinzufügen' }}
                           </button>
-                          @if (editingScheduleId() != null) {
+                          @if (editingScheduleId() !== null) {
                             <button type="button" class="schedule__cancel" (click)="cancelScheduleEdit()">
                               Abbrechen
                             </button>

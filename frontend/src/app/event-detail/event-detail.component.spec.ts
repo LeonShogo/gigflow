@@ -34,7 +34,7 @@ const DEFAULT_LAYOUT = {
 describe('EventDetailComponent', () => {
   let httpMock: HttpTestingController;
 
-  function setup(id: string): ComponentFixture<EventDetailComponent> {
+  function setup(): ComponentFixture<EventDetailComponent> {
     return TestBed.createComponent(EventDetailComponent);
   }
 
@@ -113,7 +113,7 @@ function loadConcertWithLocations(
   });
 
   it('should load and render a concert with sections', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     loadConcert(fixture);
 
     const el: HTMLElement = fixture.nativeElement;
@@ -126,7 +126,7 @@ function loadConcertWithLocations(
   });
 
   it('should render participants with name, instrument, status and opt-in email', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     fixture.detectChanges();
     httpMock.expectOne('/api/events/1').flush(CONCERT);
     fixture.detectChanges();
@@ -184,14 +184,14 @@ function loadConcertWithLocations(
   });
 
   it('should show the empty state when no participants exist', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     loadConcert(fixture);
 
     expect(fixture.nativeElement.textContent).toContain('Noch keine Musiker:innen');
   });
 
   it('should render rehearsals for the concert, sorted by date', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     fixture.detectChanges();
     httpMock.expectOne('/api/events/1').flush(CONCERT);
     fixture.detectChanges();
@@ -216,14 +216,14 @@ function loadConcertWithLocations(
   });
 
   it('should show an empty state when the concert has no rehearsals', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     loadConcert(fixture);
 
     expect(fixture.nativeElement.textContent).toContain('Noch keine Proben für diesen Gig geplant.');
   });
 
   it('should open the setlist and render pieces in order', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     loadConcertWithEntries(fixture, [
       { id: 5, setlistId: 10, pieceId: 3, pieceTitle: 'Hallo Welt', position: 0 },
       { id: 6, setlistId: 10, pieceId: 4, pieceTitle: 'Nachtfahrt', position: 1 },
@@ -237,14 +237,14 @@ function loadConcertWithLocations(
   });
 
   it('should show an empty state when the setlist has no pieces', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     loadConcert(fixture);
 
     expect(fixture.nativeElement.textContent).toContain('Noch keine Stücke in der Setlist.');
   });
 
   it('should render panels from the stored layout order', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     fixture.detectChanges();
     httpMock.expectOne('/api/events/1').flush(CONCERT);
     fixture.detectChanges();
@@ -268,7 +268,7 @@ function loadConcertWithLocations(
   });
 
   it('should swap two panels via drag & drop and persist', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     loadConcert(fixture);
 
     const board = fixture.debugElement.query(By.css('.board'));
@@ -327,7 +327,7 @@ function loadConcertWithLocations(
   });
 
   it('should require a deliberate hold before dragging on touch devices', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     loadConcertWithEntries(fixture, [
       { id: 5, setlistId: 10, pieceId: 3, pieceTitle: 'Hallo Welt', position: 0 },
     ]);
@@ -340,7 +340,7 @@ function loadConcertWithLocations(
   });
 
   it('should collapse and reopen a section and persist', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     loadConcert(fixture);
 
     const el: HTMLElement = fixture.nativeElement;
@@ -376,7 +376,7 @@ function loadConcertWithLocations(
   });
 
   it('should reopen to default state when no stored collapsed state exists', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     fixture.detectChanges();
     httpMock.expectOne('/api/events/1').flush(CONCERT);
     fixture.detectChanges();
@@ -397,7 +397,7 @@ function loadConcertWithLocations(
   });
 
   it('should add a new piece to the setlist', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     loadConcert(fixture);
 
     const input = fixture.nativeElement.querySelector('.setlist__input') as HTMLInputElement;
@@ -426,7 +426,7 @@ function loadConcertWithLocations(
   });
 
   it('should add a piece via Enter key without submitting the form', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     loadConcert(fixture);
 
     const input = fixture.nativeElement.querySelector('.setlist__input') as HTMLInputElement;
@@ -455,7 +455,7 @@ function loadConcertWithLocations(
   });
 
   it('should remove a piece from the setlist', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     loadConcertWithEntries(fixture, [
       { id: 5, setlistId: 10, pieceId: 3, pieceTitle: 'Hallo Welt', position: 0 },
     ]);
@@ -469,7 +469,7 @@ function loadConcertWithLocations(
   });
 
   it('should move a piece up in the setlist', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     loadConcertWithEntries(fixture, [
       { id: 5, setlistId: 10, pieceId: 3, pieceTitle: 'Hallo Welt', position: 0 },
       { id: 6, setlistId: 10, pieceId: 4, pieceTitle: 'Nachtfahrt', position: 1 },
@@ -502,7 +502,7 @@ function loadConcertWithLocations(
   });
 
   it('should reorder pieces via drag & drop', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     loadConcertWithEntries(fixture, [
       { id: 5, setlistId: 10, pieceId: 3, pieceTitle: 'Hallo Welt', position: 0 },
       { id: 6, setlistId: 10, pieceId: 4, pieceTitle: 'Nachtfahrt', position: 1 },
@@ -556,7 +556,7 @@ function loadConcertWithLocations(
   });
 
   it('should render a simple view for a rehearsal', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     fixture.detectChanges();
     httpMock.expectOne('/api/events/1').flush(REHEARSAL);
     fixture.detectChanges();
@@ -570,7 +570,7 @@ function loadConcertWithLocations(
   });
 
   it('should show an error message when loading fails', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     fixture.detectChanges();
     httpMock.expectOne('/api/events/1').flush(null, {
       status: 404,
@@ -582,7 +582,7 @@ function loadConcertWithLocations(
   });
 
   it('should render equipment requirements with status chips and responsibility', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     fixture.detectChanges();
     httpMock.expectOne('/api/events/1').flush(CONCERT);
     fixture.detectChanges();
@@ -615,7 +615,7 @@ function loadConcertWithLocations(
   });
 
   it('should toggle a requirement status via PUT', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     fixture.detectChanges();
     httpMock.expectOne('/api/events/1').flush(CONCERT);
     fixture.detectChanges();
@@ -662,7 +662,7 @@ function loadConcertWithLocations(
   });
 
   it('should add an existing equipment item as a requirement', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     loadConcert(fixture);
 
     const addBtn = fixture.nativeElement.querySelector('.equipment__add') as HTMLButtonElement;
@@ -698,7 +698,7 @@ function loadConcertWithLocations(
   });
 
   it('should render schedule items sorted by time', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     fixture.detectChanges();
     httpMock.expectOne('/api/events/1').flush(CONCERT);
     fixture.detectChanges();
@@ -723,14 +723,14 @@ function loadConcertWithLocations(
   });
 
   it('should show an empty state when the concert has no schedule items', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     loadConcert(fixture);
 
     expect(fixture.nativeElement.textContent).toContain('Noch kein Ablauf für diesen Gig erfasst.');
   });
 
   it('should add a new schedule item from a preset', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     loadConcert(fixture);
 
     const comp = fixture.componentInstance as unknown as {
@@ -758,7 +758,7 @@ function loadConcertWithLocations(
   });
 
   it('should add a schedule item from a custom entry', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     loadConcert(fixture);
 
     const comp = fixture.componentInstance as unknown as {
@@ -788,7 +788,7 @@ function loadConcertWithLocations(
   });
 
   it('should edit an existing schedule item', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     fixture.detectChanges();
     httpMock.expectOne('/api/events/1').flush(CONCERT);
     fixture.detectChanges();
@@ -830,7 +830,7 @@ function loadConcertWithLocations(
   });
 
   it('should edit a free-text schedule entry as a custom entry', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     fixture.detectChanges();
     httpMock.expectOne('/api/events/1').flush(CONCERT);
     fixture.detectChanges();
@@ -851,7 +851,7 @@ function loadConcertWithLocations(
     fixture.detectChanges();
 
     const comp = fixture.componentInstance as unknown as {
-      scheduleType: { (): string };
+      scheduleType: () => string;
       scheduleCustom: { set(v: string): void };
       scheduleTime: { set(v: string): void };
       saveScheduleItem(): void;
@@ -877,7 +877,7 @@ function loadConcertWithLocations(
   });
 
   it('should remove a schedule item', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     fixture.detectChanges();
     httpMock.expectOne('/api/events/1').flush(CONCERT);
     fixture.detectChanges();
@@ -904,7 +904,7 @@ function loadConcertWithLocations(
   });
 
   it('should assign an existing rehearsal to the concert', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     loadConcert(fixture);
 
     const addBtn = fixture.nativeElement.querySelector('.rehearsals__add') as HTMLButtonElement;
@@ -936,7 +936,7 @@ function loadConcertWithLocations(
   });
 
   it('should create and assign a new rehearsal', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     loadConcert(fixture);
 
     (fixture.nativeElement.querySelector('.rehearsals__add') as HTMLButtonElement).click();
@@ -977,7 +977,7 @@ function loadConcertWithLocations(
   });
 
   it('should unlink a rehearsal from the concert without deleting it', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     fixture.detectChanges();
     httpMock.expectOne('/api/events/1').flush(CONCERT);
     fixture.detectChanges();
@@ -1015,7 +1015,7 @@ function loadConcertWithLocations(
   });
 
   it('should offer self-join for an authenticated musician and join via /join', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     fixture.detectChanges();
     httpMock.expectOne('/api/events/1').flush(CONCERT);
     fixture.detectChanges();
@@ -1053,7 +1053,7 @@ function loadConcertWithLocations(
   });
 
   it('should not show the member-management add button for a non-organizer', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     fixture.detectChanges();
     httpMock.expectOne('/api/events/1').flush(CONCERT);
     fixture.detectChanges();
@@ -1080,7 +1080,7 @@ function loadConcertWithLocations(
   });
 
   it('should show a PDF badge and an open button for a piece with sheet music', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     fixture.detectChanges();
     httpMock.expectOne('/api/events/1').flush(CONCERT);
     fixture.detectChanges();
@@ -1116,7 +1116,7 @@ function loadConcertWithLocations(
   });
 
   it('should upload a sheet PDF and show the badge afterwards', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     fixture.detectChanges();
     httpMock.expectOne('/api/events/1').flush(CONCERT);
     fixture.detectChanges();
@@ -1160,7 +1160,7 @@ function loadConcertWithLocations(
   });
 
   it('should download and open an existing sheet PDF inline', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     fixture.detectChanges();
     httpMock.expectOne('/api/events/1').flush(CONCERT);
     fixture.detectChanges();
@@ -1197,7 +1197,7 @@ function loadConcertWithLocations(
   });
 
   it('should show Demo and YouTube badges and play a demo inline', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     fixture.detectChanges();
     httpMock.expectOne('/api/events/1').flush(CONCERT);
     fixture.detectChanges();
@@ -1248,7 +1248,7 @@ function loadConcertWithLocations(
   });
 
   it('should upload a demo audio MP3 and show the badge afterwards', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     fixture.detectChanges();
     httpMock.expectOne('/api/events/1').flush(CONCERT);
     fixture.detectChanges();
@@ -1294,7 +1294,7 @@ function loadConcertWithLocations(
   });
 
   it('should remove a demo audio and drop the badge', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     fixture.detectChanges();
     httpMock.expectOne('/api/events/1').flush(CONCERT);
     fixture.detectChanges();
@@ -1331,7 +1331,7 @@ function loadConcertWithLocations(
   });
 
   it('should save and show a YouTube link via the inline form', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     fixture.detectChanges();
     httpMock.expectOne('/api/events/1').flush(CONCERT);
     fixture.detectChanges();
@@ -1382,7 +1382,7 @@ function loadConcertWithLocations(
   });
 
   it('should render locations with type, name, address, phone, note and maps link', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     loadConcertWithLocations(fixture, [
       {
         id: 1,
@@ -1423,7 +1423,7 @@ function loadConcertWithLocations(
   });
 
   it('should derive a maps link from name and address when no custom link is set', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     loadConcertWithLocations(fixture, [
       {
         id: 3,
@@ -1445,7 +1445,7 @@ function loadConcertWithLocations(
   });
 
   it('should add a new location via the form', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     loadConcertWithLocations(fixture, []);
 
     const addBtn = fixture.nativeElement.querySelector('.panel--locations .schedule__add') as HTMLButtonElement;
@@ -1495,7 +1495,7 @@ function loadConcertWithLocations(
   });
 
   it('should edit an existing location via PUT', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     loadConcertWithLocations(fixture, [
       {
         id: 5,
@@ -1551,7 +1551,7 @@ function loadConcertWithLocations(
   });
 
   it('should allow changing the type of an existing VENUE location', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     loadConcertWithLocations(fixture, [
       {
         id: 6,
@@ -1569,7 +1569,7 @@ function loadConcertWithLocations(
     fixture.detectChanges();
 
     const comp = fixture.componentInstance as unknown as {
-      locationType: { (): string };
+      locationType: () => string;
       saveLocation(): void;
     };
     const select = fixture.nativeElement.querySelector(
@@ -1607,14 +1607,14 @@ function loadConcertWithLocations(
   });
 
   it('should show an empty state when the concert has no locations', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     loadConcertWithLocations(fixture, []);
 
     expect(fixture.nativeElement.textContent).toContain('Noch keine Orte für diesen Gig erfasst.');
   });
 
   it('should remove a location after confirmation', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     loadConcertWithLocations(fixture, [
       {
         id: 7,
@@ -1647,7 +1647,7 @@ function loadConcertWithLocations(
   });
 
   it('should show a delete action for organizers and delete the event after confirmation', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     loadConcert(fixture);
 
     const auth = TestBed.inject(AuthService);
@@ -1672,7 +1672,7 @@ function loadConcertWithLocations(
   });
 
   it('should hide the delete action for non-organizers', () => {
-    const fixture = setup('1');
+    const fixture = setup();
     loadConcert(fixture);
 
     const auth = TestBed.inject(AuthService);

@@ -48,7 +48,7 @@ const CANVAS_ATTEMPTS = 30;
     '(touchcancel)': 'onTouchCancel()',
   },
 })
-export class SheetViewerComponent {
+export class SheetViewerComponent implements OnDestroy {
   readonly file = input.required<File>();
   readonly title = input('');
   readonly closeRequested = output();

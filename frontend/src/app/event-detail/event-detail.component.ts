@@ -28,7 +28,7 @@ import {
 } from '../dashboard/event-participation.service';
 import type { Musician } from '../musicians/musician.model';
 import { MusicianService } from '../musicians/musician.service';
-import type { Piece, SetlistEntry } from '../setlist/setlist.model';
+import type { SetlistEntry } from '../setlist/setlist.model';
 import { SetlistService } from '../setlist/setlist.service';
 import type {
   Equipment,
