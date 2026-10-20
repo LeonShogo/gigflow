@@ -2,10 +2,9 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
-  HostListener,
+  OnDestroy,
   ViewChild,
   afterNextRender,
-  inject,
   input,
   output,
   signal,
@@ -36,6 +35,18 @@ const CANVAS_ATTEMPTS = 30;
   templateUrl: './sheet-viewer.component.html',
   styleUrl: './sheet-viewer.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '(window:keydown.arrowleft)': 'onArrowLeft($event)',
+    '(window:keydown.arrowright)': 'onArrowRight($event)',
+    '(window:keydown.arrowup)': 'onArrowUp($event)',
+    '(window:keydown.arrowdown)': 'onArrowDown($event)',
+    '(window:keydown.escape)': 'onEscape($event)',
+    '(window:resize)': 'onViewportResize()',
+    '(wheel)': 'onWheel($event)',
+    '(touchstart)': 'onTouchStart($event)',
+    '(touchend)': 'onTouchEnd($event)',
+    '(touchcancel)': 'onTouchCancel()',
+  },
 })
 export class SheetViewerComponent {
   readonly file = input.required<File>();
@@ -50,9 +61,13 @@ export class SheetViewerComponent {
   );
   protected readonly ready = signal(false);
   protected readonly error = signal<string | null>(null);
+  protected readonly stageFits = signal(true);
 
   private renderVersion = 0;
   private renderTask: RenderTask | null = null;
+  private touchGesture: { x: number; y: number; startedAt: number } | null = null;
+  private touchGestureInvalid = false;
+  private resizeTimer: ReturnType<typeof setTimeout> | null = null;
 
   @ViewChild('canvas') private readonly canvasRef?: ElementRef<HTMLCanvasElement>;
   @ViewChild('canvasContainer') private readonly canvasContainerRef?: ElementRef<HTMLElement>;
@@ -61,37 +76,57 @@ export class SheetViewerComponent {
     afterNextRender(() => void this.open());
   }
 
-  @HostListener('window:keydown.arrowleft', ['$event'])
+  ngOnDestroy(): void {
+    if (this.resizeTimer !== null) {
+      clearTimeout(this.resizeTimer);
+      this.resizeTimer = null;
+    }
+  }
+
   protected onArrowLeft(event: Event): void {
     event.preventDefault();
     this.previousPage();
   }
 
-  @HostListener('window:keydown.arrowright', ['$event'])
   protected onArrowRight(event: Event): void {
     event.preventDefault();
     this.nextPage();
   }
 
-  @HostListener('window:keydown.arrowup', ['$event'])
   protected onArrowUp(event: Event): void {
     event.preventDefault();
     this.scrollStage(0, -SCROLL_STEP);
   }
 
-  @HostListener('window:keydown.arrowdown', ['$event'])
   protected onArrowDown(event: Event): void {
     event.preventDefault();
     this.scrollStage(0, SCROLL_STEP);
   }
 
-  @HostListener('window:keydown.escape', ['$event'])
   protected onEscape(event: Event): void {
     event.preventDefault();
     this.closeRequested.emit();
   }
 
-  @HostListener('wheel', ['$event'])
+  protected onViewportResize(): void {
+    if (!this.ready()) {
+      return;
+    }
+    if (this.resizeTimer !== null) {
+      clearTimeout(this.resizeTimer);
+    }
+    this.resizeTimer = setTimeout(() => {
+      this.resizeTimer = null;
+      if (!this.ready()) {
+        return;
+      }
+      this.measureStage();
+      if (this.zoom() === ZOOM_FIT) {
+        void this.renderPage();
+      }
+    }, 150);
+  }
+
   protected onWheel(event: WheelEvent): void {
     event.preventDefault();
     if (event.ctrlKey) {
@@ -99,6 +134,66 @@ export class SheetViewerComponent {
     } else {
       this.scrollStage(event.deltaX, event.deltaY);
     }
+  }
+
+  protected onTouchStart(event: TouchEvent): void {
+    if (this.touchGestureInvalid || event.touches.length !== 1) {
+      this.touchGesture = null;
+      this.touchGestureInvalid = true;
+      return;
+    }
+    const touch = event.touches[0];
+    this.touchGesture = { x: touch.clientX, y: touch.clientY, startedAt: Date.now() };
+  }
+
+  protected onTouchEnd(event: TouchEvent): void {
+    const gesture = this.touchGesture;
+    const invalid = this.touchGestureInvalid;
+    this.touchGesture = null;
+    this.touchGestureInvalid = false;
+    if (invalid || !gesture || event.touches.length > 0 || !this.ready()) {
+      return;
+    }
+    const touch = event.changedTouches[0];
+    const stage = this.canvasContainerRef?.nativeElement;
+    if (!touch || !stage) {
+      return;
+    }
+    const elapsed = Date.now() - gesture.startedAt;
+    if (elapsed > 700) {
+      return;
+    }
+    const dx = touch.clientX - gesture.x;
+    const dy = touch.clientY - gesture.y;
+    const absX = Math.abs(dx);
+    const absY = Math.abs(dy);
+    const overflowX = stage.scrollWidth > stage.clientWidth + 2;
+    const overflowY = stage.scrollHeight > stage.clientHeight + 2;
+
+    if (Math.max(absX, absY) < 12 && elapsed <= 350 && !overflowX && !overflowY) {
+      this.turnPageFromTap(touch.clientX);
+      return;
+    }
+    if (absX >= 48 && absX > absY && !overflowX) {
+      if (dx < 0) {
+        this.nextPage();
+      } else {
+        this.previousPage();
+      }
+      return;
+    }
+    if (absY >= 72 && absY > absX && !overflowX && !overflowY) {
+      if (dy < 0) {
+        this.nextPage();
+      } else {
+        this.previousPage();
+      }
+    }
+  }
+
+  protected onTouchCancel(): void {
+    this.touchGesture = null;
+    this.touchGestureInvalid = false;
   }
 
   protected get pageCount(): number {
@@ -172,6 +267,23 @@ export class SheetViewerComponent {
     container.scrollBy({ left: deltaX, top: deltaY });
   }
 
+  private turnPageFromTap(clientX: number): void {
+    const canvas = this.canvasRef?.nativeElement;
+    if (!canvas) {
+      return;
+    }
+    const rect = canvas.getBoundingClientRect();
+    const x = clientX - rect.left;
+    if (x < 0 || x > rect.width) {
+      return;
+    }
+    if (x <= rect.width * 0.25) {
+      this.previousPage();
+    } else if (x >= rect.width * 0.75) {
+      this.nextPage();
+    }
+  }
+
   private zoomBy(deltaY: number): void {
     const current = this.numericalZoom();
     const factor = Math.exp(-deltaY * 0.0015);
@@ -230,6 +342,9 @@ export class SheetViewerComponent {
         const zoom = this.zoom() as number;
         await this.renderToCanvas(canvas, page, zoom * RENDER_SCALE, zoom, version);
       }
+      if (version === this.renderVersion) {
+        this.measureStage();
+      }
     } catch (error) {
       if (version === this.renderVersion && !this.isCancel(error)) {
         this.error.set('Seite konnte nicht dargestellt werden.');
@@ -281,6 +396,16 @@ export class SheetViewerComponent {
     const boxWidth = container ? container.clientWidth - 32 : 800;
     const boxHeight = container ? container.clientHeight - 32 : 600;
     return Math.min(boxWidth / pageInfo.width, boxHeight / pageInfo.height);
+  }
+
+  private measureStage(): void {
+    const stage = this.canvasContainerRef?.nativeElement;
+    if (!stage) {
+      return;
+    }
+    const fits =
+      stage.scrollWidth <= stage.clientWidth + 2 && stage.scrollHeight <= stage.clientHeight + 2;
+    this.stageFits.set(fits);
   }
 
   private isCancel(error: unknown): boolean {

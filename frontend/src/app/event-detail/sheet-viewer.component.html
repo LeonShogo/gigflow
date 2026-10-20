@@ -4,6 +4,29 @@
     <div class="viewer-overlay__controls">
       <button
         type="button"
+        class="viewer-overlay__btn viewer-overlay__btn--page"
+        (click)="previousPage()"
+        [disabled]="!ready() || pageIndex() === 0"
+        aria-label="Vorherige Seite"
+      >
+        &#8249;
+      </button>
+      @if (ready()) {
+        <span class="viewer-overlay__page" aria-live="polite" aria-atomic="true">
+          {{ currentPage }}/{{ pageCount }}
+        </span>
+      }
+      <button
+        type="button"
+        class="viewer-overlay__btn viewer-overlay__btn--page"
+        (click)="nextPage()"
+        [disabled]="!ready() || pageIndex() >= pageCount - 1"
+        aria-label="Nächste Seite"
+      >
+        &#8250;
+      </button>
+      <button
+        type="button"
         class="viewer-overlay__btn"
         (click)="zoomOut()"
         [disabled]="!ready() || !canZoomOut()"
@@ -54,7 +77,11 @@
   } @else if (!ready()) {
     <p class="viewer-overlay__note">Noten werden geladen …</p>
   } @else {
-    <div #canvasContainer class="viewer-overlay__stage">
+    <div
+      #canvasContainer
+      class="viewer-overlay__stage"
+      [class.viewer-overlay__stage--fits]="stageFits()"
+    >
       <canvas
         #canvas
         class="viewer-overlay__canvas"
@@ -62,7 +89,11 @@
         [attr.aria-label]="title() || 'Noten'"
       ></canvas>
     </div>
-    <p class="viewer-overlay__hint">
+    <p class="viewer-overlay__hint viewer-overlay__hint--touch">
+      Wischen zum Blättern &middot; Tippen am linken oder rechten Rand blättert ebenfalls &middot;
+      <kbd>+</kbd><kbd>&minus;</kbd> zoomen
+    </p>
+    <p class="viewer-overlay__hint viewer-overlay__hint--pointer">
       Seite {{ currentPage }}/{{ pageCount }} &middot; Trackpad: Scrollen zum Navigieren,
       <kbd>Strg+Scrollen</kbd> zum Zoomen &middot; Tastatur: <kbd>&larr;</kbd
       ><kbd>&rarr;</kbd> Blättern, <kbd>&uarr;</kbd><kbd>&darr;</kbd> Scrollen
