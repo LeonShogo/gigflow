@@ -1284,6 +1284,7 @@
   <app-sheet-viewer
     [file]="file"
     [title]="openSheetTitle() ?? ''"
+    [pieceId]="openSheetPieceId()"
     (closeRequested)="closeSheet()"
   ></app-sheet-viewer>
 }

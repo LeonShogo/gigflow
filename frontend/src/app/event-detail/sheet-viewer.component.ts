@@ -5,6 +5,8 @@ import {
   OnDestroy,
   ViewChild,
   afterNextRender,
+  computed,
+  effect,
   input,
   output,
   signal,
@@ -20,6 +22,11 @@ interface PdfPage {
   height: number;
 }
 
+interface SheetViewerState {
+  page: number;
+  zoom: number | typeof ZOOM_FIT;
+}
+
 const ZOOM_FIT = 'fit';
 const RENDER_SCALE = 2;
 const ZOOM_STEP = 0.25;
@@ -28,6 +35,8 @@ const ZOOM_MAX = 5;
 const DEFAULT_ZOOM = 1.5;
 const SCROLL_STEP = 60;
 const CANVAS_ATTEMPTS = 30;
+const THUMBNAIL_WIDTH = 140;
+const SWIPE_FEEDBACK_MS = 400;
 
 @Component({
   selector: 'app-sheet-viewer',
@@ -51,6 +60,7 @@ const CANVAS_ATTEMPTS = 30;
 export class SheetViewerComponent implements OnDestroy {
   readonly file = input.required<File>();
   readonly title = input('');
+  readonly pieceId = input<number | null>(null);
   readonly closeRequested = output();
 
   private readonly pdfDoc = signal<PDFDocumentProxy | null>(null);
@@ -62,24 +72,50 @@ export class SheetViewerComponent implements OnDestroy {
   protected readonly ready = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly stageFits = signal(true);
+  protected readonly thumbnailsOpen = signal(false);
+  protected readonly thumbnails = signal<string[]>([]);
+  protected readonly thumbnailsLoading = signal(false);
+  protected readonly swipeFeedback = signal<'next' | 'prev' | null>(null);
+
+  private readonly storageKey = computed(() => {
+    const id = this.pieceId();
+    return id === null ? null : `gigflow-sheet-${id}`;
+  });
 
   private renderVersion = 0;
   private renderTask: RenderTask | null = null;
   private touchGesture: { x: number; y: number; startedAt: number } | null = null;
   private touchGestureInvalid = false;
   private resizeTimer: ReturnType<typeof setTimeout> | null = null;
+  private swipeTimer: ReturnType<typeof setTimeout> | null = null;
 
   @ViewChild('canvas') private readonly canvasRef?: ElementRef<HTMLCanvasElement>;
   @ViewChild('canvasContainer') private readonly canvasContainerRef?: ElementRef<HTMLElement>;
 
   constructor() {
     afterNextRender(() => void this.open());
+    effect(() => {
+      const key = this.storageKey();
+      if (key === null || !this.ready()) {
+        return;
+      }
+      const state: SheetViewerState = { page: this.pageIndex(), zoom: this.zoom() };
+      try {
+        localStorage.setItem(key, JSON.stringify(state));
+      } catch {
+        // Storage may be unavailable (private mode); remembering the position is optional.
+      }
+    });
   }
 
   ngOnDestroy(): void {
     if (this.resizeTimer !== null) {
       clearTimeout(this.resizeTimer);
       this.resizeTimer = null;
+    }
+    if (this.swipeTimer !== null) {
+      clearTimeout(this.swipeTimer);
+      this.swipeTimer = null;
     }
   }
 
@@ -105,6 +141,10 @@ export class SheetViewerComponent implements OnDestroy {
 
   protected onEscape(event: Event): void {
     event.preventDefault();
+    if (this.thumbnailsOpen()) {
+      this.thumbnailsOpen.set(false);
+      return;
+    }
     this.closeRequested.emit();
   }
 
@@ -154,6 +194,9 @@ export class SheetViewerComponent implements OnDestroy {
     if (invalid || !gesture || event.touches.length > 0 || !this.ready()) {
       return;
     }
+    if (this.thumbnailsOpen()) {
+      return;
+    }
     const touch = event.changedTouches[0];
     const stage = this.canvasContainerRef?.nativeElement;
     if (!touch || !stage) {
@@ -171,22 +214,29 @@ export class SheetViewerComponent implements OnDestroy {
     const overflowY = stage.scrollHeight > stage.clientHeight + 2;
 
     if (Math.max(absX, absY) < 12 && elapsed <= 350 && !overflowX && !overflowY) {
-      this.turnPageFromTap(touch.clientX);
+      const direction = this.turnPageFromTap(touch.clientX);
+      if (direction) {
+        this.flashSwipe(direction);
+      }
       return;
     }
     if (absX >= 48 && absX > absY && !overflowX) {
       if (dx < 0) {
         this.nextPage();
+        this.flashSwipe('next');
       } else {
         this.previousPage();
+        this.flashSwipe('prev');
       }
       return;
     }
     if (absY >= 72 && absY > absX && !overflowX && !overflowY) {
       if (dy < 0) {
         this.nextPage();
+        this.flashSwipe('next');
       } else {
         this.previousPage();
+        this.flashSwipe('prev');
       }
     }
   }
@@ -239,6 +289,23 @@ export class SheetViewerComponent implements OnDestroy {
     void this.renderPage();
   }
 
+  protected toggleThumbnails(): void {
+    const open = !this.thumbnailsOpen();
+    this.thumbnailsOpen.set(open);
+    if (open && this.thumbnails().length === 0) {
+      void this.buildThumbnails();
+    }
+  }
+
+  protected goToPage(index: number): void {
+    if (index < 0 || index >= this.pageCount) {
+      return;
+    }
+    this.pageIndex.set(index);
+    this.thumbnailsOpen.set(false);
+    void this.renderPage();
+  }
+
   protected previousPage(): void {
     if (this.pageCount === 0) {
       return;
@@ -267,20 +334,90 @@ export class SheetViewerComponent implements OnDestroy {
     container.scrollBy({ left: deltaX, top: deltaY });
   }
 
-  private turnPageFromTap(clientX: number): void {
+  private turnPageFromTap(clientX: number): 'next' | 'prev' | null {
     const canvas = this.canvasRef?.nativeElement;
     if (!canvas) {
-      return;
+      return null;
     }
     const rect = canvas.getBoundingClientRect();
     const x = clientX - rect.left;
     if (x < 0 || x > rect.width) {
-      return;
+      return null;
     }
     if (x <= rect.width * 0.25) {
       this.previousPage();
-    } else if (x >= rect.width * 0.75) {
+      return 'prev';
+    }
+    if (x >= rect.width * 0.75) {
       this.nextPage();
+      return 'next';
+    }
+    return null;
+  }
+
+  private flashSwipe(direction: 'next' | 'prev'): void {
+    if (this.swipeTimer !== null) {
+      clearTimeout(this.swipeTimer);
+    }
+    this.swipeFeedback.set(direction);
+    this.swipeTimer = setTimeout(() => {
+      this.swipeTimer = null;
+      this.swipeFeedback.set(null);
+    }, SWIPE_FEEDBACK_MS);
+  }
+
+  private async buildThumbnails(): Promise<void> {
+    const doc = this.pdfDoc();
+    if (!doc || this.thumbnailsLoading()) {
+      return;
+    }
+    this.thumbnailsLoading.set(true);
+    const previews: string[] = [];
+    try {
+      for (const info of this.pages()) {
+        const page = await doc.getPage(info.index);
+        const scale = THUMBNAIL_WIDTH / info.width;
+        const viewport = page.getViewport({ scale });
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.floor(viewport.width));
+        canvas.height = Math.max(1, Math.floor(viewport.height));
+        const context = canvas.getContext('2d');
+        if (!context) {
+          break;
+        }
+        await page.render({ canvasContext: context, viewport }).promise;
+        previews.push(canvas.toDataURL('image/png'));
+      }
+    } catch {
+      // Keep the previews that were rendered before the failure.
+    }
+    this.thumbnails.set(previews);
+    this.thumbnailsLoading.set(false);
+  }
+
+  private readPersistedState(): SheetViewerState | null {
+    if (typeof localStorage === 'undefined') {
+      return null;
+    }
+    const key = this.storageKey();
+    if (key === null) {
+      return null;
+    }
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) {
+        return null;
+      }
+      const parsed = JSON.parse(raw) as Partial<SheetViewerState>;
+      const zoom = parsed.zoom;
+      const validZoom =
+        zoom === ZOOM_FIT || (typeof zoom === 'number' && zoom >= ZOOM_MIN && zoom <= ZOOM_MAX);
+      return {
+        page: typeof parsed.page === 'number' ? Math.floor(parsed.page) : 0,
+        zoom: validZoom ? (zoom as number | typeof ZOOM_FIT) : this.zoom(),
+      };
+    } catch {
+      return null;
     }
   }
 
@@ -311,7 +448,11 @@ export class SheetViewerComponent implements OnDestroy {
       }
       this.pdfDoc.set(doc);
       this.pages.set(loadedPages);
-      this.pageIndex.set(0);
+      const persisted = this.readPersistedState();
+      if (persisted) {
+        this.pageIndex.set(Math.min(Math.max(0, persisted.page), loadedPages.length - 1));
+        this.zoom.set(persisted.zoom);
+      }
       this.ready.set(true);
       await this.renderPage();
     } catch {

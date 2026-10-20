@@ -28,6 +28,17 @@
       <button
         type="button"
         class="viewer-overlay__btn"
+        (click)="toggleThumbnails()"
+        [disabled]="!ready() || pageCount < 2"
+        [attr.aria-expanded]="thumbnailsOpen()"
+        aria-controls="viewer-thumbnails"
+        aria-label="Seitenübersicht"
+      >
+        &#9638;
+      </button>
+      <button
+        type="button"
+        class="viewer-overlay__btn"
         (click)="zoomOut()"
         [disabled]="!ready() || !canZoomOut()"
         aria-label="Verkleinern"
@@ -88,6 +99,43 @@
         role="img"
         [attr.aria-label]="title() || 'Noten'"
       ></canvas>
+
+      @if (swipeFeedback(); as direction) {
+        <span class="viewer-overlay__swipe" aria-hidden="true">{{
+          direction === 'next' ? '›' : '‹'
+        }}</span>
+      }
+
+      @if (thumbnailsOpen()) {
+        <div
+          id="viewer-thumbnails"
+          class="viewer-overlay__thumbs"
+          role="group"
+          aria-label="Seitenübersicht"
+        >
+          @if (thumbnailsLoading()) {
+            <p class="viewer-overlay__note">Vorschauen werden erzeugt …</p>
+          } @else if (thumbnails().length === 0) {
+            <p class="viewer-overlay__note">Keine Vorschau verfügbar.</p>
+          } @else {
+            <div class="viewer-overlay__thumbs-grid">
+              @for (preview of thumbnails(); track $index) {
+                <button
+                  type="button"
+                  class="viewer-overlay__thumb"
+                  [class.viewer-overlay__thumb--active]="$index === pageIndex()"
+                  [attr.aria-current]="$index === pageIndex() ? 'page' : null"
+                  [attr.aria-label]="'Seite ' + ($index + 1) + ' öffnen'"
+                  (click)="goToPage($index)"
+                >
+                  <img [src]="preview" alt="" />
+                  <span class="viewer-overlay__thumb-num">{{ $index + 1 }}</span>
+                </button>
+              }
+            </div>
+          }
+        </div>
+      }
     </div>
     <p class="viewer-overlay__hint viewer-overlay__hint--touch">
       Wischen zum Blättern &middot; Tippen am linken oder rechten Rand blättert ebenfalls &middot;

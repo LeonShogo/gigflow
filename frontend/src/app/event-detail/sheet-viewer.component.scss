@@ -86,6 +86,7 @@
 }
 
 .viewer-overlay__stage {
+  position: relative;
   flex: 1;
   display: flex;
   align-items: flex-start;
@@ -106,6 +107,95 @@
   flex-shrink: 0;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
   background: #fff;
+}
+
+.viewer-overlay__swipe {
+  position: absolute;
+  top: 45%;
+  left: 50%;
+  font-size: clamp(3.5rem, 14vw, 6rem);
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.7);
+  pointer-events: none;
+  animation: viewer-swipe 0.4s ease-out both;
+}
+
+@keyframes viewer-swipe {
+  from {
+    opacity: 0.9;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.3);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .viewer-overlay__swipe {
+    animation: none;
+    transform: translate(-50%, -50%);
+    opacity: 0.9;
+  }
+}
+
+.viewer-overlay__thumbs {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  padding: var(--space-2);
+  background: rgba(0, 0, 0, 0.92);
+  overscroll-behavior: contain;
+}
+
+.viewer-overlay__thumbs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
+  gap: var(--space-2);
+}
+
+.viewer-overlay__thumb {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 2px solid transparent;
+  border-radius: var(--radius);
+  color: #fff;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.viewer-overlay__thumb:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.viewer-overlay__thumb:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.viewer-overlay__thumb--active {
+  border-color: #fff;
+}
+
+.viewer-overlay__thumb img {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: #fff;
+}
+
+.viewer-overlay__thumb-num {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
 }
 
 .viewer-overlay__note,

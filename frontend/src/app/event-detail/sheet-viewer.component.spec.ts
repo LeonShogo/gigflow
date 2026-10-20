@@ -39,19 +39,23 @@ function touchEvent(
 describe('SheetViewerComponent', () => {
   beforeEach(() => {
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
+    localStorage.clear();
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  async function load(): Promise<ComponentFixture<SheetViewerComponent>> {
+  async function load(pieceId?: number): Promise<ComponentFixture<SheetViewerComponent>> {
     await TestBed.configureTestingModule({ imports: [SheetViewerComponent] }).compileComponents();
     const fixture = TestBed.createComponent(SheetViewerComponent);
     fixture.componentRef.setInput(
       'file',
       new File(['%PDF-1.4'], 'noten.pdf', { type: 'application/pdf' }),
     );
+    if (pieceId !== undefined) {
+      fixture.componentRef.setInput('pieceId', pieceId);
+    }
     for (let i = 0; i < 5; i++) {
       fixture.detectChanges();
       await new Promise<void>((resolve) => setTimeout(resolve, 0));
@@ -175,5 +179,62 @@ describe('SheetViewerComponent', () => {
     fixture.detectChanges();
 
     expect(pageLabel(fixture)).toBe('1/3');
+  });
+
+  it('should restore the persisted page and zoom for the same piece', async () => {
+    localStorage.setItem('gigflow-sheet-7', JSON.stringify({ page: 2, zoom: 2 }));
+    const fixture = await load(7);
+    const el: HTMLElement = fixture.nativeElement;
+
+    expect(pageLabel(fixture)).toBe('3/3');
+    const zoomButton = Array.from(
+      el.querySelectorAll<HTMLButtonElement>('.viewer-overlay__btn'),
+    ).find((button) => button.textContent?.includes('200%'));
+    expect(zoomButton).toBeTruthy();
+  });
+
+  it('should persist the current page per piece', async () => {
+    const fixture = await load(7);
+    const el: HTMLElement = fixture.nativeElement;
+    const next = Array.from(
+      el.querySelectorAll<HTMLButtonElement>('.viewer-overlay__btn--page'),
+    )[1];
+
+    next.click();
+    fixture.detectChanges();
+
+    const stored = JSON.parse(localStorage.getItem('gigflow-sheet-7') ?? '{}') as {
+      page?: number;
+    };
+    expect(stored.page).toBe(1);
+  });
+
+  it('should open the thumbnail overview', async () => {
+    const fixture = await load();
+    const el: HTMLElement = fixture.nativeElement;
+    const toggle = el.querySelector<HTMLButtonElement>('[aria-label="Seitenübersicht"]');
+
+    expect(toggle).not.toBeNull();
+    expect(toggle?.disabled).toBe(false);
+    toggle?.click();
+    fixture.detectChanges();
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    fixture.detectChanges();
+
+    const panel = el.querySelector('#viewer-thumbnails');
+    expect(panel).not.toBeNull();
+    expect(panel?.textContent).toContain('Keine Vorschau verfügbar.');
+  });
+
+  it('should show swipe feedback after a swipe gesture', async () => {
+    const fixture = await load();
+    const host: HTMLElement = fixture.nativeElement;
+
+    touch(host, 'touchstart', [{ clientX: 280, clientY: 300 }], [{ clientX: 280, clientY: 300 }]);
+    touch(host, 'touchend', [], [{ clientX: 120, clientY: 300 }]);
+    fixture.detectChanges();
+
+    expect(pageLabel(fixture)).toBe('2/3');
+    expect(host.querySelector('.viewer-overlay__swipe')).not.toBeNull();
   });
 });

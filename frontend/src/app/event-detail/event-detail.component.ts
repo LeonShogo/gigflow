@@ -194,6 +194,7 @@ export class EventDetailComponent {
   protected readonly sheetError = signal<string | null>(null);
   protected readonly sheetFile = signal<File | null>(null);
   protected readonly openSheetTitle = signal<string | null>(null);
+  protected readonly openSheetPieceId = signal<number | null>(null);
   protected pendingPdfPieceId = signal<number | null>(null);
   @ViewChild('pdfInput') protected readonly pdfInputRef?: ElementRef<HTMLInputElement>;
 
@@ -1594,6 +1595,7 @@ export class EventDetailComponent {
       next: (blob) => {
         this.sheetFile.set(new File([blob], `${entry.pieceTitle}.pdf`, { type: 'application/pdf' }));
         this.openSheetTitle.set(entry.pieceTitle);
+        this.openSheetPieceId.set(entry.pieceId);
       },
       error: () => this.sheetError.set('Noten konnten nicht geöffnet werden.'),
     });
@@ -1602,6 +1604,7 @@ export class EventDetailComponent {
   protected closeSheet(): void {
     this.sheetFile.set(null);
     this.openSheetTitle.set(null);
+    this.openSheetPieceId.set(null);
   }
 
   protected removeSheetPdf(entry: SetlistEntry): void {
