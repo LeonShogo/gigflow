@@ -1,7 +1,7 @@
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { CdkDropList } from '@angular/cdk/drag-drop';
+import { CdkDrag, CdkDropList } from '@angular/cdk/drag-drop';
 import { By } from '@angular/platform-browser';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
@@ -324,6 +324,19 @@ function loadConcertWithLocations(
     const titles = fixture.nativeElement.querySelectorAll('.panel__title');
     expect((titles[0] as HTMLElement).textContent?.trim()).toBe('Proben zu diesem Gig');
     expect((titles[1] as HTMLElement).textContent?.trim()).toBe('Setlist');
+  });
+
+  it('should require a deliberate hold before dragging on touch devices', () => {
+    const fixture = setup('1');
+    loadConcertWithEntries(fixture, [
+      { id: 5, setlistId: 10, pieceId: 3, pieceTitle: 'Hallo Welt', position: 0 },
+    ]);
+
+    const drags = fixture.debugElement.queryAll(By.directive(CdkDrag));
+    expect(drags.length).toBeGreaterThan(6);
+    for (const element of drags) {
+      expect(element.injector.get(CdkDrag).dragStartDelay).toEqual({ touch: 350, mouse: 0 });
+    }
   });
 
   it('should collapse and reopen a section and persist', () => {

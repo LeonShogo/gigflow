@@ -75,7 +75,7 @@
         @for (panelKey of panelOrder(); track panelKey) {
           @switch (panelKey) {
             @case ('members') {
-              <section class="panel panel--members" [class.panel--collapsed]="isCollapsed('members')" cdkDrag>
+              <section class="panel panel--members" [class.panel--collapsed]="isCollapsed('members')" cdkDrag [cdkDragStartDelay]="dragStartDelay">
                 <div class="panel__head" cdkDragHandle>
                   <span class="panel__head-left">
                     <span class="panel__drag" aria-hidden="true">&#8942;&#8942;</span>
@@ -297,7 +297,7 @@
               </section>
             }
             @case ('setlist') {
-              <section class="panel panel--setlist panel--open" [class.panel--collapsed]="isCollapsed('setlist')" cdkDrag>
+              <section class="panel panel--setlist panel--open" [class.panel--collapsed]="isCollapsed('setlist')" cdkDrag [cdkDragStartDelay]="dragStartDelay">
                 <div class="panel__head" cdkDragHandle>
                   <span class="panel__head-left">
                     <span class="panel__drag" aria-hidden="true">&#8942;&#8942;</span>
@@ -330,7 +330,7 @@
                     } @else {
                       <ol class="setlist__entries" cdkDropList (cdkDropListDropped)="onDrop($event)">
                         @for (entry of entries(); track entry.id; let i = $index) {
-                          <li class="entry" cdkDrag>
+                          <li class="entry" cdkDrag [cdkDragStartDelay]="dragStartDelay">
                             <span class="entry__pos">{{ i + 1 }}</span>
                             <span class="entry__title">
                               {{ entry.pieceTitle }}
@@ -543,7 +543,7 @@
               </section>
             }
             @case ('rehearsals') {
-              <section class="panel panel--rehearsals" [class.panel--collapsed]="isCollapsed('rehearsals')" cdkDrag>
+              <section class="panel panel--rehearsals" [class.panel--collapsed]="isCollapsed('rehearsals')" cdkDrag [cdkDragStartDelay]="dragStartDelay">
                 <div class="panel__head" cdkDragHandle>
                   <span class="panel__head-left">
                     <span class="panel__drag" aria-hidden="true">&#8942;&#8942;</span>
@@ -708,7 +708,7 @@
               </section>
             }
             @case ('equipment') {
-              <section class="panel panel--equipment" [class.panel--collapsed]="isCollapsed('equipment')" cdkDrag>
+              <section class="panel panel--equipment" [class.panel--collapsed]="isCollapsed('equipment')" cdkDrag [cdkDragStartDelay]="dragStartDelay">
                 <div class="panel__head" cdkDragHandle>
                   <span class="panel__head-left">
                     <span class="panel__drag" aria-hidden="true">&#8942;&#8942;</span>
@@ -912,7 +912,7 @@
               </section>
             }
             @case ('locations') {
-              <section class="panel panel--locations" [class.panel--collapsed]="isCollapsed('locations')" cdkDrag>
+              <section class="panel panel--locations" [class.panel--collapsed]="isCollapsed('locations')" cdkDrag [cdkDragStartDelay]="dragStartDelay">
                 <div class="panel__head" cdkDragHandle>
                   <span class="panel__head-left">
                     <span class="panel__drag" aria-hidden="true">&#8942;&#8942;</span>
@@ -1107,7 +1107,7 @@
               </section>
             }
             @case ('schedule') {
-              <section class="panel panel--schedule" [class.panel--collapsed]="isCollapsed('schedule')" cdkDrag>
+              <section class="panel panel--schedule" [class.panel--collapsed]="isCollapsed('schedule')" cdkDrag [cdkDragStartDelay]="dragStartDelay">
                 <div class="panel__head" cdkDragHandle>
                   <span class="panel__head-left">
                     <span class="panel__drag" aria-hidden="true">&#8942;&#8942;</span>
@@ -1238,7 +1238,7 @@
               </section>
             }
             @default {
-              <section class="panel" [class.panel--collapsed]="isCollapsed(panelKey)" cdkDrag>
+              <section class="panel" [class.panel--collapsed]="isCollapsed(panelKey)" cdkDrag [cdkDragStartDelay]="dragStartDelay">
                 <div class="panel__head" cdkDragHandle>
                   <span class="panel__head-left">
                     <span class="panel__drag" aria-hidden="true">&#8942;&#8942;</span>

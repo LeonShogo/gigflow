@@ -175,6 +175,7 @@ export class EventDetailComponent {
   protected readonly selfSaving = signal(false);
 
   protected readonly panelOrder = signal<string[]>(PANEL_ORDER_DEFAULT);
+  protected readonly dragStartDelay = { touch: 350, mouse: 0 };
   @ViewChild('board') protected readonly boardRef?: ElementRef<HTMLDivElement>;
   protected readonly panelCollapsed = signal<Record<string, boolean>>({});  protected readonly layoutLoading = signal(false);
   protected readonly layoutError = signal<string | null>(null);
