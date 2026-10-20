@@ -37,7 +37,7 @@ jobs:
           --health-retries 5
     env:
       DB_PASSWORD: gigflow-ci
-      JWT_SECRET: ci-only-not-a-real-secret
+      JWT_SECRET: ci-only-dummy-secret-with-at-least-32-chars
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
