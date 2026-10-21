@@ -34,7 +34,7 @@ export class MusicianListComponent {
       },
       error: () => {
         this.loading.set(false);
-        this.error.set('Musiker:innen konnten nicht geladen werden.');
+        this.error.set('Musiker*innen konnten nicht geladen werden.');
       },
     });
   }
@@ -65,7 +65,7 @@ export class MusicianListComponent {
         this.deleting.update((m) => ({ ...m, [musician.id]: false }));
         this.confirmingDelete.update((m) => ({ ...m, [musician.id]: false }));
         this.deleteError.set(
-          err?.error?.message ?? 'Musiker:in konnte nicht gelöscht werden.',
+          err?.error?.message ?? 'Musiker*in konnte nicht gelöscht werden.',
         );
       },
     });

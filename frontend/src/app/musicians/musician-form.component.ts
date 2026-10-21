@@ -59,7 +59,7 @@ export class MusicianFormComponent {
         },
         error: () => {
           this.loading.set(false);
-          this.loadError.set('Musiker:in konnte nicht geladen werden.');
+          this.loadError.set('Musiker*in konnte nicht geladen werden.');
         },
       });
     });

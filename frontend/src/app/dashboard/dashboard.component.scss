@@ -117,6 +117,12 @@
   align-items: flex-start;
 }
 
+.event__delete-zone:has(.event__confirm) {
+  position: static;
+  align-items: stretch;
+  padding: 0 var(--space-3) var(--space-3);
+}
+
 .event__delete {
   width: 1.75rem;
   height: 1.75rem;
@@ -143,11 +149,9 @@
 
 .event__confirm {
   display: flex;
-  align-items: center;
-  gap: var(--space-1);
-  margin-top: 1.9rem;
-  margin-right: 0.1rem;
-  padding: var(--space-1) var(--space-2);
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
   background: var(--paper-raised);
   border: 1px solid var(--accent-soft);
   border-radius: var(--radius);
@@ -157,7 +161,14 @@
 .event__confirm-label {
   font-size: 0.9rem;
   color: var(--ink-soft);
-  white-space: nowrap;
+  white-space: normal;
+}
+
+.event__confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-1);
 }
 
 .event__confirm-btn {

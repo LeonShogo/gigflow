@@ -107,6 +107,11 @@
   z-index: 2;
 }
 
+.row__delete-zone:has(.row__confirm) {
+  position: static;
+  transform: none;
+}
+
 .row__delete {
   width: 2rem;
   height: 2rem;
@@ -133,19 +138,25 @@
 
 .row__confirm {
   display: flex;
-  align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-1) var(--space-2);
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
   background: var(--paper-raised);
   border: 1px solid var(--accent-soft);
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
-  white-space: nowrap;
 }
 
 .row__confirm-label {
   font-size: 0.9rem;
   color: var(--ink-soft);
+}
+
+.row__confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-1);
 }
 
 .row__confirm-btn {

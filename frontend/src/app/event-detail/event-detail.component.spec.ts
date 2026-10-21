@@ -194,7 +194,7 @@ function loadConcertWithLocations(
     const fixture = setup();
     loadConcert(fixture);
 
-    expect(fixture.nativeElement.textContent).toContain('Noch keine Musiker:innen');
+    expect(fixture.nativeElement.textContent).toContain('Noch keine Musiker*innen');
   });
 
   it('should render rehearsals for the concert, sorted by date', () => {
@@ -271,7 +271,7 @@ function loadConcertWithLocations(
 
     const titles = fixture.nativeElement.querySelectorAll('.panel__title');
     expect((titles[0] as HTMLElement).textContent?.trim()).toBe('Equipment');
-    expect((titles[1] as HTMLElement).textContent?.trim()).toBe('Musiker / Zusagen');
+    expect((titles[1] as HTMLElement).textContent?.trim()).toBe('Musiker*innen / Zusagen');
   });
 
   it('should swap two panels via drag & drop and persist', () => {
@@ -378,7 +378,7 @@ function loadConcertWithLocations(
     ) as HTMLButtonElement;
     membersCollapse2.click();
     fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('Noch keine Musiker:innen');
+    expect(fixture.nativeElement.textContent).toContain('Noch keine Musiker*innen');
     httpMock.expectOne('/api/events/1/layout').flush(DEFAULT_LAYOUT);
   });
 
@@ -400,7 +400,7 @@ function loadConcertWithLocations(
 
     const el: HTMLElement = fixture.nativeElement;
     expect(el.querySelectorAll('.panel').length).toBe(6);
-    expect(el.textContent).toContain('Noch keine Musiker:innen');
+    expect(el.textContent).toContain('Noch keine Musiker*innen');
   });
 
   it('should add a new piece to the setlist', () => {

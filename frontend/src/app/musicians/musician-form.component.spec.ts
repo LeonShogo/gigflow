@@ -51,7 +51,7 @@ describe('MusicianFormComponent', () => {
 
   it('should create a new musician via POST and navigate to the list', async () => {
     const { fixture, httpMock, router } = create({});
-    expect(fixture.nativeElement.textContent).toContain('Musiker:in hinzufügen');
+    expect(fixture.nativeElement.textContent).toContain('Musiker*in hinzufügen');
 
     setInput(fixture, 'input[formControlName="firstName"]', 'Mia');
     setInput(fixture, 'input[formControlName="lastName"]', 'Sommer');
@@ -88,7 +88,7 @@ describe('MusicianFormComponent', () => {
     fixture.detectChanges();
 
     const el: HTMLElement = fixture.nativeElement;
-    expect(el.textContent).toContain('Musiker:in bearbeiten');
+    expect(el.textContent).toContain('Musiker*in bearbeiten');
     expect((el.querySelector('input[formControlName="firstName"]') as HTMLInputElement).value).toBe('Anna');
 
     setInput(fixture, 'input[formControlName="lastName"]', 'Meyer');

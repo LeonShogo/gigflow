@@ -56,7 +56,7 @@ interface PanelMeta {
 const PANEL_ORDER_DEFAULT = ['members', 'setlist', 'rehearsals', 'equipment', 'locations', 'schedule'];
 
 const PANEL_META: Record<string, PanelMeta> = {
-  members: { title: 'Musiker / Zusagen', description: 'Besetzung & Zusagen' },
+  members: { title: 'Musiker*innen / Zusagen', description: 'Besetzung & Zusagen' },
   setlist: { title: 'Setlist', description: 'Spielreihenfolge & Noten' },
   rehearsals: { title: 'Proben zu diesem Gig', description: 'Vorbereitung für diesen Gig' },
   equipment: { title: 'Equipment', description: 'Instrumente & Technik' },
@@ -498,7 +498,7 @@ export class EventDetailComponent {
       },
       error: () => {
         this.musiciansLoading.set(false);
-        this.participationError.set('Musiker:innen konnten nicht geladen werden.');
+        this.participationError.set('Musiker*innen konnten nicht geladen werden.');
       },
     });
   }

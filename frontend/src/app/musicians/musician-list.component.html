@@ -3,14 +3,14 @@
 
   <header class="head">
     <div class="head__text">
-      <p class="eyebrow">Musiker:innen</p>
+      <p class="eyebrow">Musiker*innen</p>
       <h1 class="title">Band besetzen</h1>
     </div>
-    <a class="head__add" routerLink="/musicians/new">+ Musiker hinzufügen</a>
+    <a class="head__add" routerLink="/musicians/new">+ Musiker*in hinzufügen</a>
   </header>
 
   @if (loading()) {
-    <p class="status">Musiker:innen werden geladen …</p>
+    <p class="status">Musiker*innen werden geladen …</p>
   } @else if (error(); as message) {
     <p class="status status--error" role="alert">{{ message }}</p>
   } @else {
@@ -30,24 +30,26 @@
               @if (confirmingDelete()[musician.id]) {
                 <div class="row__confirm">
                   <span class="row__confirm-label">„{{ musicianName(musician) }}“ wirklich löschen?</span>
-                  <button
-                    type="button"
-                    class="row__confirm-btn"
-                    (click)="cancelDelete(musician)"
-                  >Abbrechen</button>
-                  <button
-                    type="button"
-                    class="row__confirm-btn row__confirm-btn--danger"
-                    (click)="confirmDelete(musician)"
-                    [disabled]="deleting()[musician.id]"
-                  >Löschen</button>
+                  <div class="row__confirm-actions">
+                    <button
+                      type="button"
+                      class="row__confirm-btn"
+                      (click)="cancelDelete(musician)"
+                    >Abbrechen</button>
+                    <button
+                      type="button"
+                      class="row__confirm-btn row__confirm-btn--danger"
+                      (click)="confirmDelete(musician)"
+                      [disabled]="deleting()[musician.id]"
+                    >Löschen</button>
+                  </div>
                 </div>
               } @else {
                 <button
                   type="button"
                   class="row__delete"
                   (click)="requestDelete(musician)"
-                  [attr.aria-label]="'Musiker:in löschen: ' + musicianName(musician)"
+                  [attr.aria-label]="'Musiker*in löschen: ' + musicianName(musician)"
                   title="Löschen"
                 >&times;</button>
               }
@@ -56,7 +58,7 @@
         </li>
       } @empty {
         <li>
-          <p class="roster__empty">Noch keine Musiker:innen angelegt.</p>
+          <p class="roster__empty">Noch keine Musiker*innen angelegt.</p>
         </li>
       }
     </ul>

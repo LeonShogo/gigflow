@@ -72,17 +72,19 @@
               @if (confirmingDelete()[event.id]) {
                 <div class="event__confirm">
                   <span class="event__confirm-label">„{{ event.title }}“ wirklich löschen?</span>
-                  <button
-                    type="button"
-                    class="event__confirm-btn"
-                    (click)="cancelDelete(event)"
-                  >Abbrechen</button>
-                  <button
-                    type="button"
-                    class="event__confirm-btn event__confirm-btn--danger"
-                    (click)="confirmDelete(event)"
-                    [disabled]="deleting()[event.id]"
-                  >Löschen</button>
+                  <div class="event__confirm-actions">
+                    <button
+                      type="button"
+                      class="event__confirm-btn"
+                      (click)="cancelDelete(event)"
+                    >Abbrechen</button>
+                    <button
+                      type="button"
+                      class="event__confirm-btn event__confirm-btn--danger"
+                      (click)="confirmDelete(event)"
+                      [disabled]="deleting()[event.id]"
+                    >Löschen</button>
+                  </div>
                 </div>
               } @else {
                 <button

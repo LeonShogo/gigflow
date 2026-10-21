@@ -85,7 +85,7 @@
                       (click)="togglePanel('members')"
                       [attr.aria-expanded]="!isCollapsed('members')"
                     >
-                      <h2 class="panel__title">Musiker / Zusagen</h2>
+                      <h2 class="panel__title">Musiker*innen / Zusagen</h2>
                       <span class="panel__desc">{{ panelDescription('members') }}</span>
                     </button>
                   </span>
@@ -105,7 +105,7 @@
                   } @else {
                     <div class="members__bar">
                       @if (participations().length === 0) {
-                        <span class="members__count">Noch keine Musiker:innen zu diesem Gig eingeladen.</span>
+                        <span class="members__count">Noch keine Musiker*innen zu diesem Gig eingeladen.</span>
                       } @else {
                         <span class="members__count">
                           {{ confirmedCount() }} von {{ participations().length }} bestätigt
@@ -113,7 +113,7 @@
                       }
                       @if (canManageMembers()) {
                         <button type="button" class="members__add" (click)="togglePicker()">
-                          Musiker:in hinzufügen
+                          Musiker*in hinzufügen
                         </button>
                       }
                     </div>
@@ -265,9 +265,9 @@
                         }
 
                         @if (musiciansLoading()) {
-                          <p class="panel__note">Musiker:innen werden geladen …</p>
+                          <p class="panel__note">Musiker*innen werden geladen …</p>
                         } @else if (availableMusicians().length === 0) {
-                          <p class="panel__note">Keine weiteren Musiker:innen verfügbar.</p>
+                          <p class="panel__note">Keine weiteren Musiker*innen verfügbar.</p>
                         } @else {
                           <ul class="picker__list">
                             @for (musician of availableMusicians(); track musician.id) {
