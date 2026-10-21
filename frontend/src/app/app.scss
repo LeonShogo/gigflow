@@ -76,12 +76,9 @@
 
 .shell__auth {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: var(--space-1);
   flex-shrink: 0;
-  align-self: flex-start;
-  margin-top: -0.15rem;
-  margin-left: auto;
 }
 
 .shell__theme {
@@ -183,6 +180,14 @@
 @media (max-width: 36rem) {
   .shell {
     flex-wrap: wrap;
+  }
+
+  .shell__auth {
+    flex: 1 1 auto;
+  }
+
+  .shell__link {
+    margin-left: auto;
   }
 
   .shell__nav {
