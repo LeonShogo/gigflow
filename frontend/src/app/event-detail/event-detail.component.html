@@ -224,82 +224,6 @@
                         }
                       </ul>
                     }
-
-                    @if (pickerOpen()) {
-                      <div class="picker">
-                        <button
-                          type="button"
-                          class="picker__toggle-new"
-                          (click)="toggleNewMusician()"
-                          [attr.aria-expanded]="newMusicianOpen()"
-                        >
-                          {{ newMusicianOpen() ? 'Neue Person schließen' : 'Neue Person anlegen' }}
-                        </button>
-
-                        @if (newMusicianOpen()) {
-                          <form class="picker__new" (ngSubmit)="addNewMusician()">
-                            <label class="sr-only" for="new-first">Vorname</label>
-                            <input
-                              id="new-first"
-                              class="picker__input"
-                              [value]="newFirstName()"
-                              (input)="onNewFirstName($event)"
-                              placeholder="Vorname"
-                              required
-                            />
-                            <label class="sr-only" for="new-last">Nachname</label>
-                            <input
-                              id="new-last"
-                              class="picker__input"
-                              [value]="newLastName()"
-                              (input)="onNewLastName($event)"
-                              placeholder="Nachname"
-                              required
-                            />
-                            <label class="sr-only" for="new-instrument">Instrument</label>
-                            <input
-                              id="new-instrument"
-                              class="picker__input"
-                              [value]="newInstrument()"
-                              (input)="onNewInstrument($event)"
-                              placeholder="Instrument (optional)"
-                            />
-                            <button
-                              type="submit"
-                              class="picker__submit"
-                              [disabled]="!canAddNewMusician()"
-                            >Anlegen & hinzufügen</button>
-                          </form>
-                        }
-
-                        @if (musiciansLoading()) {
-                          <p class="panel__note">Musiker*innen werden geladen …</p>
-                        } @else if (availableMusicians().length === 0) {
-                          <p class="panel__note">Keine weiteren Musiker*innen verfügbar.</p>
-                        } @else {
-                          <ul class="picker__list">
-                            @for (musician of availableMusicians(); track musician.id) {
-                              <li class="picker__item">
-                                <span class="picker__name">
-                                  {{ musician.firstName }} {{ musician.lastName }}
-                                  @if (musician.instrument) {
-                                    <span class="picker__instrument">— {{ musician.instrument }}</span>
-                                  }
-                                </span>
-                                <button
-                                  type="button"
-                                  class="picker__add"
-                                  (click)="addExistingMusician(musician)"
-                                  [disabled]="addingMusicians()[musician.id]"
-                                >
-                                  {{ addingMusicians()[musician.id] ? 'Füge hinzu …' : 'Hinzufügen' }}
-                                </button>
-                              </li>
-                            }
-                          </ul>
-                        }
-                      </div>
-                    }
                   }
                 }
               </section>
@@ -1339,4 +1263,104 @@
     [pieceId]="openSheetPieceId()"
     (closeRequested)="closeSheet()"
   ></app-sheet-viewer>
+}
+
+@if (pickerOpen()) {
+  <div class="picker-dialog" tabindex="-1" (document:keydown.escape)="togglePicker()">
+    <button
+      type="button"
+      class="picker-dialog__backdrop"
+      tabindex="-1"
+      aria-label="Dialog schließen"
+      (click)="togglePicker()"
+    ></button>
+    <div
+      class="picker-dialog__panel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="musician-picker-title"
+    >
+      <header class="picker-dialog__head">
+        <h2 class="panel__title" id="musician-picker-title">Musiker*in hinzufügen</h2>
+        <button
+          type="button"
+          class="picker-dialog__close"
+          (click)="togglePicker()"
+          aria-label="Dialog schließen"
+        >&times;</button>
+      </header>
+
+      <button
+        type="button"
+        class="picker__toggle-new"
+        (click)="toggleNewMusician()"
+        [attr.aria-expanded]="newMusicianOpen()"
+      >
+        {{ newMusicianOpen() ? 'Neue Person schließen' : 'Neue Person anlegen' }}
+      </button>
+
+      @if (newMusicianOpen()) {
+        <form class="picker__new" (ngSubmit)="addNewMusician()">
+          <label class="sr-only" for="new-first">Vorname</label>
+          <input
+            id="new-first"
+            class="picker__input"
+            [value]="newFirstName()"
+            (input)="onNewFirstName($event)"
+            placeholder="Vorname"
+            required
+          />
+          <label class="sr-only" for="new-last">Nachname</label>
+          <input
+            id="new-last"
+            class="picker__input"
+            [value]="newLastName()"
+            (input)="onNewLastName($event)"
+            placeholder="Nachname"
+            required
+          />
+          <label class="sr-only" for="new-instrument">Instrument</label>
+          <input
+            id="new-instrument"
+            class="picker__input"
+            [value]="newInstrument()"
+            (input)="onNewInstrument($event)"
+            placeholder="Instrument (optional)"
+          />
+          <button
+            type="submit"
+            class="picker__submit"
+            [disabled]="!canAddNewMusician()"
+          >Anlegen & hinzufügen</button>
+        </form>
+      }
+
+      @if (musiciansLoading()) {
+        <p class="panel__note">Musiker*innen werden geladen …</p>
+      } @else if (availableMusicians().length === 0) {
+        <p class="panel__note">Keine weiteren Musiker*innen verfügbar.</p>
+      } @else {
+        <ul class="picker__list">
+          @for (musician of availableMusicians(); track musician.id) {
+            <li class="picker__item">
+              <span class="picker__name">
+                {{ musician.firstName }} {{ musician.lastName }}
+                @if (musician.instrument) {
+                  <span class="picker__instrument">— {{ musician.instrument }}</span>
+                }
+              </span>
+              <button
+                type="button"
+                class="picker__add"
+                (click)="addExistingMusician(musician)"
+                [disabled]="addingMusicians()[musician.id]"
+              >
+                {{ addingMusicians()[musician.id] ? 'Füge hinzu …' : 'Hinzufügen' }}
+              </button>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+  </div>
 }

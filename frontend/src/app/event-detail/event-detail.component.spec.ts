@@ -796,7 +796,8 @@ function loadConcertWithLocations(
     fixture.detectChanges();
 
     expect(comp.pickerOpen()).toBe(true);
-    expect(fixture.nativeElement.querySelector('.picker')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.picker-dialog [role="dialog"]')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.detail .picker-dialog')).toBeNull();
   });
 
   it('should toggle a requirement status via PUT', () => {

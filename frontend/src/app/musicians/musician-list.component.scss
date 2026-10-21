@@ -1,3 +1,7 @@
+:host {
+  --band-radius: 6px;
+}
+
 .page {
   width: 100%;
   max-width: 50rem;
@@ -98,10 +102,10 @@
   font-size: 0.82rem;
   font-weight: 600;
   color: var(--accent-ink);
-  background: transparent;
-  border: 1px dashed var(--accent-line);
-  border-radius: var(--radius-pill);
-  padding: 0.25rem 0.7rem;
+  background: var(--paper-raised);
+  border: 1px solid var(--accent-line);
+  border-radius: var(--band-radius);
+  padding: 0.3rem 0.65rem;
   cursor: pointer;
   transition:
     background-color var(--t-fast) ease,
@@ -143,7 +147,7 @@
   color: var(--ink);
   background: var(--paper-inset);
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: var(--band-radius);
   padding: 0.6rem 0.75rem;
   transition: border-color 140ms ease;
 }
@@ -160,7 +164,7 @@
   color: #fff;
   background: var(--accent);
   border: 1px solid transparent;
-  border-radius: var(--radius);
+  border-radius: var(--band-radius);
   padding: 0.55rem 1rem;
   cursor: pointer;
   transition: background-color var(--t-fast) ease;
@@ -333,7 +337,7 @@
   color: var(--accent-ink);
   background: var(--accent-soft);
   border: 1px solid var(--accent-line);
-  border-radius: var(--radius-pill);
+  border-radius: var(--band-radius);
   padding: 0.2rem 0.3rem 0.2rem 0.7rem;
 }
 
@@ -347,7 +351,7 @@
   color: var(--accent-ink);
   background: none;
   border: none;
-  border-radius: var(--radius-pill);
+  border-radius: 4px;
   cursor: pointer;
 }
 
@@ -377,11 +381,12 @@
 .band-add {
   font-size: 0.82rem;
   font-weight: 600;
-  color: var(--accent-ink);
-  background: transparent;
-  border: 1px dashed var(--accent-line);
-  border-radius: var(--radius-pill);
-  padding: 0.2rem 0.55rem;
+  color: var(--ink);
+  background: var(--paper-raised);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--band-radius);
+  padding: 0.28rem 0.5rem;
+  max-width: 12rem;
   cursor: pointer;
 }
 
