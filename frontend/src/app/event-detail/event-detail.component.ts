@@ -132,6 +132,7 @@ export class EventDetailComponent {
   protected readonly pauseSaving = signal<Record<number, boolean>>({});
   protected readonly participationFeedback = signal<string | null>(null);
   protected readonly participationError = signal<string | null>(null);
+  protected readonly invitingBand = signal(false);
   protected readonly confirmingRemoval = signal<Record<number, boolean>>({});
   protected readonly pickerOpen = signal(false);
   protected readonly musicians = signal<Musician[]>([]);
@@ -441,6 +442,29 @@ export class EventDetailComponent {
     if (this.musicians().length === 0) {
       this.loadMusicians();
     }
+  }
+
+  protected inviteBand(): void {
+    const event = this.event();
+    if (!event || this.invitingBand()) {
+      return;
+    }
+    this.invitingBand.set(true);
+    this.participationError.set(null);
+    this.participationFeedback.set(null);
+    this.eventService.inviteBandMembers(event.id).subscribe({
+      next: (participations) => {
+        this.participations.set(participations);
+        this.invitingBand.set(false);
+        this.participationFeedback.set('Band-Mitglieder eingeladen.');
+      },
+      error: (err) => {
+        this.invitingBand.set(false);
+        this.participationError.set(
+          err?.error?.message ?? 'Band-Mitglieder konnten nicht eingeladen werden.',
+        );
+      },
+    });
   }
 
   protected joinSelf(): void {

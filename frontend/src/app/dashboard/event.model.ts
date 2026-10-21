@@ -23,6 +23,19 @@ export interface EventRequest {
 export interface Band {
   id: number;
   name: string;
+  genre?: string;
+}
+
+/** A musician's static membership in a band (the roster). */
+export interface BandMembership {
+  id: number;
+  bandId: number;
+  musicianId: number;
+}
+
+export interface BandMembershipRequest {
+  bandId: number;
+  musicianId: number;
 }
 
 export type ParticipationStatus = 'INVITED' | 'ACCEPTED' | 'DECLINED';

@@ -80,6 +80,18 @@ public class EventController {
         }
     }
 
+    /**
+     * Invites all musicians of the event's band as INVITED participants.
+     */
+    @PostMapping("/{id}/invite-band")
+    public ResponseEntity<List<EventParticipationResponseDto>> inviteBand(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(participationService.inviteBandMembers(id));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
     @PostMapping
     public ResponseEntity<EventResponse> createEvent(@Valid @RequestBody EventRequest request) {
         try {

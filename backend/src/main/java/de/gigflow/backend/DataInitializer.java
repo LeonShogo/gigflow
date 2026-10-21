@@ -1,6 +1,8 @@
 package de.gigflow.backend;
 
 import de.gigflow.backend.band.Band;
+import de.gigflow.backend.band.BandMembership;
+import de.gigflow.backend.band.BandMembershipRepository;
 import de.gigflow.backend.band.BandRepository;
 import de.gigflow.backend.equipment.Equipment;
 import de.gigflow.backend.equipment.EquipmentRepository;
@@ -38,6 +40,7 @@ import java.time.LocalTime;
 public class DataInitializer implements CommandLineRunner {
 
     private final BandRepository bandRepository;
+    private final BandMembershipRepository bandMembershipRepository;
     private final EventRepository eventRepository;
     private final EventParticipationRepository eventParticipationRepository;
     private final EventLocationRepository eventLocationRepository;
@@ -51,6 +54,7 @@ public class DataInitializer implements CommandLineRunner {
     private final MusicianService musicianService;
 
     public DataInitializer(BandRepository bandRepository,
+                           BandMembershipRepository bandMembershipRepository,
                            EventRepository eventRepository,
                            EventParticipationRepository eventParticipationRepository,
                            EventLocationRepository eventLocationRepository,
@@ -63,6 +67,7 @@ public class DataInitializer implements CommandLineRunner {
                            UserService userService,
                            MusicianService musicianService) {
         this.bandRepository = bandRepository;
+        this.bandMembershipRepository = bandMembershipRepository;
         this.eventRepository = eventRepository;
         this.eventParticipationRepository = eventParticipationRepository;
         this.eventLocationRepository = eventLocationRepository;
@@ -115,6 +120,13 @@ public class DataInitializer implements CommandLineRunner {
         Musician david = musicianService.createMusicianEntity("David", "Olsen", "Schlagzeug");
         Musician elena = musicianService.createMusicianEntity("Elena", "Reis", "Klavier");
         Musician felix = musicianService.createMusicianEntity("Felix", "Brandt", "Saxophon");
+
+        bandMembership(band, anna);
+        bandMembership(band, ben);
+        bandMembership(band, caro);
+        bandMembership(band, david);
+        bandMembership(band, elena);
+        bandMembership(band, felix);
 
         participation(gig, anna, EventParticipationStatus.ACCEPTED);
         participation(gig, ben, EventParticipationStatus.ACCEPTED);
@@ -209,6 +221,16 @@ public class DataInitializer implements CommandLineRunner {
         participation.setMusician(musician);
         participation.setStatus(status);
         eventParticipationRepository.save(participation);
+    }
+
+    private void bandMembership(Band band, Musician musician) {
+        if (bandMembershipRepository.existsByBandIdAndMusicianId(band.getId(), musician.getId())) {
+            return;
+        }
+        BandMembership membership = new BandMembership();
+        membership.setBand(band);
+        membership.setMusician(musician);
+        bandMembershipRepository.save(membership);
     }
 
     private void scheduleItem(Event event, String label, int hour, int minute) {

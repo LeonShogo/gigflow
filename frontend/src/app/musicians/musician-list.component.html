@@ -26,6 +26,40 @@
           </a>
 
           @if (canDelete()) {
+            <div class="row__bands">
+              @for (membership of membershipsFor(musician.id); track membership.id) {
+                <span class="band-chip">
+                  {{ bandName()(membership.bandId) }}
+                  <button
+                    type="button"
+                    class="band-chip__remove"
+                    (click)="removeMembership(membership)"
+                    [disabled]="membershipSaving()"
+                    [attr.aria-label]="'Aus Band entfernen: ' + bandName()(membership.bandId)"
+                  >&times;</button>
+                </span>
+              }
+              @if (assignableBands(musician.id).length > 0) {
+                <label class="sr-only" [for]="'band-for-' + musician.id">
+                  Band zuordnen für {{ musicianName(musician) }}
+                </label>
+                <select
+                  class="band-add"
+                  [id]="'band-for-' + musician.id"
+                  [value]="''"
+                  [disabled]="membershipSaving()"
+                  (change)="onAssignBand(musician, $any($event.target).value)"
+                >
+                  <option value="">+ Band zuordnen</option>
+                  @for (band of assignableBands(musician.id); track band.id) {
+                    <option [value]="band.id">{{ band.name }}</option>
+                  }
+                </select>
+              }
+            </div>
+          }
+
+          @if (canDelete()) {
             <div class="row__delete-zone">
               @if (confirmingDelete()[musician.id]) {
                 <div class="row__confirm">

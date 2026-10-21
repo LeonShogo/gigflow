@@ -210,6 +210,65 @@
   color: var(--ink-faint);
 }
 
+.row__bands {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  padding: 0 var(--space-3) var(--space-2) var(--space-3);
+}
+
+.band-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
+  border-radius: var(--radius-pill);
+  padding: 0.2rem 0.3rem 0.2rem 0.7rem;
+}
+
+.band-chip__remove {
+  display: grid;
+  place-items: center;
+  width: 1.2rem;
+  height: 1.2rem;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--accent-ink);
+  background: none;
+  border: none;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+
+.band-chip__remove:hover:not(:disabled) {
+  background: var(--paper-raised);
+}
+
+.band-chip__remove:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.band-add {
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  background: var(--paper-raised);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-pill);
+  padding: 0.25rem 0.6rem;
+  cursor: pointer;
+}
+
+.band-add:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 .roster__empty {
   margin: 0;
   padding: var(--space-4) var(--space-2);

@@ -12,6 +12,8 @@ const MUSICIANS: Musician[] = [
   { id: 2, firstName: 'Jonas', lastName: 'Keller', instrument: 'Gitarre', email: '' },
 ];
 
+const BANDS = [{ id: 1, name: 'GigFlow Quartett' }];
+
 describe('MusicianListComponent', () => {
   let httpMock: HttpTestingController;
 
@@ -27,10 +29,17 @@ describe('MusicianListComponent', () => {
     httpMock.verify();
   });
 
+  /** Flushes the constructor's musician, band and membership requests. */
+  function flushLoad(memberships: unknown[] = []): void {
+    httpMock.expectOne('/api/musicians').flush(MUSICIANS);
+    httpMock.expectOne('/api/bands').flush(BANDS);
+    httpMock.expectOne('/api/memberships/band/1').flush(memberships);
+  }
+
   it('should list musicians', () => {
     const fixture = TestBed.createComponent(MusicianListComponent);
     fixture.detectChanges();
-    httpMock.expectOne('/api/musicians').flush(MUSICIANS);
+    flushLoad();
     fixture.detectChanges();
 
     const el: HTMLElement = fixture.nativeElement;
@@ -48,6 +57,8 @@ describe('MusicianListComponent', () => {
       status: 500,
       statusText: 'Server Error',
     });
+    httpMock.expectOne('/api/bands').flush(BANDS);
+    httpMock.expectOne('/api/memberships/band/1').flush([]);
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('p[role="alert"]')).toBeTruthy();
@@ -56,7 +67,7 @@ describe('MusicianListComponent', () => {
   it('should delete a musician after confirmation and update the list', () => {
     const fixture = TestBed.createComponent(MusicianListComponent);
     fixture.detectChanges();
-    httpMock.expectOne('/api/musicians').flush(MUSICIANS);
+    flushLoad();
     fixture.detectChanges();
 
     const auth = TestBed.inject(AuthService);
@@ -88,7 +99,7 @@ describe('MusicianListComponent', () => {
   it('should show a server message when deletion is blocked', () => {
     const fixture = TestBed.createComponent(MusicianListComponent);
     fixture.detectChanges();
-    httpMock.expectOne('/api/musicians').flush(MUSICIANS);
+    flushLoad();
     fixture.detectChanges();
 
     const auth = TestBed.inject(AuthService);
@@ -111,6 +122,63 @@ describe('MusicianListComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('noch zu Gigs/Proben zugeordnet');
+  });
+
+  it('should assign a musician to a band and show the chip', () => {
+    const fixture = TestBed.createComponent(MusicianListComponent);
+    fixture.detectChanges();
+    flushLoad([]);
+    fixture.detectChanges();
+
+    const auth = TestBed.inject(AuthService);
+    auth.login({ email: 'o@gigflow.local', password: 'password' }).subscribe();
+    httpMock.expectOne('/api/auth/login').flush({
+      token: 't',
+      user: { id: 1, email: 'o@gigflow.local', organizer: true, musicianId: null },
+    });
+    fixture.detectChanges();
+
+    const firstRow = fixture.nativeElement.querySelectorAll('.roster__item')[0];
+    const select = firstRow.querySelector('.band-add') as HTMLSelectElement;
+    expect(select).toBeTruthy();
+    select.value = '1';
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    const req = httpMock.expectOne('/api/memberships');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ bandId: 1, musicianId: 1 });
+    req.flush({ id: 42, bandId: 1, musicianId: 1 });
+    fixture.detectChanges();
+
+    expect(firstRow.querySelector('.band-chip')?.textContent).toContain('GigFlow Quartett');
+  });
+
+  it('should remove a band membership when the chip is dismissed', () => {
+    const fixture = TestBed.createComponent(MusicianListComponent);
+    fixture.detectChanges();
+    flushLoad([{ id: 42, bandId: 1, musicianId: 1 }]);
+    fixture.detectChanges();
+
+    const auth = TestBed.inject(AuthService);
+    auth.login({ email: 'o@gigflow.local', password: 'password' }).subscribe();
+    httpMock.expectOne('/api/auth/login').flush({
+      token: 't',
+      user: { id: 1, email: 'o@gigflow.local', organizer: true, musicianId: null },
+    });
+    fixture.detectChanges();
+
+    const firstRow = fixture.nativeElement.querySelectorAll('.roster__item')[0];
+    const remove = firstRow.querySelector('.band-chip__remove') as HTMLButtonElement;
+    expect(remove).toBeTruthy();
+    remove.click();
+
+    const req = httpMock.expectOne('/api/memberships/42');
+    expect(req.request.method).toBe('DELETE');
+    req.flush(null, { status: 204, statusText: 'No Content' });
+    fixture.detectChanges();
+
+    expect(firstRow.querySelector('.band-chip')).toBeNull();
   });
 });
 

@@ -1811,5 +1811,41 @@ function loadConcertWithLocations(
 
     expect(fixture.nativeElement.querySelector('.detail__print--delete')).toBeNull();
   });
+
+  it('should invite the whole band and render the resulting participants', () => {
+    const fixture = setup();
+    loadConcert(fixture);
+
+    const auth = TestBed.inject(AuthService);
+    auth.login({ email: 'o@gigflow.local', password: 'password' }).subscribe();
+    httpMock.expectOne('/api/auth/login').flush({
+      token: 't',
+      user: { id: 1, email: 'o@gigflow.local', organizer: true, musicianId: null },
+    });
+    fixture.detectChanges();
+
+    const invite = fixture.nativeElement.querySelector(
+      '.members__invite-band',
+    ) as HTMLButtonElement;
+    expect(invite).toBeTruthy();
+    invite.click();
+
+    const req = httpMock.expectOne('/api/events/1/invite-band');
+    expect(req.request.method).toBe('POST');
+    req.flush([
+      {
+        id: 7,
+        eventId: 1,
+        musicianId: 5,
+        musician: { id: 5, firstName: 'Anna', lastName: 'Becker', instrument: 'Gesang' },
+        status: 'INVITED',
+      },
+    ]);
+    fixture.detectChanges();
+
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.textContent).toContain('Band-Mitglieder eingeladen.');
+    expect(el.textContent).toContain('Anna Becker');
+  });
 });
     

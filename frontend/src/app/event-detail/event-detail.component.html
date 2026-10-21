@@ -112,6 +112,14 @@
                         </span>
                       }
                       @if (canManageMembers()) {
+                        <button
+                          type="button"
+                          class="members__add--primary members__invite-band"
+                          (click)="inviteBand()"
+                          [disabled]="invitingBand()"
+                        >
+                          {{ invitingBand() ? 'Wird eingeladen …' : 'Ganze Band einladen' }}
+                        </button>
                         <button type="button" class="members__add" (click)="togglePicker()">
                           Musiker*in hinzufügen
                         </button>

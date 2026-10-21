@@ -1,10 +1,13 @@
 package de.gigflow.backend.event;
 
+import de.gigflow.backend.band.BandMembership;
+import de.gigflow.backend.band.BandMembershipRepository;
 import de.gigflow.backend.musician.Musician;
 import de.gigflow.backend.musician.MusicianRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -14,13 +17,16 @@ public class EventParticipationService {
     private final EventParticipationRepository participationRepository;
     private final EventRepository eventRepository;
     private final MusicianRepository musicianRepository;
+    private final BandMembershipRepository bandMembershipRepository;
 
     public EventParticipationService(EventParticipationRepository participationRepository,
                                      EventRepository eventRepository,
-                                     MusicianRepository musicianRepository) {
+                                     MusicianRepository musicianRepository,
+                                     BandMembershipRepository bandMembershipRepository) {
         this.participationRepository = participationRepository;
         this.eventRepository = eventRepository;
         this.musicianRepository = musicianRepository;
+        this.bandMembershipRepository = bandMembershipRepository;
     }
 
     public EventParticipationResponseDto createParticipation(EventParticipationRequestDto request) {
@@ -75,6 +81,38 @@ public class EventParticipationService {
 
     @Transactional(readOnly = true)
     public List<EventParticipationResponseDto> findParticipationsByEvent(Long eventId) {
+        return participationRepository.findByEventId(eventId).stream()
+                .map(EventParticipationResponseDto::from)
+                .toList();
+    }
+
+    /**
+     * Invites every member of the event's band who is not participating yet
+     * (status INVITED) and returns the event's full participation list afterwards.
+     */
+    @Transactional
+    public List<EventParticipationResponseDto> inviteBandMembers(Long eventId) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new IllegalArgumentException("Event nicht gefunden: " + eventId));
+        if (event.getBand() == null) {
+            throw new IllegalArgumentException("Event hat keine Band: " + eventId);
+        }
+
+        List<EventParticipation> created = new ArrayList<>();
+        for (BandMembership membership : bandMembershipRepository.findByBandId(event.getBand().getId())) {
+            Musician musician = membership.getMusician();
+            if (musician == null
+                    || participationRepository.existsByEventIdAndMusicianId(eventId, musician.getId())) {
+                continue;
+            }
+            EventParticipation participation = new EventParticipation();
+            participation.setEvent(event);
+            participation.setMusician(musician);
+            participation.setStatus(EventParticipationStatus.INVITED);
+            created.add(participation);
+        }
+        participationRepository.saveAll(created);
+
         return participationRepository.findByEventId(eventId).stream()
                 .map(EventParticipationResponseDto::from)
                 .toList();

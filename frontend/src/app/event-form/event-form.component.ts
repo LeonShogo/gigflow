@@ -12,7 +12,7 @@ import {
 import { Router, RouterLink } from '@angular/router';
 
 import { EventService } from '../dashboard/event.service';
-import type { EventItem, EventType } from '../dashboard/event.model';
+import type { Band, EventItem, EventType } from '../dashboard/event.model';
 
 @Component({
   selector: 'app-event-form',
@@ -31,23 +31,24 @@ export class EventFormComponent {
     type: ['CONCERT' as EventType, [Validators.required]],
     date: ['', [Validators.required]],
     time: ['', [Validators.required, Validators.pattern(/^\d{2}:\d{2}$/)]],
+    bandId: [null as number | null, [Validators.required]],
     concert: [null as number | null],
   });
 
+  protected readonly bands = signal<Band[]>([]);
   protected readonly concerts = signal<EventItem[]>([]);
   protected readonly choicesError = signal<string | null>(null);
   protected readonly saving = signal(false);
   protected readonly submitError = signal<string | null>(null);
   protected readonly isRehearsal = signal(false);
 
-  private defaultBandId: number | undefined;
-
   constructor() {
     this.eventService.loadBands().subscribe({
       next: (bands) => {
+        this.bands.set(bands);
         const first = bands[0];
         if (first) {
-          this.defaultBandId = first.id;
+          this.form.controls.bandId.setValue(first.id);
         } else {
           this.choicesError.set('Es ist noch keine Band hinterlegt.');
         }
@@ -71,19 +72,19 @@ export class EventFormComponent {
     this.form.markAllAsTouched();
     this.submitError.set(null);
 
-    if (this.form.invalid || this.defaultBandId === undefined) {
-      if (this.defaultBandId === undefined) {
+    if (this.form.invalid) {
+      if (this.bands().length === 0) {
         this.submitError.set('Es ist noch keine Band hinterlegt.');
       }
       return;
     }
 
-    const { title, type, date, time, concert } = this.form.getRawValue();
+    const { title, type, date, time, bandId, concert } = this.form.getRawValue();
     const payload = {
       title: title.trim(),
       dateTime: `${date}T${time}:00`,
       type,
-      bandId: this.defaultBandId,
+      bandId: bandId as number,
       concertId: type === 'REHEARSAL' ? concert : null,
     };
 

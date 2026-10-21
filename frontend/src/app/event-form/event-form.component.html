@@ -19,6 +19,17 @@
       }
     </label>
 
+    @if (bands().length > 1) {
+      <label class="field">
+        <span class="field__label">Band</span>
+        <select class="field__input" formControlName="bandId">
+          @for (band of bands(); track band.id) {
+            <option [ngValue]="band.id">{{ band.name }}</option>
+          }
+        </select>
+      </label>
+    }
+
     <fieldset class="field">
       <legend class="field__label">Art</legend>
       <div class="segmented">

@@ -37,6 +37,11 @@ public class BandMembershipController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    @GetMapping("/band/{bandId}")
+    public List<BandMembershipResponse> getMembershipsByBand(@PathVariable Long bandId) {
+        return membershipService.findMembershipsByBand(bandId);
+    }
+
     @PostMapping
     public ResponseEntity<BandMembershipResponse> createMembership(@Valid @RequestBody BandMembershipRequest request) {
         try {

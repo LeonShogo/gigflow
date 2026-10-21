@@ -9,6 +9,7 @@ public class EventResponse {
     private LocalDateTime dateTime;
     private EventType type;
     private Long bandId;
+    private String bandName;
     private Long concertId;
 
     public static EventResponse from(Event event) {
@@ -19,6 +20,7 @@ public class EventResponse {
         response.setType(event.getType());
         if (event.getBand() != null) {
             response.setBandId(event.getBand().getId());
+            response.setBandName(event.getBand().getName());
         }
         if (event.getConcert() != null) {
             response.setConcertId(event.getConcert().getId());
@@ -64,6 +66,14 @@ public class EventResponse {
 
     public void setBandId(Long bandId) {
         this.bandId = bandId;
+    }
+
+    public String getBandName() {
+        return bandName;
+    }
+
+    public void setBandName(String bandName) {
+        this.bandName = bandName;
     }
 
     public Long getConcertId() {

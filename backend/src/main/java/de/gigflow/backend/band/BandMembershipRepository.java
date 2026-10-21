@@ -7,4 +7,8 @@ import java.util.List;
 public interface BandMembershipRepository extends JpaRepository<BandMembership, Long> {
 
     List<BandMembership> findByMusicianId(Long musicianId);
+
+    List<BandMembership> findByBandId(Long bandId);
+
+    boolean existsByBandIdAndMusicianId(Long bandId, Long musicianId);
 }

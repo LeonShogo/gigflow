@@ -97,6 +97,35 @@ describe('EventFormComponent', () => {
     expect(TestBed.inject(Router).url).toBe('/');
   });
 
+  it('should show a band picker when more than one band exists', () => {
+    const fixture = TestBed.createComponent(EventFormComponent);
+    fixture.detectChanges();
+    httpMock.expectOne('/api/bands').flush([
+      { id: 1, name: 'GigFlow Quartett' },
+      { id: 2, name: 'The Dockyarders' },
+    ]);
+    httpMock.expectOne('/api/events').flush([]);
+    fixture.detectChanges();
+
+    const select = fixture.nativeElement.querySelector(
+      'select[formControlName="bandId"]',
+    ) as HTMLSelectElement;
+    expect(select).toBeTruthy();
+    expect(select.options.length).toBe(2);
+  });
+
+  it('should hide the band picker when only one band exists', () => {
+    const fixture = TestBed.createComponent(EventFormComponent);
+    fixture.detectChanges();
+    httpMock.expectOne('/api/bands').flush([{ id: 1, name: 'GigFlow Quartett' }]);
+    httpMock.expectOne('/api/events').flush([]);
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement.querySelector('select[formControlName="bandId"]'),
+    ).toBeNull();
+  });
+
   it('should show an error when saving fails', () => {
     const fixture = TestBed.createComponent(EventFormComponent);
     fixture.detectChanges();

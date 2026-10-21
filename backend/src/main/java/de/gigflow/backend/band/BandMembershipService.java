@@ -28,6 +28,11 @@ public class BandMembershipService {
         Musician musician = musicianRepository.findById(request.getMusicianId())
                 .orElseThrow(() -> new IllegalArgumentException("Musiker:in nicht gefunden: " + request.getMusicianId()));
 
+        if (membershipRepository.existsByBandIdAndMusicianId(band.getId(), musician.getId())) {
+            throw new IllegalArgumentException(
+                    "Musiker:in ist dieser Band bereits zugeordnet: " + musician.getId());
+        }
+
         BandMembership membership = new BandMembership();
         membership.setBand(band);
         membership.setMusician(musician);
@@ -40,6 +45,12 @@ public class BandMembershipService {
 
     public List<BandMembershipResponse> findAllMemberships() {
         return membershipRepository.findAll().stream().map(BandMembershipResponse::from).toList();
+    }
+
+    public List<BandMembershipResponse> findMembershipsByBand(Long bandId) {
+        return membershipRepository.findByBandId(bandId).stream()
+                .map(BandMembershipResponse::from)
+                .toList();
     }
 
     public BandMembershipResponse updateMembership(Long id, BandMembershipRequest request) {

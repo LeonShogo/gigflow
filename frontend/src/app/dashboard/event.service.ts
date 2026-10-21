@@ -2,7 +2,14 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 
-import type { Band, EventItem, EventRequest } from './event.model';
+import type {
+  Band,
+  BandMembership,
+  BandMembershipRequest,
+  EventItem,
+  EventParticipation,
+  EventRequest,
+} from './event.model';
 
 export interface PanelLayout {
   order: string[];
@@ -49,6 +56,23 @@ export class EventService {
 
   loadBands(): Observable<Band[]> {
     return this.http.get<Band[]>('/api/bands');
+  }
+
+  loadBandMemberships(bandId: number): Observable<BandMembership[]> {
+    return this.http.get<BandMembership[]>(`/api/memberships/band/${bandId}`);
+  }
+
+  addBandMembership(request: BandMembershipRequest): Observable<BandMembership> {
+    return this.http.post<BandMembership>('/api/memberships', request);
+  }
+
+  removeBandMembership(id: number): Observable<void> {
+    return this.http.delete<void>(`/api/memberships/${id}`);
+  }
+
+  /** Adds every band member of the event's band as an invited participant. */
+  inviteBandMembers(eventId: number): Observable<EventParticipation[]> {
+    return this.http.post<EventParticipation[]>(`/api/events/${eventId}/invite-band`, {});
   }
 
   createEvent(request: EventRequest): Observable<EventItem> {
