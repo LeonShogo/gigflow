@@ -145,9 +145,26 @@
         </li>
       }
     </ul>
-
-    @if (deleteError(); as message) {
-      <p class="status status--error" role="alert">{{ message }}</p>
-    }
   }
 </section>
+
+@if (deleteError(); as message) {
+  <div class="notice-dialog" tabindex="-1" (document:keydown.escape)="dismissDeleteError()">
+    <button
+      type="button"
+      class="notice-dialog__backdrop"
+      tabindex="-1"
+      aria-label="Hinweis schließen"
+      (click)="dismissDeleteError()"
+    ></button>
+    <div class="notice-dialog__panel" role="alert" aria-labelledby="delete-error-text">
+      <p class="notice-dialog__text" id="delete-error-text">{{ message }}</p>
+      <button
+        type="button"
+        class="notice-dialog__close"
+        (click)="dismissDeleteError()"
+        aria-label="Hinweis schließen"
+      >&times;</button>
+    </div>
+  </div>
+}

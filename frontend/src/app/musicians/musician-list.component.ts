@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
@@ -22,6 +29,7 @@ export class MusicianListComponent {
   private readonly eventService = inject(EventService);
   private readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
@@ -41,6 +49,7 @@ export class MusicianListComponent {
   protected readonly confirmingDelete = signal<Record<number, boolean>>({});
   protected readonly deleting = signal<Record<number, boolean>>({});
   protected readonly deleteError = signal<string | null>(null);
+  private deleteErrorTimer: ReturnType<typeof setTimeout> | null = null;
 
   protected readonly canDelete = this.auth.isOrganizer;
   protected readonly bandName = computed(() => {
@@ -49,6 +58,8 @@ export class MusicianListComponent {
   });
 
   constructor() {
+    this.destroyRef.onDestroy(() => this.clearDeleteErrorTimer());
+
     this.musicianService.loadMusicians().subscribe({
       next: (musicians) => {
         this.musicians.set(musicians);
@@ -180,7 +191,7 @@ export class MusicianListComponent {
   }
 
   protected requestDelete(musician: Musician): void {
-    this.deleteError.set(null);
+    this.dismissDeleteError();
     this.confirmingDelete.update((m) => ({ ...m, [musician.id]: true }));
   }
 
@@ -188,9 +199,27 @@ export class MusicianListComponent {
     this.confirmingDelete.update((m) => ({ ...m, [musician.id]: false }));
   }
 
+  protected dismissDeleteError(): void {
+    this.clearDeleteErrorTimer();
+    this.deleteError.set(null);
+  }
+
+  private showDeleteError(message: string): void {
+    this.clearDeleteErrorTimer();
+    this.deleteError.set(message);
+    this.deleteErrorTimer = setTimeout(() => this.deleteError.set(null), 3000);
+  }
+
+  private clearDeleteErrorTimer(): void {
+    if (this.deleteErrorTimer !== null) {
+      clearTimeout(this.deleteErrorTimer);
+      this.deleteErrorTimer = null;
+    }
+  }
+
   protected confirmDelete(musician: Musician): void {
     this.deleting.update((m) => ({ ...m, [musician.id]: true }));
-    this.deleteError.set(null);
+    this.dismissDeleteError();
     this.musicianService.deleteMusician(musician.id).subscribe({
       next: () => {
         this.deleting.update((m) => ({ ...m, [musician.id]: false }));
@@ -201,7 +230,7 @@ export class MusicianListComponent {
       error: (err) => {
         this.deleting.update((m) => ({ ...m, [musician.id]: false }));
         this.confirmingDelete.update((m) => ({ ...m, [musician.id]: false }));
-        this.deleteError.set(
+        this.showDeleteError(
           err?.error?.message ?? 'Musiker*in konnte nicht gelöscht werden.',
         );
       },

@@ -161,6 +161,50 @@ describe('MusicianListComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('noch zu Gigs/Proben zugeordnet');
+    expect(fixture.nativeElement.querySelector('.notice-dialog [role="alert"]')).toBeTruthy();
+
+    (fixture.nativeElement.querySelector('.notice-dialog__close') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.notice-dialog')).toBeNull();
+  });
+
+  it('should auto-dismiss the blocked-delete notice', () => {
+    const fixture = TestBed.createComponent(MusicianListComponent);
+    fixture.detectChanges();
+    flushLoad();
+    fixture.detectChanges();
+
+    const auth = TestBed.inject(AuthService);
+    auth.login({ email: 'o@gigflow.local', password: 'password' }).subscribe();
+    httpMock.expectOne('/api/auth/login').flush({
+      token: 't',
+      user: { id: 1, email: 'o@gigflow.local', organizer: true, musicianId: null },
+    });
+    fixture.detectChanges();
+
+    const rows = fixture.nativeElement.querySelectorAll('.roster__item');
+    (rows[0].querySelector('.row__delete') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    vi.useFakeTimers();
+    try {
+      (rows[0].querySelector('.row__confirm-btn--danger') as HTMLButtonElement).click();
+      httpMock.expectOne('/api/musicians/1').flush(
+        { message: '„Anna Becker“ kann nicht gelöscht werden: noch zu Gigs/Proben zugeordnet.' },
+        { status: 409, statusText: 'Conflict' },
+      );
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('.notice-dialog')).toBeTruthy();
+
+      vi.advanceTimersByTime(3000);
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('.notice-dialog')).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('should assign a musician to a band and show the chip', () => {
