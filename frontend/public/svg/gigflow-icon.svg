@@ -1,14 +1,57 @@
 <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-  <rect width="512" height="512" rx="96" fill="#2f7fe0"/>
-  <g fill="#ffffff">
-    <!-- double eighth note (beamed) -->
-    <ellipse cx="218" cy="360" rx="40" ry="28"/>
-    <ellipse cx="320" cy="352" rx="40" ry="28"/>
-    <!-- left stem -->
-    <rect x="246" y="130" width="22" height="238" rx="11"/>
-    <!-- right stem -->
-    <rect x="350" y="122" width="22" height="238" rx="11"/>
-    <!-- beam -->
-    <path d="M234 128 q72 -34 150 -14 l0 26 q-72 -16 -150 14 z"/>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#21344f"/>
+      <stop offset="1" stop-color="#0b1422"/>
+    </linearGradient>
+    <radialGradient id="light">
+      <stop stop-color="#efbd68" stop-opacity="0.2"/>
+      <stop offset="1" stop-color="#efbd68" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="counter">
+      <circle cx="250" cy="256" r="119"/>
+    </clipPath>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <rect
+    x="18"
+    y="18"
+    width="476"
+    height="476"
+    rx="96"
+    fill="none"
+    stroke="#ffffff"
+    stroke-opacity="0.055"
+    stroke-width="2"
+  />
+
+  <path
+    d="M359 164 A148 148 0 1 0 360 347 L360 272 L283 272"
+    fill="none"
+    stroke="#5798e2"
+    stroke-width="36"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <circle cx="270" cy="233" r="114" fill="url(#light)"/>
+
+  <g
+    clip-path="url(#counter)"
+    fill="none"
+    stroke="#86acd4"
+    stroke-opacity="0.34"
+    stroke-width="6"
+    stroke-linecap="round"
+  >
+    <path d="M121 208H381M121 232H381M121 256H381M121 280H381M121 304H381"/>
+  </g>
+
+  <g fill="#f2f0ea">
+    <ellipse cx="215" cy="280" rx="25" ry="16" transform="rotate(-12 215 280)"/>
+    <path d="M235 201h12v79h-12z"/>
+    <ellipse cx="296" cy="231" rx="25" ry="16" transform="rotate(-12 296 231)"/>
+    <path d="M316 168h12v63h-12z"/>
+    <path d="M235 196l93-38v25l-93 38z"/>
   </g>
 </svg>
