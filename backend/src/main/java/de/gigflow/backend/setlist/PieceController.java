@@ -83,7 +83,9 @@ public class PieceController {
     }
 
     @GetMapping("/{id}/sheet-pdf")
-    public ResponseEntity<Resource> downloadSheetPdf(@PathVariable Long id) {
+    public ResponseEntity<Resource> downloadSheetPdf(
+            @PathVariable Long id,
+            @RequestParam(name = "download", defaultValue = "false") boolean download) {
         Optional<PieceService.SheetPdfFile> sheetPdf = pieceService.loadSheetPdf(id);
         if (sheetPdf.isEmpty()) {
             return ResponseEntity.notFound().build();
@@ -91,7 +93,7 @@ public class PieceController {
         PieceService.SheetPdfFile file = sheetPdf.get();
         String encodedName = URLEncoder.encode(file.originalName(), StandardCharsets.UTF_8)
                 .replace("+", "%20");
-        String disposition = "inline; filename*=UTF-8''" + encodedName;
+        String disposition = (download ? "attachment" : "inline") + "; filename*=UTF-8''" + encodedName;
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
         headers.set(HttpHeaders.CONTENT_DISPOSITION, disposition);

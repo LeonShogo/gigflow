@@ -31,7 +31,8 @@
               }
             ],
             "serviceWorker": "ngsw-config.json",
-            "styles": ["src/styles.scss"]
+            "styles": ["src/styles.scss"],
+            "allowedCommonJsDependencies": ["pako"]
           },
           "configurations": {
             "production": {

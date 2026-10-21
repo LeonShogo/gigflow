@@ -5,6 +5,7 @@ import { CdkDrag, CdkDropList } from '@angular/cdk/drag-drop';
 import { By } from '@angular/platform-browser';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
+import { vi } from 'vitest';
 
 import { EventDetailComponent } from './event-detail.component';
 import type { EventItem } from '../dashboard/event.model';
@@ -1201,6 +1202,90 @@ function loadConcertWithLocations(
 
     expect(fixture.nativeElement.textContent).not.toContain('Noten konnten nicht geöffnet werden.');
     expect(fixture.nativeElement.querySelector('app-sheet-viewer')).toBeTruthy();
+  });
+
+  it('should download a single sheet PDF as an attachment', () => {
+    const fixture = setup();
+    fixture.detectChanges();
+    httpMock.expectOne('/api/events/1').flush(CONCERT);
+    fixture.detectChanges();
+    httpMock.expectOne('/api/event-participations/event/1').flush([]);
+    httpMock.expectOne('/api/events/by-concert/1').flush([]);
+    httpMock.expectOne('/api/setlists/event/1').flush(EMPTY_SETLIST);
+    httpMock.expectOne('/api/events/1/layout').flush(DEFAULT_LAYOUT);
+    httpMock.expectOne('/api/event-locations/event/1').flush([]);
+    fixture.detectChanges();
+    httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([
+      { id: 5, setlistId: 10, pieceId: 3, pieceTitle: 'Hallo Welt', position: 0, hasSheetPdf: true },
+    ]);
+    httpMock.expectOne('/api/equipment-requirements/event/1').flush([]);
+    httpMock.expectOne('/api/schedule-items/event/1').flush([]);
+    fixture.detectChanges();
+
+    const createObjectURL = vi.fn(() => 'blob:mock');
+    const revokeObjectURL = vi.fn();
+    vi.spyOn(URL, 'createObjectURL').mockImplementation(createObjectURL);
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(revokeObjectURL);
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
+
+    const first = fixture.nativeElement.querySelectorAll('.entry')[0] as HTMLElement;
+    (first.querySelector('.entry__btn--pdf-download') as HTMLButtonElement).click();
+    const req = httpMock.expectOne('/api/pieces/3/sheet-pdf?download=true');
+    expect(req.request.responseType).toBe('blob');
+    req.flush(new Blob(['%PDF-1.4'], { type: 'application/pdf' }));
+    fixture.detectChanges();
+
+    expect(click).toHaveBeenCalledTimes(1);
+    expect(fixture.nativeElement.textContent).toContain('„Hallo Welt“ heruntergeladen.');
+    vi.restoreAllMocks();
+  });
+
+  it('should offer setlist downloads and save the info PDF', async () => {
+    const fixture = setup();
+    fixture.detectChanges();
+    httpMock.expectOne('/api/events/1').flush(CONCERT);
+    fixture.detectChanges();
+    httpMock.expectOne('/api/event-participations/event/1').flush([]);
+    httpMock.expectOne('/api/events/by-concert/1').flush([]);
+    httpMock.expectOne('/api/setlists/event/1').flush(EMPTY_SETLIST);
+    httpMock.expectOne('/api/events/1/layout').flush(DEFAULT_LAYOUT);
+    httpMock.expectOne('/api/event-locations/event/1').flush([]);
+    fixture.detectChanges();
+    httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([
+      { id: 5, setlistId: 10, pieceId: 3, pieceTitle: 'Hallo Welt', position: 0, hasSheetPdf: true },
+    ]);
+    httpMock.expectOne('/api/equipment-requirements/event/1').flush([]);
+    httpMock.expectOne('/api/schedule-items/event/1').flush([]);
+    fixture.detectChanges();
+
+    let savedFilename = '';
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock');
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+      this: HTMLAnchorElement,
+    ) {
+      savedFilename = this.download;
+    });
+
+    const toggle = fixture.nativeElement.querySelector(
+      '.setlist__download-btn',
+    ) as HTMLButtonElement;
+    expect(toggle).toBeTruthy();
+    toggle.click();
+    fixture.detectChanges();
+
+    const infoItem = fixture.nativeElement.querySelector(
+      '.setlist__download-item',
+    ) as HTMLButtonElement;
+    infoItem.click();
+    for (let i = 0; i < 50 && !savedFilename; i += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      fixture.detectChanges();
+    }
+
+    expect(savedFilename).toBe('gigflow-hafenrocker-infos.pdf');
+    expect(fixture.nativeElement.textContent).toContain('Infos als PDF gespeichert.');
+    vi.restoreAllMocks();
   });
 
   it('should show Demo and YouTube badges and play a demo inline', () => {

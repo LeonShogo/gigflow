@@ -321,6 +321,42 @@
 
                 @if (!isCollapsed('setlist')) {
                   <div class="setlist">
+                    @if (entries().length > 0) {
+                      <div class="setlist__download">
+                        <button
+                          type="button"
+                          class="setlist__download-btn"
+                          (click)="toggleSetlistDownloadMenu()"
+                          [disabled]="setlistDownloading()"
+                          [attr.aria-expanded]="setlistDownloadMenuOpen()"
+                          aria-haspopup="true"
+                        >
+                          {{ setlistDownloading() ? 'Wird erstellt …' : 'Setlist herunterladen' }}
+                        </button>
+                        @if (setlistDownloadMenuOpen()) {
+                          <div class="setlist__download-menu" role="menu">
+                            <button
+                              type="button"
+                              role="menuitem"
+                              class="setlist__download-item"
+                              (click)="downloadSetlist('info')"
+                            >Nur Infos (PDF)</button>
+                            <button
+                              type="button"
+                              role="menuitem"
+                              class="setlist__download-item"
+                              (click)="downloadSetlist('info-and-sheets')"
+                            >Infos + Noten (ZIP)</button>
+                            <button
+                              type="button"
+                              role="menuitem"
+                              class="setlist__download-item"
+                              (click)="downloadSetlist('sheets')"
+                            >Nur Noten (ZIP)</button>
+                          </div>
+                        }
+                      </div>
+                    }
                     @if (setlistLoading()) {
                       <p class="panel__note">Setlist wird geladen …</p>
                     } @else if (setlistError(); as message) {
@@ -351,15 +387,22 @@
                               }
                             </span>
                             <span class="entry__actions">
-                              @if (entry.hasSheetPdf) {
-                                <button
-                                  type="button"
-                                  class="entry__btn entry__btn--pdf"
-                                  (click)="openSheetPdf(entry)"
-                                  [disabled]="sheetUploading()[entry.pieceId]"
-                                  aria-label="Noten öffnen"
-                                >Öffnen</button>
-                                @if (canUploadSheets()) {
+                               @if (entry.hasSheetPdf) {
+                                 <button
+                                   type="button"
+                                   class="entry__btn entry__btn--pdf"
+                                   (click)="openSheetPdf(entry)"
+                                   [disabled]="sheetUploading()[entry.pieceId]"
+                                   aria-label="Noten öffnen"
+                                 >Öffnen</button>
+                                 <button
+                                   type="button"
+                                   class="entry__btn entry__btn--pdf-download"
+                                   (click)="downloadSheetPdf(entry)"
+                                   [disabled]="sheetUploading()[entry.pieceId]"
+                                   aria-label="Noten herunterladen"
+                                 >&#8681;</button>
+                                 @if (canUploadSheets()) {
                                   <button
                                     type="button"
                                     class="entry__btn entry__btn--danger"

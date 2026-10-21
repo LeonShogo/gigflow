@@ -22,6 +22,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(PieceController.class)
@@ -90,6 +91,22 @@ class PieceControllerTest {
         mockMvc.perform(get("/api/pieces/1/sheet-pdf"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_PDF))
+                .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.startsWith("inline")))
+                .andExpect(content().bytes(bytes));
+    }
+
+    @Test
+    void existingPdfWithDownloadParamShouldBeAttachment() throws Exception {
+        Path pdf = tempDir.resolve("piece-1.pdf");
+        byte[] bytes = new byte[]{37, 80, 68, 70, 45};
+        Files.write(pdf, bytes);
+        when(pieceService.loadSheetPdf(1L))
+                .thenReturn(java.util.Optional.of(new PieceService.SheetPdfFile(pdf, "noten.pdf")));
+
+        mockMvc.perform(get("/api/pieces/1/sheet-pdf").param("download", "true"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_PDF))
+                .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.startsWith("attachment")))
                 .andExpect(content().bytes(bytes));
     }
 

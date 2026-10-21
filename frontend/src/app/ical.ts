@@ -1,4 +1,5 @@
 import type { EventItem } from './dashboard/event.model';
+import { downloadBlob, slugify } from './download';
 import { typeLabel } from './event-format';
 
 export interface IcalEvent {
@@ -109,26 +110,9 @@ export function buildIcs(events: IcalEvent[]): string {
 
 /**
  * Triggers a download of the calendar data as a .ics file.
- * Anchor + object URL avoids any external library.
  */
 export function downloadIcs(content: string, filename: string): void {
-  const blob = new Blob([content], { type: 'text/calendar;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = filename;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  URL.revokeObjectURL(url);
-}
-
-function slugify(value: string): string {
-  const slug = value
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}]+/gu, '-')
-    .replace(/^-+|-+$/g, '');
-  return slug || 'termin';
+  downloadBlob(new Blob([content], { type: 'text/calendar;charset=utf-8' }), filename);
 }
 
 export function eventFilename(event: EventItem): string {

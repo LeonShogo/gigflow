@@ -58,8 +58,9 @@ export class SetlistService {
     return this.http.post<Piece>(`/api/pieces/${pieceId}/sheet-pdf`, formData);
   }
 
-  downloadSheetPdf(pieceId: number): Observable<Blob> {
-    return this.http.get(`/api/pieces/${pieceId}/sheet-pdf`, { responseType: 'blob' });
+  downloadSheetPdf(pieceId: number, download = false): Observable<Blob> {
+    const query = download ? '?download=true' : '';
+    return this.http.get(`/api/pieces/${pieceId}/sheet-pdf${query}`, { responseType: 'blob' });
   }
 
   removeSheetPdf(pieceId: number): Observable<void> {

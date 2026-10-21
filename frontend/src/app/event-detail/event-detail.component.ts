@@ -10,10 +10,16 @@ import {
 import { FormsModule } from '@angular/forms';
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { forkJoin, filter, map, switchMap, tap } from 'rxjs';
+import { forkJoin, filter, firstValueFrom, map, switchMap, tap } from 'rxjs';
 
 import { SheetViewerComponent } from './sheet-viewer.component';
 
+import {
+  downloadSetlist,
+  downloadSingleSheet,
+  type SetlistDownloadData,
+  type SetlistDownloadScope,
+} from '../setlist/setlist-download';
 import { formatDate, formatTime, formatTimeOnly, typeLabel } from '../event-format';
 import type {
   EventItem,
@@ -1605,6 +1611,63 @@ export class EventDetailComponent {
     this.sheetFile.set(null);
     this.openSheetTitle.set(null);
     this.openSheetPieceId.set(null);
+  }
+
+  protected downloadSheetPdf(entry: SetlistEntry): void {
+    this.sheetError.set(null);
+    this.sheetFeedback.set(null);
+    this.setlistService.downloadSheetPdf(entry.pieceId, true).subscribe({
+      next: (blob) => {
+        void downloadSingleSheet(blob, entry.pieceTitle);
+        this.sheetFeedback.set(`„${entry.pieceTitle}“ heruntergeladen.`);
+      },
+      error: () => this.sheetError.set('Noten konnten nicht heruntergeladen werden.'),
+    });
+  }
+
+  protected readonly setlistDownloading = signal(false);
+  protected readonly setlistDownloadMenuOpen = signal(false);
+
+  protected toggleSetlistDownloadMenu(): void {
+    this.setlistDownloadMenuOpen.update((open) => !open);
+  }
+
+  protected downloadSetlist(scope: SetlistDownloadScope): void {
+    this.setlistDownloadMenuOpen.set(false);
+    const event = this.event();
+    if (!event || this.setlistDownloading()) {
+      return;
+    }
+    const data: SetlistDownloadData = {
+      event,
+      participations: this.participations(),
+      entries: this.entries(),
+      requirements: this.requirements(),
+      scheduleItems: this.scheduleItems(),
+      locations: this.locations(),
+    };
+    this.setlistDownloading.set(true);
+    this.sheetError.set(null);
+    this.sheetFeedback.set(null);
+    void downloadSetlist(data, scope, (pieceId) =>
+      firstValueFrom(this.setlistService.downloadSheetPdf(pieceId)),
+    )
+      .then((result) => {
+        if (scope === 'info') {
+          this.sheetFeedback.set('Infos als PDF gespeichert.');
+          return;
+        }
+        if (result.sheets === 0 && result.missing > 0) {
+          this.sheetError.set('Es konnten keine Noten heruntergeladen werden.');
+          return;
+        }
+        const base =
+          result.sheets === 1 ? '1 Notenblatt' : `${result.sheets} Notenblätter`;
+        const skipped = result.missing > 0 ? `, ${result.missing} übersprungen` : '';
+        this.sheetFeedback.set(`${base} als ZIP gespeichert${skipped}.`);
+      })
+      .catch(() => this.sheetError.set('Download konnte nicht erstellt werden.'))
+      .finally(() => this.setlistDownloading.set(false));
   }
 
   protected removeSheetPdf(entry: SetlistEntry): void {
