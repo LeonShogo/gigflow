@@ -20,25 +20,18 @@
 
 .shell__brand {
   display: inline-flex;
-  align-items: baseline;
-  gap: 0.4rem;
+  align-items: center;
+  gap: 0.5rem;
   text-decoration: none;
   color: var(--ink);
   flex-shrink: 0;
 }
 
 .shell__mark {
-  align-self: center;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.7rem;
-  height: 1.7rem;
-  font-size: 0.95rem;
-  line-height: 1;
-  color: #fff;
-  background: var(--accent);
-  border-radius: var(--radius);
+  display: block;
+  width: 2.125rem;
+  height: 2.125rem;
+  flex: 0 0 2.125rem;
 }
 
 .shell__word {
@@ -96,6 +89,7 @@
   min-width: 2.75rem;
   min-height: 2.75rem;
   padding: 0.45rem 0.7rem;
+  line-height: 1;
   color: var(--ink-soft);
   background: var(--paper-inset);
   border: 1px solid var(--line);
@@ -114,9 +108,22 @@
 }
 
 .shell__theme-icon {
-  width: 1rem;
-  font-size: 1.05rem;
-  line-height: 1;
+  display: grid;
+  place-items: center;
+  width: 1.125rem;
+  height: 1.125rem;
+  flex: 0 0 1.125rem;
+}
+
+.shell__theme-icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.65;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .shell__theme-label {
@@ -178,7 +185,7 @@
     order: 3;
     flex-basis: 100%;
     margin-left: 0;
-    padding-top: 0.25rem;
+    padding-top: 0.6rem;
     border-top: 1px solid var(--line);
     gap: 0.2rem;
   }

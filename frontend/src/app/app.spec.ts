@@ -22,6 +22,17 @@ describe('App', () => {
     expect(app).toBeTruthy();
   });
 
+  it('renders the GigFlow logo and a vector theme icon', () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+
+    const logo = fixture.nativeElement.querySelector('.shell__mark') as HTMLImageElement;
+    const themeIcon = fixture.nativeElement.querySelector('.shell__theme-icon svg');
+
+    expect(logo.src).toContain('/svg/gigflow-icon.svg');
+    expect(themeIcon).toBeTruthy();
+  });
+
   it('toggles and stores the selected color theme', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
