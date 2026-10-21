@@ -36,7 +36,7 @@ const A4: [number, number] = [595.28, 841.89];
 const MARGIN = 48;
 const LINE_HEIGHT = 16;
 /** Extra vertical room reserved for a section divider (offset above + below). */
-const DIVIDER_SPACE = 18;
+const DIVIDER_SPACE = 25;
 const HEADING_SIZE = 13;
 const TITLE_SIZE = 20;
 const FONT_SIZE = 11;
@@ -241,14 +241,14 @@ export async function buildInfoDocument(data: SetlistDownloadData): Promise<PDFD
       });
       y -= run.size + 5;
       if (block.divider && index === 0) {
-        y -= 5;
+        y -= 9;
         page.drawLine({
           start: { x: MARGIN, y },
           end: { x: MARGIN + contentWidth, y },
           thickness: 0.75,
           color: rgb(0.82, 0.84, 0.88),
         });
-        y -= 11;
+        y -= 14;
       }
     }
   }
