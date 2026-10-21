@@ -31,12 +31,14 @@ import de.gigflow.backend.setlist.SetlistRepository;
 import de.gigflow.backend.user.User;
 import de.gigflow.backend.user.UserService;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 @Component
+@Order(1)
 public class DataInitializer implements CommandLineRunner {
 
     private final BandRepository bandRepository;

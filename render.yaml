@@ -25,6 +25,8 @@ services:
         generateValue: true
       - key: SPRING_JPA_SHOW_SQL
         value: "false"
+      - key: SPRING_JPA_HIBERNATE_DDL_AUTO
+        value: none
       - key: UPLOAD_DIR
         value: /app/uploads/sheet-music
       - key: JAVA_TOOL_OPTIONS
