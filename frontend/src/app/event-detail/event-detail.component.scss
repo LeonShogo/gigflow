@@ -1167,6 +1167,8 @@
 .eq__remove {
   flex-shrink: 0;
   min-width: 0;
+  align-self: flex-end;
+  margin-left: auto;
 }
 /* ------------------------------------------------------------------ */
 /*  Rehearsals                                                         */

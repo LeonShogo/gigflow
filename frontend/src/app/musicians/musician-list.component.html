@@ -89,21 +89,21 @@
                 </span>
               }
               @if (assignableBands(musician.id).length > 0) {
-                <label class="sr-only" [for]="'band-for-' + musician.id">
-                  Band zuordnen für {{ musicianName(musician) }}
+                <label class="band-add-wrap" [for]="'band-for-' + musician.id">
+                  <span class="band-add__label">Band</span>
+                  <select
+                    class="band-add"
+                    [id]="'band-for-' + musician.id"
+                    [value]="''"
+                    [disabled]="membershipSaving()"
+                    (change)="onAssignBand(musician, $any($event.target).value)"
+                  >
+                    <option value="">Hinzufügen</option>
+                    @for (band of assignableBands(musician.id); track band.id) {
+                      <option [value]="band.id">{{ band.name }}</option>
+                    }
+                  </select>
                 </label>
-                <select
-                  class="band-add"
-                  [id]="'band-for-' + musician.id"
-                  [value]="''"
-                  [disabled]="membershipSaving()"
-                  (change)="onAssignBand(musician, $any($event.target).value)"
-                >
-                  <option value="">Band zuordnen</option>
-                  @for (band of assignableBands(musician.id); track band.id) {
-                    <option [value]="band.id">{{ band.name }}</option>
-                  }
-                </select>
               }
             </div>
           }

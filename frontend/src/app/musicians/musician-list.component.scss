@@ -360,6 +360,20 @@
   cursor: default;
 }
 
+.band-add-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.band-add__label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
 .band-add {
   font-size: 0.82rem;
   font-weight: 600;
