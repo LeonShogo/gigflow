@@ -144,7 +144,7 @@
 }
 
 .cal__legend-item--rehearsal::before {
-  background: var(--gold);
+  background: var(--accent-2);
 }
 
 .cal__status {
@@ -272,9 +272,9 @@
 }
 
 .cal__event--rehearsal {
-  color: var(--gold-ink);
-  background: var(--gold-soft);
-  border: 1px solid var(--gold);
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
 }
 
 .cal__time {

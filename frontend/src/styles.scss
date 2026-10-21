@@ -35,7 +35,6 @@
   /* Gradients — reserved for small accents only */
   --gradient-brand: linear-gradient(135deg, #3b82d9 0%, #2f7fe0 100%);
   --gradient-page: linear-gradient(180deg, #fbfcfd 0%, #f2f4f7 100%);
-  --gradient-gold: linear-gradient(135deg, #d0a32a 0%, #e3bb4c 100%);
 
   /* Status */
   --ok: #1f8a4c;
@@ -103,7 +102,6 @@
 
   --gradient-brand: linear-gradient(135deg, #3b82d9 0%, #2f7fe0 100%);
   --gradient-page: linear-gradient(180deg, #0d1117 0%, #111820 100%);
-  --gradient-gold: linear-gradient(135deg, #b98b23 0%, #d5aa3d 100%);
 
   --ok: #67d391;
   --ok-bg: #143322;
@@ -134,6 +132,7 @@ html {
   background: var(--paper);
   text-rendering: optimizeLegibility;
   -webkit-text-size-adjust: 100%;
+  touch-action: manipulation;
 }
 
 body {
