@@ -76,9 +76,11 @@
 
 .shell__auth {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--space-1);
   flex-shrink: 0;
+  align-self: flex-start;
+  margin-top: -0.15rem;
 }
 
 .shell__theme {
@@ -89,6 +91,7 @@
   min-width: 2.75rem;
   min-height: 2.75rem;
   padding: 0.45rem 0.7rem;
+  margin-right: var(--space-2);
   line-height: 1;
   color: var(--ink-soft);
   background: var(--paper-inset);

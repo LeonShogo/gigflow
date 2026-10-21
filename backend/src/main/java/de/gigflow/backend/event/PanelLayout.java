@@ -28,21 +28,32 @@ public class PanelLayout {
 
     private List<String> order;
     private Map<String, Boolean> collapsed;
+    /** {@code true} once the user has stored an explicit layout for this event. */
+    private boolean stored;
 
     public PanelLayout() {
     }
 
     public PanelLayout(List<String> order, Map<String, Boolean> collapsed) {
-        this.order = order;
-        this.collapsed = collapsed != null ? collapsed : Map.of();
+        this(order, collapsed, false);
     }
 
-    public PanelLayout(List<String> order, Set<String> collapsedKeys) {
-        this(order, toMap(collapsedKeys));
+    public PanelLayout(List<String> order, Map<String, Boolean> collapsed, boolean stored) {
+        this.order = order;
+        this.collapsed = collapsed != null ? collapsed : Map.of();
+        this.stored = stored;
     }
 
     public static PanelLayout defaults() {
         return new PanelLayout(DEFAULT_ORDER, Map.of());
+    }
+
+    public boolean isStored() {
+        return stored;
+    }
+
+    public void setStored(boolean stored) {
+        this.stored = stored;
     }
 
     public List<String> getOrder() {
@@ -88,7 +99,7 @@ public class PanelLayout {
             }
         }
         List<String> order = new ArrayList<>(splitKeys(orderPart));
-        return new PanelLayout(order, collapsedKeys);
+        return new PanelLayout(order, toMap(collapsedKeys), true);
     }
 
     private static Set<String> splitKeys(String keys) {

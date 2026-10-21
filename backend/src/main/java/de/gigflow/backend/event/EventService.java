@@ -117,6 +117,7 @@ public class EventService {
         Event event = byId.get();
         event.setPanelLayout(layout.toStored());
         eventRepository.save(event);
+        layout.setStored(true);
         return Optional.of(layout);
     }
 

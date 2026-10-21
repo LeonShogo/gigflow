@@ -28,6 +28,7 @@ import type {
   ParticipationStatus,
 } from '../dashboard/event.model';
 import { EventService } from '../dashboard/event.service';
+import type { PanelLayout } from '../dashboard/event.service';
 import {
   EventParticipationService,
   type ParticipationRequest,
@@ -671,10 +672,7 @@ export class EventDetailComponent {
     });
   }
 
-  private applyLayout(layout: {
-    order: string[];
-    collapsed: Record<string, boolean>;
-  }): void {
+  private applyLayout(layout: PanelLayout): void {
     const baseOrder = Array.isArray(layout.order) && layout.order.length > 0
       ? layout.order.filter((key) => key !== 'sheet')
       : [...PANEL_ORDER_DEFAULT];
@@ -685,8 +683,13 @@ export class EventDetailComponent {
       }
     }
     this.panelOrder.set(mergedOrder);
-    if (layout.collapsed) {
-      this.panelCollapsed.set({ ...layout.collapsed });
+    if (layout.stored) {
+      this.panelCollapsed.set({ ...(layout.collapsed ?? {}) });
+    } else {
+      // First visit: start with a compact overview where every section is collapsed.
+      this.panelCollapsed.set(
+        Object.fromEntries(mergedOrder.map((key) => [key, true])),
+      );
     }
   }
 

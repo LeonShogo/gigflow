@@ -31,6 +31,7 @@ const EMPTY_SETLIST = { id: 10, eventId: 1 };
 const DEFAULT_LAYOUT = {
   order: ['members', 'setlist', 'rehearsals', 'equipment', 'locations', 'schedule'],
   collapsed: {},
+  stored: true,
 };
 
 describe('EventDetailComponent', () => {
@@ -262,6 +263,7 @@ function loadConcertWithLocations(
     httpMock.expectOne('/api/events/1/layout').flush({
       order: ['equipment', 'members', 'schedule', 'rehearsals', 'setlist'],
       collapsed: {},
+      stored: true,
     });
     httpMock.expectOne('/api/event-locations/event/1').flush([]);
     fixture.detectChanges();
@@ -326,6 +328,7 @@ function loadConcertWithLocations(
     saveReq.flush({
       order: ['rehearsals', 'setlist', 'members', 'equipment', 'locations', 'schedule'],
       collapsed: {},
+      stored: true,
     });
     fixture.detectChanges();
 
@@ -371,6 +374,7 @@ function loadConcertWithLocations(
     saveReq.flush({
       order: DEFAULT_LAYOUT.order,
       collapsed: { members: true },
+      stored: true,
     });
     fixture.detectChanges();
 
@@ -383,7 +387,7 @@ function loadConcertWithLocations(
     httpMock.expectOne('/api/events/1/layout').flush(DEFAULT_LAYOUT);
   });
 
-  it('should reopen to default state when no stored collapsed state exists', () => {
+  it('should show all panels expanded when the stored layout has none collapsed', () => {
     const fixture = setup();
     fixture.detectChanges();
     httpMock.expectOne('/api/events/1').flush(CONCERT);
@@ -402,6 +406,36 @@ function loadConcertWithLocations(
     const el: HTMLElement = fixture.nativeElement;
     expect(el.querySelectorAll('.panel').length).toBe(6);
     expect(el.textContent).toContain('Noch keine Musiker*innen');
+  });
+
+  it('should start with every panel collapsed on the first visit', () => {
+    const fixture = setup();
+    fixture.detectChanges();
+    httpMock.expectOne('/api/events/1').flush(CONCERT);
+    fixture.detectChanges();
+    httpMock.expectOne('/api/event-participations/event/1').flush([]);
+    httpMock.expectOne('/api/events/by-concert/1').flush([]);
+    httpMock.expectOne('/api/setlists/event/1').flush(EMPTY_SETLIST);
+    httpMock.expectOne('/api/events/1/layout').flush({
+      order: DEFAULT_LAYOUT.order,
+      collapsed: {},
+      stored: false,
+    });
+    httpMock.expectOne('/api/event-locations/event/1').flush([]);
+    fixture.detectChanges();
+    httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([]);
+    httpMock.expectOne('/api/equipment-requirements/event/1').flush([])
+    httpMock.expectOne('/api/schedule-items/event/1').flush([]);
+    fixture.detectChanges();
+
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelectorAll('.panel').length).toBe(6);
+    const collapses = el.querySelectorAll('.panel__collapse');
+    expect(collapses.length).toBe(6);
+    for (const button of Array.from(collapses)) {
+      expect(button.getAttribute('aria-expanded')).toBe('false');
+    }
+    expect(el.querySelector('.members')).toBeNull();
   });
 
   it('should add a new piece to the setlist', () => {

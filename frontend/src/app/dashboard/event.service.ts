@@ -7,6 +7,8 @@ import type { Band, EventItem, EventRequest } from './event.model';
 export interface PanelLayout {
   order: string[];
   collapsed: Record<string, boolean>;
+  /** only set by the server on reads; ignored on writes */
+  stored?: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
