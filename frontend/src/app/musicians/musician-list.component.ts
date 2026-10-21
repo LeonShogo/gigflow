@@ -6,6 +6,7 @@ import type { Musician } from './musician.model';
 import { MusicianService } from './musician.service';
 import { AuthService } from '../auth/auth.service';
 import { EventService } from '../dashboard/event.service';
+import { ToastService } from '../notifications/toast.service';
 import type { Band, BandMembership } from '../dashboard/event.model';
 
 @Component({
@@ -19,6 +20,7 @@ export class MusicianListComponent {
   private readonly musicianService = inject(MusicianService);
   private readonly eventService = inject(EventService);
   private readonly auth = inject(AuthService);
+  private readonly toast = inject(ToastService);
 
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
@@ -108,12 +110,25 @@ export class MusicianListComponent {
       next: () => {
         this.memberships.update((list) => list.filter((m) => m.id !== membership.id));
         this.membershipSaving.set(false);
+        this.toast.show('Band-Zuordnung entfernt.', {
+          label: 'Rückgängig',
+          run: () => this.restoreMembership(membership),
+        });
       },
       error: () => {
         this.membershipSaving.set(false);
         this.membershipError.set('Band-Zuordnung konnte nicht entfernt werden.');
       },
     });
+  }
+
+  private restoreMembership(membership: BandMembership): void {
+    this.eventService
+      .addBandMembership({ bandId: membership.bandId, musicianId: membership.musicianId })
+      .subscribe({
+        next: (restored) => this.memberships.update((list) => [...list, restored]),
+        error: () => this.membershipError.set('Wiederherstellen fehlgeschlagen.'),
+      });
   }
 
   protected musicianName(musician: Musician): string {
@@ -137,6 +152,7 @@ export class MusicianListComponent {
         this.deleting.update((m) => ({ ...m, [musician.id]: false }));
         this.confirmingDelete.update((m) => ({ ...m, [musician.id]: false }));
         this.musicians.update((list) => list.filter((m) => m.id !== musician.id));
+        this.toast.show('Musiker*in gelöscht.');
       },
       error: (err) => {
         this.deleting.update((m) => ({ ...m, [musician.id]: false }));

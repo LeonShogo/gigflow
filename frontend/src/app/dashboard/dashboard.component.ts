@@ -11,6 +11,7 @@ import { RouterLink } from '@angular/router';
 import type { EventItem, EventType } from './event.model';
 import { EventService } from './event.service';
 import { AuthService } from '../auth/auth.service';
+import { ToastService } from '../notifications/toast.service';
 import { formatDate, formatTime, typeLabel, dateContext } from '../event-format';
 
 type Filter = 'ALL' | EventType;
@@ -25,6 +26,7 @@ type Filter = 'ALL' | EventType;
 export class DashboardComponent {
   private readonly eventService = inject(EventService);
   private readonly auth = inject(AuthService);
+  private readonly toast = inject(ToastService);
 
   protected readonly filter = signal<Filter>('ALL');
   protected readonly events = signal<EventItem[]>([]);
@@ -85,6 +87,7 @@ export class DashboardComponent {
         this.deleting.update((m) => ({ ...m, [event.id]: false }));
         this.confirmingDelete.update((m) => ({ ...m, [event.id]: false }));
         this.events.update((list) => list.filter((e) => e.id !== event.id));
+        this.toast.show('Termin gelöscht.');
       },
       error: () => {
         this.deleting.update((m) => ({ ...m, [event.id]: false }));

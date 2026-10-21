@@ -40,6 +40,10 @@ export class SetlistService {
     );
   }
 
+  addEntry(request: { setlistId: number; pieceId: number; position: number }): Observable<SetlistEntry> {
+    return this.http.post<SetlistEntry>('/api/setlist-entries', request);
+  }
+
   removeEntry(entryId: number): Observable<void> {
     return this.http.delete<void>(`/api/setlist-entries/${entryId}`);
   }

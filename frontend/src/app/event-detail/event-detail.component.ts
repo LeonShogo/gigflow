@@ -53,6 +53,7 @@ import type { EventLocation, LocationRequest, LocationType } from '../location/l
 import { LOCATION_TYPES } from '../location/location.model';
 import { LocationService } from '../location/location.service';
 import { AuthService } from '../auth/auth.service';
+import { ToastService } from '../notifications/toast.service';
 import { buildIcs, downloadIcs, eventFilename, eventToIcal } from '../ical';
 
 interface PanelMeta {
@@ -114,6 +115,7 @@ export class EventDetailComponent {
   private readonly equipmentRequirementService = inject(EquipmentRequirementService);
   private readonly scheduleService = inject(ScheduleService);
   private readonly locationService = inject(LocationService);
+  private readonly toast = inject(ToastService);
   protected readonly auth = inject(AuthService);
 
   protected readonly loading = signal(true);
@@ -423,6 +425,10 @@ export class EventDetailComponent {
         this.pauseSaving.update((m) => ({ ...m, [participation.id]: false }));
         this.confirmingRemoval.update((m) => ({ ...m, [participation.id]: false }));
         this.participationFeedback.set('Person entfernt.');
+        this.toast.show('Person entfernt.', {
+          label: 'Rückgängig',
+          run: () => this.restoreParticipation(participation),
+        });
       },
       error: () => {
         this.pauseSaving.update((m) => ({ ...m, [participation.id]: false }));
@@ -430,6 +436,19 @@ export class EventDetailComponent {
         this.participationError.set('Person konnte nicht entfernt werden.');
       },
     });
+  }
+
+  private restoreParticipation(participation: EventParticipation): void {
+    const event = this.event();
+    if (!event) {
+      return;
+    }
+    this.participationService
+      .create({ eventId: event.id, musicianId: participation.musicianId, status: participation.status })
+      .subscribe({
+        next: (restored) => this.participations.update((list) => [...list, restored]),
+        error: () => this.participationError.set('Wiederherstellen fehlgeschlagen.'),
+      });
   }
 
   protected togglePicker(): void {
@@ -759,9 +778,9 @@ export class EventDetailComponent {
       return '●';
     }
     if (state === 'NO') {
-      return '×';
+      return '●';
     }
-    return '·';
+    return '○';
   }
 
   private loadRequirements(eventId: number): void {
@@ -915,12 +934,28 @@ export class EventDetailComponent {
         });
         this.scheduleItems.update((list) => list.filter((i) => i.id !== item.id));
         this.scheduleFeedback.set('Zeitpunkt entfernt.');
+        this.toast.show('Zeitpunkt entfernt.', {
+          label: 'Rückgängig',
+          run: () => this.restoreSchedule(item),
+        });
       },
       error: () => {
         this.scheduleSaving.update((m) => ({ ...m, [item.id]: false }));
         this.scheduleError.set('Zeitpunkt konnte nicht entfernt werden.');
       },
     });
+  }
+
+  private restoreSchedule(item: ScheduleItem): void {
+    this.scheduleService
+      .create({ eventId: item.eventId, label: item.label, time: item.time })
+      .subscribe({
+        next: (restored) =>
+          this.scheduleItems.update((list) =>
+            [...list, restored].sort((a, b) => a.time.localeCompare(b.time)),
+          ),
+        error: () => this.scheduleError.set('Wiederherstellen fehlgeschlagen.'),
+      });
   }
 
   private loadLocations(eventId: number): void {
@@ -1161,6 +1196,10 @@ export class EventDetailComponent {
         this.locationsSaving.update((m) => ({ ...m, [location.id]: false }));
         this.confirmingLocationRemoval.update((m) => ({ ...m, [location.id]: false }));
         this.locationsFeedback.set('Ort entfernt.');
+        this.toast.show('Ort entfernt.', {
+          label: 'Rückgängig',
+          run: () => this.restoreLocation(location),
+        });
       },
       error: () => {
         this.locationsSaving.update((m) => ({ ...m, [location.id]: false }));
@@ -1168,6 +1207,23 @@ export class EventDetailComponent {
         this.locationsError.set('Ort konnte nicht entfernt werden.');
       },
     });
+  }
+
+  private restoreLocation(location: EventLocation): void {
+    this.locationService
+      .create({
+        eventId: location.eventId,
+        type: location.type,
+        name: location.name,
+        address: location.address,
+        note: location.note,
+        phone: location.phone,
+        mapsUrl: location.mapsUrl,
+      })
+      .subscribe({
+        next: (restored) => this.locations.update((list) => [...list, restored]),
+        error: () => this.locationsError.set('Wiederherstellen fehlgeschlagen.'),
+      });
   }
 
   protected toggleRequirementState(
@@ -1239,6 +1295,10 @@ export class EventDetailComponent {
         this.requirementsSaving.update((m) => ({ ...m, [requirement.id]: false }));
         this.confirmingRequirementRemoval.update((m) => ({ ...m, [requirement.id]: false }));
         this.requirementsFeedback.set('Equipment entfernt.');
+        this.toast.show('Equipment entfernt.', {
+          label: 'Rückgängig',
+          run: () => this.restoreRequirement(requirement),
+        });
       },
       error: () => {
         this.requirementsSaving.update((m) => ({ ...m, [requirement.id]: false }));
@@ -1246,6 +1306,21 @@ export class EventDetailComponent {
         this.requirementsError.set('Equipment konnte nicht entfernt werden.');
       },
     });
+  }
+
+  private restoreRequirement(requirement: EquipmentRequirement): void {
+    this.equipmentRequirementService
+      .create({
+        eventId: requirement.eventId,
+        equipmentId: requirement.equipmentId,
+        availableOnSite: requirement.availableOnSite,
+        needsToBeBrought: requirement.needsToBeBrought,
+        responsibleMusicianId: requirement.responsibleMusicianId ?? null,
+      })
+      .subscribe({
+        next: (restored) => this.requirements.update((list) => [...list, restored]),
+        error: () => this.requirementsError.set('Wiederherstellen fehlgeschlagen.'),
+      });
   }
 
   protected toggleEquipmentPicker(): void {
@@ -1507,12 +1582,33 @@ export class EventDetailComponent {
         this.rehearsals.update((list) => list.filter((r) => r.id !== updated.id));
         this.allRehearsals.update((list) => [...list, updated]);
         this.rehearsalsFeedback.set('Probe vom Gig gelöst.');
+        this.toast.show('Probe vom Gig gelöst.', {
+          label: 'Rückgängig',
+          run: () => this.relinkRehearsal(updated, event.id),
+        });
       },
       error: () => {
         this.rehearsalsSaving.update((m) => ({ ...m, [rehearsal.id]: false }));
         this.confirmingRehearsalUnlink.update((m) => ({ ...m, [rehearsal.id]: false }));
         this.rehearsalsError.set('Probe konnte nicht gelöst werden.');
       },
+    });
+  }
+
+  private relinkRehearsal(rehearsal: EventItem, concertId: number): void {
+    const request: EventRequest = {
+      title: rehearsal.title,
+      dateTime: rehearsal.dateTime,
+      type: 'REHEARSAL',
+      bandId: rehearsal.bandId ?? this.event()?.bandId ?? 0,
+      concertId,
+    };
+    this.eventService.updateEvent(rehearsal.id, request).subscribe({
+      next: (updated) => {
+        this.allRehearsals.update((list) => list.filter((r) => r.id !== updated.id));
+        this.rehearsals.update((list) => [...list, updated]);
+      },
+      error: () => this.rehearsalsError.set('Wiederherstellen fehlgeschlagen.'),
     });
   }
 
@@ -1580,11 +1676,33 @@ export class EventDetailComponent {
     this.addPiece();
   }
 
-  protected removeEntry(entryId: number): void {
-    this.setlistService.removeEntry(entryId).subscribe({
-      next: () => this.entries.update((list) => list.filter((e) => e.id !== entryId)),
+  protected removeEntry(entry: SetlistEntry): void {
+    this.setlistService.removeEntry(entry.id).subscribe({
+      next: () => {
+        this.entries.update((list) => list.filter((e) => e.id !== entry.id));
+        this.toast.show('Stück entfernt.', {
+          label: 'Rückgängig',
+          run: () => this.restoreEntry(entry),
+        });
+      },
       error: () => this.setlistError.set('Stück konnte nicht entfernt werden.'),
     });
+  }
+
+  private restoreEntry(entry: SetlistEntry): void {
+    this.setlistService
+      .addEntry({
+        setlistId: entry.setlistId,
+        pieceId: entry.pieceId,
+        position: entry.position,
+      })
+      .subscribe({
+        next: (restored) =>
+          this.entries.update((list) =>
+            [...list, restored].sort((a, b) => a.position - b.position),
+          ),
+        error: () => this.setlistError.set('Wiederherstellen fehlgeschlagen.'),
+      });
   }
 
   protected selectSheetPdf(entry: SetlistEntry): void {
@@ -1708,6 +1826,7 @@ export class EventDetailComponent {
           list.map((e) => (e.pieceId === entry.pieceId ? { ...e, hasSheetPdf: false } : e)),
         );
         this.sheetFeedback.set('Noten entfernt.');
+        this.toast.show('Noten entfernt.');
       },
       error: () => {
         this.sheetUploading.update((m) => ({ ...m, [entry.pieceId]: false }));
@@ -1791,6 +1910,7 @@ export class EventDetailComponent {
           list.map((e) => (e.pieceId === entry.pieceId ? { ...e, hasDemoAudio: false } : e)),
         );
         this.mediaFeedback.set('Demo entfernt.');
+        this.toast.show('Demo entfernt.');
       },
       error: () => {
         this.mediaUploading.update((m) => ({ ...m, [entry.pieceId]: false }));
