@@ -177,6 +177,17 @@
 
 .roster__item {
   position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-2);
+  padding-right: 0.75rem;
+  border-bottom: 1px solid var(--line);
+  transition: background-color var(--t-fast) ease;
+}
+
+.roster__item:hover {
+  background: var(--paper-raised);
 }
 
 .row {
@@ -185,30 +196,19 @@
   gap: var(--space-3);
   align-items: baseline;
   padding: var(--space-3);
-  padding-right: 3.2rem;
-  border-bottom: 1px solid var(--line);
   color: inherit;
   text-decoration: none;
-  transition:
-    background-color var(--t-fast) ease,
-    padding var(--t-fast) ease;
-}
-
-.row:hover {
-  background: var(--paper-raised);
 }
 
 .row__delete-zone {
-  position: absolute;
-  top: 50%;
-  right: 0.75rem;
-  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
   z-index: 2;
 }
 
 .row__delete-zone:has(.row__confirm) {
+  position: absolute;
   inset: 0;
-  transform: none;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -319,8 +319,9 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
+  justify-content: flex-end;
   gap: var(--space-1);
-  padding: 0 var(--space-3) var(--space-2) var(--space-3);
+  min-width: 0;
 }
 
 .band-chip {
@@ -361,12 +362,18 @@
 
 .band-add {
   font-size: 0.82rem;
-  color: var(--ink-soft);
-  background: var(--paper-raised);
-  border: 1px dashed var(--line-strong);
+  font-weight: 600;
+  color: var(--accent-ink);
+  background: transparent;
+  border: 1px dashed var(--accent-line);
   border-radius: var(--radius-pill);
-  padding: 0.25rem 0.6rem;
+  padding: 0.2rem 0.55rem;
   cursor: pointer;
+}
+
+.band-add:hover:not(:disabled) {
+  background: var(--accent-soft);
+  border-color: var(--accent);
 }
 
 .band-add:disabled {
@@ -417,6 +424,28 @@
   .row {
     grid-template-columns: 1fr;
     gap: var(--space-1);
+  }
+
+  .roster__item {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0;
+    padding-right: 0;
+  }
+
+  .row {
+    grid-column: 1 / -1;
+    padding-bottom: var(--space-1);
+  }
+
+  .row__bands {
+    grid-column: 1 / 2;
+    justify-content: flex-start;
+    padding: 0 var(--space-3) var(--space-2);
+  }
+
+  .row__delete-zone {
+    grid-column: 2;
+    grid-row: 2;
   }
 
   .row__email {

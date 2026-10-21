@@ -566,7 +566,6 @@ export class EventDetailComponent {
       next: (created) => {
         this.addingMusicians.update((m) => ({ ...m, [musician.id]: false }));
         this.participations.update((list) => [...list, created]);
-        this.pickerOpen.set(false);
         this.participationFeedback.set('Person hinzugefügt.');
       },
       error: () => {
@@ -605,7 +604,6 @@ export class EventDetailComponent {
               this.newLastName.set('');
               this.newInstrument.set('');
               this.newMusicianOpen.set(false);
-              this.pickerOpen.set(false);
               this.participationFeedback.set('Person angelegt und hinzugefügt.');
             },
             error: () => {
@@ -756,6 +754,21 @@ export class EventDetailComponent {
 
   protected responsibleValue(requirement: EquipmentRequirement): string | number {
     return requirement.responsibleMusicianId ?? '';
+  }
+
+  protected responsibleName(requirement: EquipmentRequirement): string | null {
+    const id = requirement.responsibleMusicianId;
+    if (id == null) {
+      return null;
+    }
+    const participation = this.participations().find((p) => p.musicianId === id);
+    if (!participation?.musician) {
+      return null;
+    }
+    const name = [participation.musician.firstName, participation.musician.lastName]
+      .filter(Boolean)
+      .join(' ');
+    return name || null;
   }
 
   protected onResponsibleChange(requirement: EquipmentRequirement, value: string): void {

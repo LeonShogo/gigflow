@@ -833,18 +833,23 @@
                                 <span class="eq__mark" aria-hidden="true">{{ stateMark(requirement.availableOnSite) }}</span>
                                 Vor Ort: {{ stateLabel(requirement.availableOnSite) }}
                               </button>
-                              <button
-                                type="button"
-                                class="eq__chip"
-                                [class.eq__chip--yes]="requirement.needsToBeBrought === 'YES'"
-                                [class.eq__chip--no]="requirement.needsToBeBrought === 'NO'"
-                                (click)="toggleRequirementState(requirement, 'needsToBeBrought')"
-                                [disabled]="requirementsSaving()[requirement.id]"
-                                aria-label="Muss mitgebracht werden: {{ stateLabel(requirement.needsToBeBrought) }}. Zum Umschalten klicken."
-                              >
-                                <span class="eq__mark" aria-hidden="true">{{ stateMark(requirement.needsToBeBrought) }}</span>
-                                Mitbringen: {{ stateLabel(requirement.needsToBeBrought) }}
-                              </button>
+                              <div class="eq__bring">
+                                <button
+                                  type="button"
+                                  class="eq__chip"
+                                  [class.eq__chip--yes]="requirement.needsToBeBrought === 'YES'"
+                                  [class.eq__chip--no]="requirement.needsToBeBrought === 'NO'"
+                                  (click)="toggleRequirementState(requirement, 'needsToBeBrought')"
+                                  [disabled]="requirementsSaving()[requirement.id]"
+                                  aria-label="Muss mitgebracht werden: {{ stateLabel(requirement.needsToBeBrought) }}. Zum Umschalten klicken."
+                                >
+                                  <span class="eq__mark" aria-hidden="true">{{ stateMark(requirement.needsToBeBrought) }}</span>
+                                  Mitbringen: {{ stateLabel(requirement.needsToBeBrought) }}
+                                </button>
+                                @if (requirement.needsToBeBrought === 'YES' && responsibleName(requirement); as name) {
+                                  <span class="eq__bring-person">&#8594; {{ name }}</span>
+                                }
+                              </div>
                             </div>
 
                             <div class="eq__responsible">

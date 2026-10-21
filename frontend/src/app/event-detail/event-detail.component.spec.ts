@@ -656,6 +656,93 @@ function loadConcertWithLocations(
     expect(el.textContent).toContain('Mitbringen: Offen');
   });
 
+  it('should show the responsible musician inline under a "bring" requirement', () => {
+    const fixture = setup();
+    fixture.detectChanges();
+    httpMock.expectOne('/api/events/1').flush(CONCERT);
+    fixture.detectChanges();
+    httpMock.expectOne('/api/event-participations/event/1').flush([
+      {
+        id: 1,
+        eventId: 1,
+        musicianId: 42,
+        musician: { id: 42, firstName: 'Ben', lastName: 'Krüger', instrument: 'Gitarre' },
+        status: 'ACCEPTED',
+      },
+    ]);
+    httpMock.expectOne('/api/events/by-concert/1').flush([]);
+    httpMock.expectOne('/api/setlists/event/1').flush(EMPTY_SETLIST);
+    httpMock.expectOne('/api/events/1/layout').flush(DEFAULT_LAYOUT);
+    httpMock.expectOne('/api/event-locations/event/1').flush([]);
+    fixture.detectChanges();
+    httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([]);
+    httpMock.expectOne('/api/equipment-requirements/event/1').flush([
+      {
+        id: 11,
+        eventId: 1,
+        equipmentId: 5,
+        equipmentName: 'Bass-Amp',
+        category: 'Amp',
+        availableOnSite: 'NO',
+        needsToBeBrought: 'YES',
+        responsibleMusicianId: 42,
+      },
+    ]);
+    httpMock.expectOne('/api/schedule-items/event/1').flush([]);
+    fixture.detectChanges();
+
+    const person = fixture.nativeElement.querySelector('.eq__bring-person') as HTMLElement;
+    expect(person).toBeTruthy();
+    expect(person.textContent).toContain('Ben Krüger');
+  });
+
+  it('should keep the musician picker open after adding someone', () => {
+    const fixture = setup();
+    fixture.detectChanges();
+    httpMock.expectOne('/api/events/1').flush(CONCERT);
+    fixture.detectChanges();
+    httpMock.expectOne('/api/event-participations/event/1').flush([]);
+    httpMock.expectOne('/api/events/by-concert/1').flush([]);
+    httpMock.expectOne('/api/setlists/event/1').flush(EMPTY_SETLIST);
+    httpMock.expectOne('/api/events/1/layout').flush(DEFAULT_LAYOUT);
+    httpMock.expectOne('/api/event-locations/event/1').flush([]);
+    fixture.detectChanges();
+    httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([]);
+    httpMock.expectOne('/api/equipment-requirements/event/1').flush([]);
+    httpMock.expectOne('/api/schedule-items/event/1').flush([]);
+    fixture.detectChanges();
+
+    const comp = fixture.componentInstance as unknown as {
+      togglePicker(): void;
+      addExistingMusician(m: { id: number; firstName: string; lastName: string }): void;
+      pickerOpen(): boolean;
+    };
+
+    comp.togglePicker();
+    fixture.detectChanges();
+    httpMock.expectOne('/api/musicians').flush([
+      { id: 42, firstName: 'Ben', lastName: 'Krüger', instrument: 'Gitarre' },
+    ]);
+    fixture.detectChanges();
+
+    comp.addExistingMusician({ id: 42, firstName: 'Ben', lastName: 'Krüger' });
+    fixture.detectChanges();
+
+    const req = httpMock.expectOne('/api/event-participations');
+    expect(req.request.method).toBe('POST');
+    req.flush({
+      id: 9,
+      eventId: 1,
+      musicianId: 42,
+      musician: { id: 42, firstName: 'Ben', lastName: 'Krüger', instrument: 'Gitarre' },
+      status: 'INVITED',
+    });
+    fixture.detectChanges();
+
+    expect(comp.pickerOpen()).toBe(true);
+    expect(fixture.nativeElement.querySelector('.picker')).toBeTruthy();
+  });
+
   it('should toggle a requirement status via PUT', () => {
     const fixture = setup();
     fixture.detectChanges();

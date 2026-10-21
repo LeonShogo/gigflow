@@ -67,6 +67,10 @@ export class EventService {
     return this.http.get<BandMembership[]>(`/api/memberships/band/${bandId}`);
   }
 
+  loadMusicianMemberships(musicianId: number): Observable<BandMembership[]> {
+    return this.http.get<BandMembership[]>(`/api/memberships/musician/${musicianId}`);
+  }
+
   addBandMembership(request: BandMembershipRequest): Observable<BandMembership> {
     return this.http.post<BandMembership>('/api/memberships', request);
   }

@@ -78,6 +78,51 @@
   border-color: var(--ink-faint);
 }
 
+.band-field {
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.band-field legend {
+  padding: 0;
+  margin-bottom: var(--space-1);
+}
+
+.band-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.band-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+  transition:
+    border-color var(--t-fast) ease,
+    background-color var(--t-fast) ease,
+    color var(--t-fast) ease;
+}
+
+.band-option:has(input:checked) {
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+}
+
+.band-option input {
+  margin: 0;
+  accent-color: var(--accent);
+}
+
 .field__hint {
   font-size: 0.8rem;
   color: var(--accent-ink);

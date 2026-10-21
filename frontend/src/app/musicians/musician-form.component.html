@@ -45,6 +45,26 @@
         }
       </label>
 
+      @if (canManageBands() && bands().length > 0) {
+        <fieldset class="field band-field">
+          <legend class="field__label">Bands</legend>
+          <div class="band-options">
+            @for (band of bands(); track band.id) {
+              <label class="band-option">
+                <input
+                  type="checkbox"
+                  [checked]="isBandSelected(band.id)"
+                  (change)="toggleBand(band.id)"
+                />
+                <span>{{ band.name }}</span>
+              </label>
+            }
+          </div>
+        </fieldset>
+      } @else if (canManageBands() && bandsError(); as message) {
+        <p class="field__hint">{{ message }}</p>
+      }
+
       @if (submitError(); as message) {
         <p class="error" role="alert">{{ message }}</p>
       }

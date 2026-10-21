@@ -42,6 +42,11 @@ public class BandMembershipController {
         return membershipService.findMembershipsByBand(bandId);
     }
 
+    @GetMapping("/musician/{musicianId}")
+    public List<BandMembershipResponse> getMembershipsByMusician(@PathVariable Long musicianId) {
+        return membershipService.findMembershipsByMusician(musicianId);
+    }
+
     @PostMapping
     public ResponseEntity<BandMembershipResponse> createMembership(@Valid @RequestBody BandMembershipRequest request) {
         try {

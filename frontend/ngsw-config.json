@@ -49,26 +49,6 @@
         "maxAge": "30d",
         "timeout": "10s"
       }
-    },
-    {
-      "name": "api-reads",
-      "urls": [
-        "/api/bands**",
-        "/api/equipment**",
-        "/api/event-locations**",
-        "/api/event-participations**",
-        "/api/events**",
-        "/api/musicians**",
-        "/api/schedule-items**",
-        "/api/setlist-entries**",
-        "/api/setlists**"
-      ],
-      "cacheConfig": {
-        "strategy": "freshness",
-        "maxSize": 200,
-        "maxAge": "7d",
-        "timeout": "10s"
-      }
     }
   ]
 }

@@ -53,6 +53,12 @@ public class BandMembershipService {
                 .toList();
     }
 
+    public List<BandMembershipResponse> findMembershipsByMusician(Long musicianId) {
+        return membershipRepository.findByMusicianId(musicianId).stream()
+                .map(BandMembershipResponse::from)
+                .toList();
+    }
+
     public BandMembershipResponse updateMembership(Long id, BandMembershipRequest request) {
         BandMembership existing = membershipRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Mitgliedschaft nicht gefunden: " + id));
