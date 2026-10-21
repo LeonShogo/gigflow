@@ -31,6 +31,12 @@ export class MusicianListComponent {
   protected readonly membershipError = signal<string | null>(null);
   protected readonly membershipSaving = signal(false);
 
+  protected readonly createBandOpen = signal(false);
+  protected readonly newBandName = signal('');
+  protected readonly newBandGenre = signal('');
+  protected readonly creatingBand = signal(false);
+  protected readonly bandError = signal<string | null>(null);
+
   protected readonly confirmingDelete = signal<Record<number, boolean>>({});
   protected readonly deleting = signal<Record<number, boolean>>({});
   protected readonly deleteError = signal<string | null>(null);
@@ -133,6 +139,43 @@ export class MusicianListComponent {
 
   protected musicianName(musician: Musician): string {
     return [musician.firstName, musician.lastName].filter(Boolean).join(' ');
+  }
+
+  protected toggleCreateBand(): void {
+    this.createBandOpen.update((open) => !open);
+    this.bandError.set(null);
+  }
+
+  protected onNewBandName(event: Event): void {
+    this.newBandName.set((event.target as HTMLInputElement).value);
+  }
+
+  protected onNewBandGenre(event: Event): void {
+    this.newBandGenre.set((event.target as HTMLInputElement).value);
+  }
+
+  protected createBand(): void {
+    const name = this.newBandName().trim();
+    if (!name || this.creatingBand()) {
+      return;
+    }
+    this.creatingBand.set(true);
+    this.bandError.set(null);
+    const genre = this.newBandGenre().trim();
+    this.eventService.createBand({ name, genre: genre || undefined }).subscribe({
+      next: (band) => {
+        this.bands.update((list) => [...list, band]);
+        this.newBandName.set('');
+        this.newBandGenre.set('');
+        this.creatingBand.set(false);
+        this.createBandOpen.set(false);
+        this.toast.show(`Band „${band.name}“ angelegt.`);
+      },
+      error: (err) => {
+        this.creatingBand.set(false);
+        this.bandError.set(err?.error?.message ?? 'Band konnte nicht angelegt werden.');
+      },
+    });
   }
 
   protected requestDelete(musician: Musician): void {

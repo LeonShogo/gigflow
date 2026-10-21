@@ -86,6 +86,16 @@
   color: var(--accent-ink);
 }
 
+.hint-link {
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+
+.hint-link a {
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
 .segmented {
   display: flex;
   gap: var(--space-1);

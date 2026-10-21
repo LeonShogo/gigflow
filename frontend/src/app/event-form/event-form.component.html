@@ -19,7 +19,7 @@
       }
     </label>
 
-    @if (bands().length > 1) {
+    @if (bands().length > 0) {
       <label class="field">
         <span class="field__label">Band</span>
         <select class="field__input" formControlName="bandId">
@@ -28,6 +28,11 @@
           }
         </select>
       </label>
+    } @else {
+      <p class="hint-link">
+        Es ist noch keine Band vorhanden.
+        <a routerLink="/musicians">Band unter „Musiker*innen“ anlegen</a>.
+      </p>
     }
 
     <fieldset class="field">

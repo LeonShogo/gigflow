@@ -6,6 +6,7 @@ import type {
   Band,
   BandMembership,
   BandMembershipRequest,
+  BandRequest,
   EventItem,
   EventParticipation,
   EventRequest,
@@ -56,6 +57,10 @@ export class EventService {
 
   loadBands(): Observable<Band[]> {
     return this.http.get<Band[]>('/api/bands');
+  }
+
+  createBand(request: BandRequest): Observable<Band> {
+    return this.http.post<Band>('/api/bands', request);
   }
 
   loadBandMemberships(bandId: number): Observable<BandMembership[]> {

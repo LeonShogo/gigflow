@@ -49,8 +49,6 @@ export class EventFormComponent {
         const first = bands[0];
         if (first) {
           this.form.controls.bandId.setValue(first.id);
-        } else {
-          this.choicesError.set('Es ist noch keine Band hinterlegt.');
         }
       },
       error: () => this.choicesError.set('Band konnte nicht geladen werden.'),

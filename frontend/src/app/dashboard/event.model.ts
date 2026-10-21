@@ -26,6 +26,11 @@ export interface Band {
   genre?: string;
 }
 
+export interface BandRequest {
+  name: string;
+  genre?: string;
+}
+
 /** A musician's static membership in a band (the roster). */
 export interface BandMembership {
   id: number;

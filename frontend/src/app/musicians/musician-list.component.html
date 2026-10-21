@@ -9,6 +9,55 @@
     <a class="head__add" routerLink="/musicians/new">+ Musiker*in hinzufügen</a>
   </header>
 
+  @if (canDelete()) {
+    <div class="bands">
+      @for (band of bands(); track band.id) {
+        <span class="band-chip band-chip--static">{{ band.name }}</span>
+      } @empty {
+        <span class="bands__empty">Noch keine Band angelegt.</span>
+      }
+      <button
+        type="button"
+        class="bands__add"
+        (click)="toggleCreateBand()"
+        [attr.aria-expanded]="createBandOpen()"
+      >
+        {{ createBandOpen() ? 'Abbrechen' : '+ Band anlegen' }}
+      </button>
+    </div>
+
+    @if (createBandOpen()) {
+      <form class="band-form" (ngSubmit)="createBand()">
+        <label class="field">
+          <span class="field__label">Bandname</span>
+          <input
+            class="field__input"
+            type="text"
+            [value]="newBandName()"
+            (input)="onNewBandName($event)"
+            maxlength="80"
+          />
+        </label>
+        <label class="field">
+          <span class="field__label">Genre (optional)</span>
+          <input
+            class="field__input"
+            type="text"
+            [value]="newBandGenre()"
+            (input)="onNewBandGenre($event)"
+            maxlength="80"
+          />
+        </label>
+        <button class="band-form__submit" type="submit" [disabled]="creatingBand() || !newBandName().trim()">
+          {{ creatingBand() ? 'Wird gespeichert …' : 'Band anlegen' }}
+        </button>
+      </form>
+      @if (bandError(); as message) {
+        <p class="status status--error" role="alert">{{ message }}</p>
+      }
+    }
+  }
+
   @if (loading()) {
     <p class="status">Musiker*innen werden geladen …</p>
   } @else if (error(); as message) {
