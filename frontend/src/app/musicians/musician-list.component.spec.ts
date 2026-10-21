@@ -36,6 +36,45 @@ describe('MusicianListComponent', () => {
     httpMock.expectOne('/api/memberships/band/1').flush(memberships);
   }
 
+  function loginAsOrganizer(): void {
+    TestBed.inject(AuthService)
+      .login({ email: 'o@gigflow.local', password: 'password' })
+      .subscribe();
+    httpMock.expectOne('/api/auth/login').flush({
+      token: 't',
+      user: { id: 1, email: 'o@gigflow.local', organizer: true, musicianId: null },
+    });
+  }
+
+  it('should create a band and show it in the list', () => {
+    const fixture = TestBed.createComponent(MusicianListComponent);
+    fixture.detectChanges();
+    flushLoad();
+    loginAsOrganizer();
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('.bands__add') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const input = fixture.nativeElement.querySelector(
+      '.band-form .field__input',
+    ) as HTMLInputElement;
+    input.value = 'Neue Band';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('.band-form__submit') as HTMLButtonElement).click();
+
+    const request = httpMock.expectOne('/api/bands');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body.name).toBe('Neue Band');
+    request.flush({ id: 2, name: 'Neue Band' });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Neue Band');
+    expect((fixture.nativeElement.querySelector('.band-form') as HTMLElement)).toBeNull();
+  });
+
   it('should list musicians', () => {
     const fixture = TestBed.createComponent(MusicianListComponent);
     fixture.detectChanges();

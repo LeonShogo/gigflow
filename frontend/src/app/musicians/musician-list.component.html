@@ -99,7 +99,7 @@
                   [disabled]="membershipSaving()"
                   (change)="onAssignBand(musician, $any($event.target).value)"
                 >
-                  <option value="">+ Band</option>
+                  <option value="">Band zuordnen</option>
                   @for (band of assignableBands(musician.id); track band.id) {
                     <option [value]="band.id">{{ band.name }}</option>
                   }

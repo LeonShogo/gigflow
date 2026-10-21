@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 
@@ -11,7 +12,7 @@ import type { Band, BandMembership } from '../dashboard/event.model';
 
 @Component({
   selector: 'app-musician-list',
-  imports: [RouterLink],
+  imports: [RouterLink, FormsModule],
   templateUrl: './musician-list.component.html',
   styleUrl: './musician-list.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
