@@ -1,5 +1,5 @@
 <section class="print">
-  <header class="toolbar no-print">
+  <header class="toolbar">
     @if (event(); as event) {
       <a class="toolbar__link" [routerLink]="['/events', event.id]">&larr; Zurück zur Event-Ansicht</a>
     } @else {
@@ -27,9 +27,9 @@
     <button
       type="button"
       class="toolbar__btn"
-      (click)="print()"
-      [disabled]="loading()"
-    >Drucken / PDF</button>
+      (click)="download()"
+      [disabled]="loading() || downloading()"
+    >{{ downloading() ? 'PDF wird erstellt …' : 'PDF herunterladen' }}</button>
   </header>
 
   @if (loading()) {
@@ -131,7 +131,7 @@
               </ol>
             </section>
           } @else {
-            <p class="status no-print">Keine Setlist hinterlegt.</p>
+            <p class="status">Keine Setlist hinterlegt.</p>
           }
         }
 
@@ -178,28 +178,6 @@
           </section>
         }
       </div>
-
-      @if (includeSetlist() && entries().length > 0) {
-        <section class="block">
-          <h2 class="block__title">Notenblätter</h2>
-          @if (sheetsLoading()) {
-            <p class="status no-print">Notenblätter werden vorbereitet …</p>
-          } @else if (sheetFiles().length === 0) {
-            <p class="status no-print">
-              Für dieses Ereignis sind keine Notenblätter hinterlegt.
-            </p>
-          } @else {
-            @for (file of sheetFiles(); track file.entryId) {
-              <div class="notes">
-                <h3 class="notes__title">{{ file.title }}</h3>
-                @for (src of file.sources; track $index) {
-                  <img class="notes__page" [src]="src" alt="Notenblatt: {{ file.title }}" />
-                }
-              </div>
-            }
-          }
-        </section>
-      }
     </article>
   }
 </section>

@@ -1,6 +1,7 @@
 import { formatDate, formatTime, formatTimeOnly, typeLabel } from '../event-format';
 import { downloadBlob, slugify } from '../download';
 import { createZip } from '../print/zip';
+import type { PDFDocument } from 'pdf-lib';
 import type { EventItem, EventParticipation, ParticipationStatus } from '../dashboard/event.model';
 import type { SetlistEntry } from './setlist.model';
 import type { EquipmentRequirement, RequirementState } from '../equipment/equipment.model';
@@ -62,10 +63,18 @@ interface Block {
 
 /** Builds a formatted PDF of the gig sheet (without the sheet music). */
 export async function buildInfoPdf(data: SetlistDownloadData): Promise<Uint8Array> {
+  const doc = await buildInfoDocument(data);
+  await finalizePdf(doc, data.event.dateTime);
+  return doc.save();
+}
+
+/** Builds the gig-sheet document so callers can append further pages before saving. */
+export async function buildInfoDocument(data: SetlistDownloadData): Promise<PDFDocument> {
   const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib');
   const doc = await PDFDocument.create();
   const font = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
+  const logo = await loadLogo(doc);
 
   const contentWidth = A4[0] - MARGIN * 2;
   const ink: Rgb = [0.1, 0.1, 0.12];
@@ -244,13 +253,57 @@ export async function buildInfoPdf(data: SetlistDownloadData): Promise<Uint8Arra
     }
   }
 
-  return doc.save();
+  const pages = doc.getPages();
+  if (logo) {
+    const size = 42;
+    pages[0].drawImage(logo, {
+      x: A4[0] - MARGIN - size,
+      y: pages[0].getHeight() - MARGIN - size / 2,
+      width: size,
+      height: size,
+    });
+  }
+
+  return doc;
 
   function ensure(needsNewPage: boolean): void {
     if (needsNewPage) {
       page = doc.addPage(A4);
       y = page.getHeight() - MARGIN;
     }
+  }
+}
+
+/**
+ * Stamps the share footer (event date + page counter) on every page.
+ * Called once the final set of pages is known, i.e. after any appended sheets.
+ */
+export async function finalizePdf(doc: PDFDocument, dateTime: string): Promise<void> {
+  const { StandardFonts, rgb } = await import('pdf-lib');
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const pages = doc.getPages();
+  const label = `${formatDate(dateTime)}, ${formatTime(dateTime)} Uhr`;
+  pages.forEach((page, index) => {
+    page.drawText(`${label}   ·   Seite ${index + 1} / ${pages.length}`, {
+      x: MARGIN,
+      y: MARGIN / 2,
+      size: 8.5,
+      font,
+      color: rgb(0.55, 0.58, 0.62),
+    });
+  });
+}
+
+/** Loads the app icon as a PNG for the sheet header; missing icon is not fatal. */
+async function loadLogo(doc: PDFDocument) {
+  try {
+    const response = await fetch('/icons/icon-192.png');
+    if (!response.ok) {
+      return null;
+    }
+    return await doc.embedPng(await response.arrayBuffer());
+  } catch {
+    return null;
   }
 }
 

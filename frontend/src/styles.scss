@@ -258,38 +258,3 @@ body {
     min-width: 2.6rem;
   }
 }
-
-/* ------------------------------------------------------------------ */
-/*  Print / PDF (browser print)                                        */
-/*  @page cannot be scoped, so it lives here in the global stylesheet. */
-/* ------------------------------------------------------------------ */
-
-@page {
-  size: A4;
-  /* margin 0 suppresses the browser's own header/footer (URL & date). */
-  margin: 0;
-}
-
-@media print {
-  :root[data-theme="dark"] {
-    color-scheme: light;
-    --paper: #f7f8fa;
-    --paper-raised: #ffffff;
-    --paper-inset: #eceef1;
-    --ink: #1a1d21;
-    --ink-soft: #4d565e;
-    --ink-faint: #8a929b;
-    --line: #e2e6ea;
-    --line-strong: #c8cfd6;
-    --accent: #2f7fe0;
-    --accent-ink: #1f5bb0;
-    --accent-2: #1e4f8f;
-    --accent-soft: #e8f1fc;
-    --accent-line: rgba(47, 127, 224, 0.35);
-  }
-
-  html,
-  body {
-    background: #fff;
-  }
-}

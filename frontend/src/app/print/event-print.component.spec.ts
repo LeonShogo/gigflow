@@ -5,6 +5,8 @@ import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { of } from 'rxjs';
 
 import { EventPrintComponent } from './event-print.component';
+import { EventPdfService } from './event-pdf.service';
+import type { SetlistDownloadData } from '../setlist/setlist-download';
 import type { EventItem } from '../dashboard/event.model';
 
 const CONCERT: EventItem = {
@@ -17,8 +19,11 @@ const CONCERT: EventItem = {
 
 const EMPTY_SETLIST = { id: 10, eventId: 1 };
 
+const pdfServiceMock = { build: vi.fn() };
+
 describe('EventPrintComponent', () => {
   let httpMock: HttpTestingController;
+  let downloadSpy: ReturnType<typeof vi.spyOn>;
 
   function flushFullData(): void {
     httpMock.expectOne('/api/event-participations/event/1').flush([
@@ -80,11 +85,16 @@ describe('EventPrintComponent', () => {
   }
 
   beforeEach(async () => {
+    vi.clearAllMocks();
+    pdfServiceMock.build.mockResolvedValue(new Uint8Array([1, 2, 3]));
+    downloadSpy = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock');
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
     await TestBed.configureTestingModule({
       imports: [EventPrintComponent],
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
+        { provide: EventPdfService, useValue: pdfServiceMock },
         { provide: ActivatedRoute, useValue: { paramMap: of(convertToParamMap({ id: '1' })) } },
       ],
     }).compileComponents();
@@ -181,33 +191,9 @@ describe('EventPrintComponent', () => {
     expect(el.querySelector('.sheet')?.textContent).toContain('Keine Setlist hinterlegt.');
   });
 
-  it('should trigger the browser print dialog', () => {
+  it('should build and download the PDF with the included setlist', async () => {
     const fixture = TestBed.createComponent(EventPrintComponent);
     const el: HTMLElement = fixture.nativeElement;
-    const printSpy = vi.spyOn(window, 'print').mockImplementation(() => undefined);
-
-    fixture.detectChanges();
-    httpMock.expectOne('/api/events/1').flush(CONCERT);
-    fixture.detectChanges();
-    httpMock.expectOne('/api/event-participations/event/1').flush([]);
-    httpMock.expectOne('/api/events/by-concert/1').flush([]);
-    httpMock.expectOne('/api/setlists/event/1').flush(EMPTY_SETLIST);
-    httpMock.expectOne('/api/equipment-requirements/event/1').flush([]);
-    httpMock.expectOne('/api/schedule-items/event/1').flush([]);
-    httpMock.expectOne('/api/event-locations/event/1').flush([]);
-    fixture.detectChanges();
-    httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([]);
-    fixture.detectChanges();
-
-    (el.querySelector('.toolbar__btn') as HTMLButtonElement).click();
-    expect(printSpy).toHaveBeenCalled();
-  });
-
-  it('should hide setlist and notes in "Nur Event-Daten" mode', () => {
-    const fixture = TestBed.createComponent(EventPrintComponent);
-    const el: HTMLElement = fixture.nativeElement;
-    const buttons = el.querySelectorAll<HTMLButtonElement>('.seg');
-    expect(buttons.length).toBe(2);
 
     fixture.detectChanges();
     httpMock.expectOne('/api/events/1').flush(CONCERT);
@@ -215,15 +201,35 @@ describe('EventPrintComponent', () => {
     flushFullData();
     fixture.detectChanges();
 
-    const sheet = el.querySelector('.sheet') as HTMLElement;
-    expect(sheet.textContent).toContain('Ode an die Freude');
+    (el.querySelector('.toolbar__btn') as HTMLButtonElement).click();
+    await fixture.whenStable();
 
+    expect(pdfServiceMock.build).toHaveBeenCalledOnce();
+    const [data] = pdfServiceMock.build.mock.calls[0] as unknown as [SetlistDownloadData];
+    expect(data.entries).toHaveLength(1);
+    expect(downloadSpy).toHaveBeenCalledWith(expect.any(Blob));
+  });
+
+  it('should omit setlist entries in "Nur Event-Daten" mode', async () => {
+    const fixture = TestBed.createComponent(EventPrintComponent);
+    const el: HTMLElement = fixture.nativeElement;
+
+    fixture.detectChanges();
+    httpMock.expectOne('/api/events/1').flush(CONCERT);
+    fixture.detectChanges();
+    flushFullData();
+    fixture.detectChanges();
+
+    const buttons = el.querySelectorAll<HTMLButtonElement>('.seg');
     buttons[1].click();
     fixture.detectChanges();
 
-    expect(sheet.textContent).not.toContain('Ode an die Freude');
-    expect(sheet.textContent).not.toContain('Notenblätter');
-    expect(sheet.textContent).not.toContain('Keine Setlist hinterlegt.');
+    (el.querySelector('.toolbar__btn') as HTMLButtonElement).click();
+    await fixture.whenStable();
+
+    const [data] = pdfServiceMock.build.mock.calls.at(-1) as unknown as [SetlistDownloadData];
+    expect(data.entries).toHaveLength(0);
+    expect(downloadSpy).toHaveBeenCalledOnce();
   });
 
   it('should show the setlist list by default', () => {
@@ -238,7 +244,6 @@ describe('EventPrintComponent', () => {
 
     expect(el.querySelector('.sheet')?.textContent).toContain('Setlist');
     expect(el.querySelector('.sheet')?.textContent).toContain('Ode an die Freude');
-    expect(el.querySelector('.sheet')?.textContent).toContain('Notenblätter');
   });
 
   it('should render provided demo data without HTTP requests', () => {

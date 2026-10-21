@@ -70,7 +70,7 @@
           @if (canDelete()) {
             <div class="event__delete-zone">
               @if (confirmingDelete()[event.id]) {
-                <div class="event__confirm">
+                <div class="event__confirm" role="dialog" aria-modal="true">
                   <span class="event__confirm-label">„{{ event.title }}“ wirklich löschen?</span>
                   <div class="event__confirm-actions">
                     <button

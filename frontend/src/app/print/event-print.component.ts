@@ -11,8 +11,8 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { catchError, firstValueFrom, forkJoin, of, switchMap, throwError } from 'rxjs';
 import { filter, map } from 'rxjs';
 
-import { pdfToImages } from './pdf-images';
-
+import { EventPdfService } from './event-pdf.service';
+import { downloadBlob, slugify } from '../download';
 import { formatDate, formatTime, typeLabel } from '../event-format';
 import type {
   EventItem,
@@ -57,13 +57,6 @@ export interface EventPrintData {
   locations: EventLocation[];
 }
 
-/** Rendered pages (as PNG data URLs) for one setlist position. */
-export interface SheetPages {
-  entryId: number;
-  title: string;
-  sources: string[];
-}
-
 @Component({
   selector: 'app-event-print',
   imports: [RouterLink],
@@ -82,6 +75,7 @@ export class EventPrintComponent implements OnInit {
   private readonly requirementService = inject(EquipmentRequirementService);
   private readonly scheduleService = inject(ScheduleService);
   private readonly locationService = inject(LocationService);
+  private readonly pdfService = inject(EventPdfService);
 
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
@@ -94,11 +88,7 @@ export class EventPrintComponent implements OnInit {
   protected readonly locations = signal<EventLocation[]>([]);
 
   protected readonly includeSetlist = signal(true);
-  protected readonly sheetsLoading = signal(false);
-  protected readonly sheetFiles = signal<SheetPages[]>([]);
-
-  private sheetsTriggered = false;
-  private renderVersion = 0;
+  protected readonly downloading = signal(false);
 
   protected readonly confirmedCount = computed(
     () => this.participations().filter((p) => p.status === 'ACCEPTED').length,
@@ -176,60 +166,10 @@ export class EventPrintComponent implements OnInit {
       [...data.scheduleItems].sort((a, b) => a.time.localeCompare(b.time)),
     );
     this.locations.set(data.locations);
-    this.triggerSheets();
   }
 
   protected setSetlist(include: boolean): void {
-    if (this.includeSetlist() === include) {
-      return;
-    }
     this.includeSetlist.set(include);
-    if (include) {
-      this.sheetsTriggered = true;
-      void this.renderSheets();
-    }
-  }
-
-  private triggerSheets(): void {
-    if (this.includeSetlist() && !this.sheetsTriggered) {
-      this.sheetsTriggered = true;
-      void this.renderSheets();
-    }
-  }
-
-  /**
-   * Downloads the sheet PDF of every setlist entry that has one and renders
-   * its pages so they can be printed in setlist order. A failing sheet is
-   * skipped silently so one broken PDF cannot block the whole printout.
-   */
-  private async renderSheets(): Promise<void> {
-    const version = ++this.renderVersion;
-    this.sheetsLoading.set(true);
-    this.sheetFiles.set([]);
-    const files: SheetPages[] = [];
-    try {
-      if (!this.data()) {
-        const withPdf = this.sortedEntries().filter((e) => e.hasSheetPdf);
-        for (const entry of withPdf) {
-          try {
-            const blob = await firstValueFrom(
-              this.setlistService.downloadSheetPdf(entry.pieceId),
-            );
-            const sources = await pdfToImages(blob);
-            if (version === this.renderVersion) {
-              files.push({ entryId: entry.id, title: entry.pieceTitle, sources });
-            }
-          } catch {
-            // einzelnes fehlerhaftes Notenblatt überspringen
-          }
-        }
-      }
-    } finally {
-      if (version === this.renderVersion) {
-        this.sheetFiles.set(files);
-        this.sheetsLoading.set(false);
-      }
-    }
   }
 
   /**
@@ -274,7 +214,35 @@ export class EventPrintComponent implements OnInit {
 
   protected typeLabel = typeLabel;
 
-  protected print(): void {
-    window.print();
+  /**
+   * Builds the gig-sheet PDF: the formatted info sheet plus, when included,
+   * the original uploaded sheet-music PDFs (full A4 pages, untouched).
+   */
+  protected async download(): Promise<void> {
+    const event = this.event();
+    if (!event || this.downloading()) {
+      return;
+    }
+    this.downloading.set(true);
+    try {
+      const include = this.includeSetlist();
+      const bytes = await this.pdfService.build(
+        {
+          event,
+          participations: this.participations(),
+          entries: include ? this.entries() : [],
+          requirements: this.requirements(),
+          scheduleItems: this.scheduleItems(),
+          locations: this.locations(),
+        },
+        (pieceId) => firstValueFrom(this.setlistService.downloadSheetPdf(pieceId)),
+      );
+      downloadBlob(
+        new Blob([new Uint8Array(bytes)], { type: 'application/pdf' }),
+        `gigflow-${slugify(event.title)}.pdf`,
+      );
+    } finally {
+      this.downloading.set(false);
+    }
   }
 }
