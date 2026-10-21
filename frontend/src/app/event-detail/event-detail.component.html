@@ -846,28 +846,24 @@
                                   <span class="eq__mark" aria-hidden="true">{{ stateMark(requirement.needsToBeBrought) }}</span>
                                   Mitbringen: {{ stateLabel(requirement.needsToBeBrought) }}
                                 </button>
-                                @if (requirement.needsToBeBrought === 'YES' && responsibleName(requirement); as name) {
-                                  <span class="eq__bring-person">&#8594; {{ name }}</span>
-                                }
+                                <label class="sr-only" [for]="'eq-resp-' + requirement.id">
+                                  Person, die das mitbringt: {{ requirement.equipmentName }}
+                                </label>
+                                <select
+                                  class="eq__select"
+                                  [id]="'eq-resp-' + requirement.id"
+                                  [disabled]="requirementsSaving()[requirement.id]"
+                                  (change)="onResponsibleChange(requirement, $any($event.target).value)"
+                                >
+                                  <option value="" [selected]="responsibleValue(requirement) === ''">Ohne Verantwortung</option>
+                                  @for (musician of participations(); track musician.id) {
+                                    <option
+                                      [value]="musician.musicianId"
+                                      [selected]="responsibleValue(requirement) === musician.musicianId"
+                                    >{{ musician.musician?.firstName }} {{ musician.musician?.lastName }}</option>
+                                  }
+                                </select>
                               </div>
-                            </div>
-
-                            <div class="eq__responsible">
-                              <label class="sr-only" [for]="'eq-resp-' + requirement.id">
-                                Verantwortliche Person für {{ requirement.equipmentName }}
-                              </label>
-                              <select
-                                class="eq__select"
-                                [id]="'eq-resp-' + requirement.id"
-                                [value]="responsibleValue(requirement)"
-                                [disabled]="requirementsSaving()[requirement.id]"
-                                (change)="onResponsibleChange(requirement, $any($event.target).value)"
-                              >
-                                <option [value]="''">Ohne Verantwortung</option>
-                                @for (musician of participations(); track musician.id) {
-                                  <option [value]="musician.musicianId">{{ musician.musician?.firstName }} {{ musician.musician?.lastName }}</option>
-                                }
-                              </select>
                             </div>
 
                             <div class="eq__remove">

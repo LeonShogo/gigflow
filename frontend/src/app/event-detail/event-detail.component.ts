@@ -756,21 +756,6 @@ export class EventDetailComponent {
     return requirement.responsibleMusicianId ?? '';
   }
 
-  protected responsibleName(requirement: EquipmentRequirement): string | null {
-    const id = requirement.responsibleMusicianId;
-    if (id == null) {
-      return null;
-    }
-    const participation = this.participations().find((p) => p.musicianId === id);
-    if (!participation?.musician) {
-      return null;
-    }
-    const name = [participation.musician.firstName, participation.musician.lastName]
-      .filter(Boolean)
-      .join(' ');
-    return name || null;
-  }
-
   protected onResponsibleChange(requirement: EquipmentRequirement, value: string): void {
     const id = value === '' ? null : Number(value);
     this.setResponsible(requirement, id);

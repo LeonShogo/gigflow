@@ -1112,12 +1112,14 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  gap: 0.3rem;
+}
 
-  &-person {
-    font-size: 0.78rem;
-    color: var(--ink-soft);
-    padding-left: 0.35rem;
-  }
+.eq__bring .eq__select {
+  width: 100%;
+  max-width: 13rem;
+  font-size: 0.82rem;
+  padding: 0.3rem 0.45rem;
 }
 .eq__chip {
   display: inline-flex;
@@ -1156,11 +1158,6 @@
 .eq__chip:disabled {
   opacity: 0.5;
   cursor: default;
-}
-
-.eq__responsible {
-  min-width: 0;
-  flex: 1 1 auto;
 }
 
 .eq__select:disabled {
