@@ -1,3 +1,4 @@
+import { DOCUMENT } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -7,6 +8,7 @@ import {
   afterNextRender,
   computed,
   effect,
+  inject,
   input,
   output,
   signal,
@@ -25,6 +27,17 @@ interface PdfPage {
 interface SheetViewerState {
   page: number;
   zoom: number | typeof ZOOM_FIT;
+}
+
+interface ScrollLockState {
+  scrollY: number;
+  bodyPosition: string;
+  bodyTop: string;
+  bodyLeft: string;
+  bodyRight: string;
+  bodyWidth: string;
+  bodyOverflow: string;
+  rootOverflow: string;
 }
 
 const ZOOM_FIT = 'fit';
@@ -63,6 +76,8 @@ export class SheetViewerComponent implements OnDestroy {
   readonly pieceId = input<number | null>(null);
   readonly closeRequested = output();
 
+  private readonly document = inject(DOCUMENT);
+
   private readonly pdfDoc = signal<PDFDocumentProxy | null>(null);
   protected readonly pages = signal<PdfPage[]>([]);
   protected readonly pageIndex = signal(0);
@@ -88,11 +103,13 @@ export class SheetViewerComponent implements OnDestroy {
   private touchGestureInvalid = false;
   private resizeTimer: ReturnType<typeof setTimeout> | null = null;
   private swipeTimer: ReturnType<typeof setTimeout> | null = null;
+  private scrollLockState: ScrollLockState | null = null;
 
   @ViewChild('canvas') private readonly canvasRef?: ElementRef<HTMLCanvasElement>;
   @ViewChild('canvasContainer') private readonly canvasContainerRef?: ElementRef<HTMLElement>;
 
   constructor() {
+    this.lockBackgroundScroll();
     afterNextRender(() => void this.open());
     effect(() => {
       const key = this.storageKey();
@@ -109,6 +126,7 @@ export class SheetViewerComponent implements OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.unlockBackgroundScroll();
     if (this.resizeTimer !== null) {
       clearTimeout(this.resizeTimer);
       this.resizeTimer = null;
@@ -279,11 +297,6 @@ export class SheetViewerComponent implements OnDestroy {
     void this.renderPage();
   }
 
-  protected resetZoom(): void {
-    this.zoom.set(1);
-    void this.renderPage();
-  }
-
   protected fitToViewport(): void {
     this.zoom.set(ZOOM_FIT);
     void this.renderPage();
@@ -332,6 +345,51 @@ export class SheetViewerComponent implements OnDestroy {
       return;
     }
     container.scrollBy({ left: deltaX, top: deltaY });
+  }
+
+  private lockBackgroundScroll(): void {
+    const body = this.document.body;
+    const root = this.document.documentElement;
+    const view = this.document.defaultView;
+    const scrollY = view?.scrollY ?? root.scrollTop;
+    this.scrollLockState = {
+      scrollY,
+      bodyPosition: body.style.position,
+      bodyTop: body.style.top,
+      bodyLeft: body.style.left,
+      bodyRight: body.style.right,
+      bodyWidth: body.style.width,
+      bodyOverflow: body.style.overflow,
+      rootOverflow: root.style.overflow,
+    };
+
+    root.style.overflow = 'hidden';
+    body.style.position = 'fixed';
+    body.style.top = `-${scrollY}px`;
+    body.style.left = '0';
+    body.style.right = '0';
+    body.style.width = '100%';
+    body.style.overflow = 'hidden';
+  }
+
+  private unlockBackgroundScroll(): void {
+    const state = this.scrollLockState;
+    if (!state) {
+      return;
+    }
+    this.scrollLockState = null;
+
+    const body = this.document.body;
+    this.document.documentElement.style.overflow = state.rootOverflow;
+    body.style.position = state.bodyPosition;
+    body.style.top = state.bodyTop;
+    body.style.left = state.bodyLeft;
+    body.style.right = state.bodyRight;
+    body.style.width = state.bodyWidth;
+    body.style.overflow = state.bodyOverflow;
+    if (state.scrollY > 0) {
+      this.document.defaultView?.scrollTo(0, state.scrollY);
+    }
   }
 
   private turnPageFromTap(clientX: number): 'next' | 'prev' | null {

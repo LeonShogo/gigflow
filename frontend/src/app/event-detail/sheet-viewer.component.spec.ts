@@ -40,10 +40,14 @@ describe('SheetViewerComponent', () => {
   beforeEach(() => {
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
     localStorage.clear();
+    document.body.removeAttribute('style');
+    document.documentElement.style.overflow = '';
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+    document.body.removeAttribute('style');
+    document.documentElement.style.overflow = '';
   });
 
   async function load(pieceId?: number): Promise<ComponentFixture<SheetViewerComponent>> {
@@ -89,6 +93,41 @@ describe('SheetViewerComponent', () => {
     expect(pageButtons).toHaveLength(2);
     expect(pageButtons[0].disabled).toBe(true);
     expect(pageButtons[1].disabled).toBe(false);
+  });
+
+  it('should lock background scrolling while the viewer is open and restore it on destroy', async () => {
+    document.body.style.position = 'relative';
+    document.body.style.overflow = 'auto';
+    document.documentElement.style.overflow = 'auto';
+
+    const fixture = await load();
+
+    expect(document.body.style.position).toBe('fixed');
+    expect(document.body.style.overflow).toBe('hidden');
+    expect(document.documentElement.style.overflow).toBe('hidden');
+
+    fixture.destroy();
+
+    expect(document.body.style.position).toBe('relative');
+    expect(document.body.style.overflow).toBe('auto');
+    expect(document.documentElement.style.overflow).toBe('auto');
+  });
+
+  it('should keep the three zoom controls together without a duplicate fit button', async () => {
+    localStorage.setItem('gigflow-sheet-7', JSON.stringify({ page: 0, zoom: 'fit' }));
+    const fixture = await load(7);
+    const el: HTMLElement = fixture.nativeElement;
+    const zoomGroup = el.querySelector<HTMLElement>('[aria-label="Zoom"]');
+    const buttons = Array.from(zoomGroup?.querySelectorAll('button') ?? []);
+
+    expect(zoomGroup).not.toBeNull();
+    expect(buttons).toHaveLength(3);
+    expect(buttons.map((button) => button.textContent?.trim())).toEqual(['−', 'Anpassen', '+']);
+    expect(
+      Array.from(el.querySelectorAll('button')).filter(
+        (button) => button.textContent?.trim() === 'Anpassen',
+      ),
+    ).toHaveLength(1);
   });
 
   it('should turn pages with the navigation buttons and disable them at the ends', async () => {

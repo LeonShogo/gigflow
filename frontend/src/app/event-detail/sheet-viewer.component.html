@@ -1,86 +1,82 @@
-<div class="viewer-overlay" role="dialog" aria-label="Notenansicht">
+<div class="viewer-overlay" role="dialog" aria-modal="true" aria-label="Notenansicht">
   <div class="viewer-overlay__bar">
     <span class="viewer-overlay__title">{{ title() || 'Noten' }}</span>
     <div class="viewer-overlay__controls">
-      <button
-        type="button"
-        class="viewer-overlay__btn viewer-overlay__btn--page"
-        (click)="previousPage()"
-        [disabled]="!ready() || pageIndex() === 0"
-        aria-label="Vorherige Seite"
-      >
-        &#8249;
-      </button>
-      @if (ready()) {
-        <span class="viewer-overlay__page" aria-live="polite" aria-atomic="true">
-          {{ currentPage }}/{{ pageCount }}
-        </span>
-      }
-      <button
-        type="button"
-        class="viewer-overlay__btn viewer-overlay__btn--page"
-        (click)="nextPage()"
-        [disabled]="!ready() || pageIndex() >= pageCount - 1"
-        aria-label="Nächste Seite"
-      >
-        &#8250;
-      </button>
-      <button
-        type="button"
-        class="viewer-overlay__btn"
-        (click)="toggleThumbnails()"
-        [disabled]="!ready() || pageCount < 2"
-        [attr.aria-expanded]="thumbnailsOpen()"
-        aria-controls="viewer-thumbnails"
-        aria-label="Seitenübersicht"
-      >
-        &#9638;
-      </button>
-      <button
-        type="button"
-        class="viewer-overlay__btn"
-        (click)="zoomOut()"
-        [disabled]="!ready() || !canZoomOut()"
-        aria-label="Verkleinern"
-      >
-        &minus;
-      </button>
-      <button
-        type="button"
-        class="viewer-overlay__btn"
-        (click)="resetZoom()"
-        [disabled]="!ready()"
-        aria-label="Zoom zurücksetzen"
-      >
-        {{ zoomLabel() }}
-      </button>
-      <button
-        type="button"
-        class="viewer-overlay__btn"
-        (click)="zoomIn()"
-        [disabled]="!ready() || !canZoomIn()"
-        aria-label="Vergrößern"
-      >
-        +
-      </button>
-      <button
-        type="button"
-        class="viewer-overlay__btn"
-        (click)="fitToViewport()"
-        [disabled]="!ready()"
-        aria-label="An Bildschirm anpassen"
-      >
-        Anpassen
-      </button>
-      <button
-        type="button"
-        class="viewer-overlay__btn viewer-overlay__close"
-        (click)="closeRequested.emit()"
-        aria-label="Noten schließen"
-      >
-        &times;
-      </button>
+      <div class="viewer-overlay__group" role="group" aria-label="Seitennavigation">
+        <button
+          type="button"
+          class="viewer-overlay__btn viewer-overlay__btn--page"
+          (click)="previousPage()"
+          [disabled]="!ready() || pageIndex() === 0"
+          aria-label="Vorherige Seite"
+        >
+          &#8249;
+        </button>
+        @if (ready()) {
+          <span class="viewer-overlay__page" aria-live="polite" aria-atomic="true">
+            {{ currentPage }}/{{ pageCount }}
+          </span>
+        }
+        <button
+          type="button"
+          class="viewer-overlay__btn viewer-overlay__btn--page"
+          (click)="nextPage()"
+          [disabled]="!ready() || pageIndex() >= pageCount - 1"
+          aria-label="Nächste Seite"
+        >
+          &#8250;
+        </button>
+        <button
+          type="button"
+          class="viewer-overlay__btn"
+          (click)="toggleThumbnails()"
+          [disabled]="!ready() || pageCount < 2"
+          [attr.aria-expanded]="thumbnailsOpen()"
+          aria-controls="viewer-thumbnails"
+          aria-label="Seitenübersicht"
+        >
+          &#9638;
+        </button>
+      </div>
+
+      <div class="viewer-overlay__group" role="group" aria-label="Zoom">
+        <button
+          type="button"
+          class="viewer-overlay__btn"
+          (click)="zoomOut()"
+          [disabled]="!ready() || !canZoomOut()"
+          aria-label="Verkleinern"
+        >
+          &minus;
+        </button>
+        <button
+          type="button"
+          class="viewer-overlay__btn viewer-overlay__btn--zoom"
+          (click)="fitToViewport()"
+          [disabled]="!ready()"
+          aria-label="An Bildschirm anpassen"
+        >
+          {{ zoomLabel() }}
+        </button>
+        <button
+          type="button"
+          class="viewer-overlay__btn"
+          (click)="zoomIn()"
+          [disabled]="!ready() || !canZoomIn()"
+          aria-label="Vergrößern"
+        >
+          +
+        </button>
+      </div>
     </div>
+    <button
+      type="button"
+      class="viewer-overlay__btn viewer-overlay__close"
+      (click)="closeRequested.emit()"
+      aria-label="Noten schließen"
+    >
+      &times;
+    </button>
   </div>
 
   @if (error(); as message) {

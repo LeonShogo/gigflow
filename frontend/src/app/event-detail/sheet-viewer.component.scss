@@ -11,11 +11,10 @@
 }
 
 .viewer-overlay__bar {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
-  justify-content: space-between;
   gap: var(--space-2);
-  flex-wrap: wrap;
   padding-bottom: var(--space-2);
 }
 
@@ -31,12 +30,20 @@
   align-items: center;
   gap: var(--space-1);
   flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.viewer-overlay__group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: nowrap;
 }
 
 .viewer-overlay__btn {
   min-width: 2.5rem;
   height: 2.5rem;
-  padding: 0 var(--space-2);
+  padding: 0 0.75rem;
   border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: var(--radius);
   background: transparent;
@@ -49,6 +56,11 @@
 .viewer-overlay__btn--page {
   font-size: 1.5rem;
   line-height: 1;
+}
+
+.viewer-overlay__btn--zoom {
+  min-width: 4.75rem;
+  padding-inline: 0.55rem;
 }
 
 .viewer-overlay__page {
@@ -94,7 +106,8 @@
   overflow: auto;
   padding: var(--space-2);
   overscroll-behavior: contain;
-  touch-action: manipulation;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y pinch-zoom;
 }
 
 .viewer-overlay__stage--fits {
@@ -251,30 +264,38 @@
     position: sticky;
     top: 0;
     z-index: 1;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-1);
     background: rgba(0, 0, 0, 0.85);
     padding-bottom: var(--space-2);
   }
 
   .viewer-overlay__title {
-    flex-basis: 100%;
     font-size: 1rem;
-    text-align: center;
+    text-align: left;
   }
 
   .viewer-overlay__controls {
-    flex: 1 1 100%;
-    justify-content: space-between;
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-content: center;
     gap: var(--space-1);
   }
 
   .viewer-overlay__btn {
-    min-width: 2.75rem;
-    height: 2.75rem;
-    padding: 0 var(--space-1);
+    min-width: 2.5rem;
+    height: 2.5rem;
+    padding: 0 0.5rem;
+  }
+
+  .viewer-overlay__btn--zoom {
+    min-width: 4.5rem;
   }
 
   .viewer-overlay__close {
-    min-width: 3rem;
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 2.5rem;
   }
 
   .viewer-overlay__stage {
