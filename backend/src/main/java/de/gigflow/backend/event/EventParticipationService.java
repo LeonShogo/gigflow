@@ -2,6 +2,7 @@ package de.gigflow.backend.event;
 
 import de.gigflow.backend.band.BandMembership;
 import de.gigflow.backend.band.BandMembershipRepository;
+import de.gigflow.backend.band.BandRepository;
 import de.gigflow.backend.musician.Musician;
 import de.gigflow.backend.musician.MusicianRepository;
 import org.springframework.stereotype.Service;
@@ -18,15 +19,18 @@ public class EventParticipationService {
     private final EventRepository eventRepository;
     private final MusicianRepository musicianRepository;
     private final BandMembershipRepository bandMembershipRepository;
+    private final BandRepository bandRepository;
 
     public EventParticipationService(EventParticipationRepository participationRepository,
                                      EventRepository eventRepository,
                                      MusicianRepository musicianRepository,
-                                     BandMembershipRepository bandMembershipRepository) {
+                                     BandMembershipRepository bandMembershipRepository,
+                                     BandRepository bandRepository) {
         this.participationRepository = participationRepository;
         this.eventRepository = eventRepository;
         this.musicianRepository = musicianRepository;
         this.bandMembershipRepository = bandMembershipRepository;
+        this.bandRepository = bandRepository;
     }
 
     public EventParticipationResponseDto createParticipation(EventParticipationRequestDto request) {
@@ -87,19 +91,19 @@ public class EventParticipationService {
     }
 
     /**
-     * Invites every member of the event's band who is not participating yet
+     * Invites every member of the selected band who is not participating yet
      * (status INVITED) and returns the event's full participation list afterwards.
      */
     @Transactional
-    public List<EventParticipationResponseDto> inviteBandMembers(Long eventId) {
+    public List<EventParticipationResponseDto> inviteBandMembers(Long eventId, Long bandId) {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new IllegalArgumentException("Event nicht gefunden: " + eventId));
-        if (event.getBand() == null) {
-            throw new IllegalArgumentException("Event hat keine Band: " + eventId);
+        if (!bandRepository.existsById(bandId)) {
+            throw new IllegalArgumentException("Band nicht gefunden: " + bandId);
         }
 
         List<EventParticipation> created = new ArrayList<>();
-        for (BandMembership membership : bandMembershipRepository.findByBandId(event.getBand().getId())) {
+        for (BandMembership membership : bandMembershipRepository.findByBandId(bandId)) {
             Musician musician = membership.getMusician();
             if (musician == null
                     || participationRepository.existsByEventIdAndMusicianId(eventId, musician.getId())) {

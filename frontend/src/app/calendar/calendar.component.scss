@@ -61,11 +61,120 @@
     box-shadow var(--t-fast) ease;
 }
 
-.cal__export:hover {
+.cal__export:hover:not(:disabled) {
   color: var(--paper-raised);
   background: var(--accent);
   transform: translateY(-1px);
   box-shadow: var(--shadow-sm);
+}
+
+.cal__export:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.cal__select {
+  min-height: 2.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  padding: 0.35rem 0.9rem;
+  cursor: pointer;
+}
+
+.cal__delete {
+  min-height: 2.75rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--danger-ink);
+  background: var(--paper-raised);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-pill);
+  padding: 0.35rem 0.9rem;
+  cursor: pointer;
+  transition:
+    color var(--t-fast) ease,
+    background-color var(--t-fast) ease,
+    border-color var(--t-fast) ease;
+}
+
+.cal__delete:hover:not(:disabled) {
+  background: var(--danger-bg);
+  border-color: var(--danger);
+}
+
+.cal__delete:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.cal__select:focus-visible,
+.cal__delete:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.cal__confirm {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  padding: var(--space-2);
+  background: var(--danger-bg);
+  border: 1px solid var(--danger);
+  border-radius: var(--ctl-radius);
+}
+
+.cal__confirm-text {
+  flex: 1 1 16rem;
+  font-size: 0.9rem;
+  color: var(--danger-ink);
+}
+
+.cal__confirm-btn {
+  padding: 0.5rem 0.9rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  background: var(--paper-raised);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--ctl-radius);
+  cursor: pointer;
+}
+
+.cal__confirm-btn:hover:not(:disabled) {
+  border-color: var(--ink);
+}
+
+.cal__confirm-btn--danger {
+  color: #fff;
+  background: var(--danger);
+  border-color: var(--danger);
+}
+
+.cal__confirm-btn--danger:hover:not(:disabled) {
+  background: var(--danger-ink);
+  border-color: var(--danger-ink);
+}
+
+.cal__confirm-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.cal__feedback {
+  margin-top: var(--space-2);
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.cal__feedback--error {
+  color: var(--danger-ink);
 }
 
 .cal__nav {
@@ -329,7 +438,9 @@
     min-height: 3rem;
   }
 
-  .cal__export {
+  .cal__export,
+  .cal__select,
+  .cal__delete {
     flex: 1 1 auto;
     justify-content: center;
     min-height: 3rem;

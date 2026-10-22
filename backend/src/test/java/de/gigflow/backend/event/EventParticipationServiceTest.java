@@ -3,6 +3,7 @@ package de.gigflow.backend.event;
 import de.gigflow.backend.band.Band;
 import de.gigflow.backend.band.BandMembership;
 import de.gigflow.backend.band.BandMembershipRepository;
+import de.gigflow.backend.band.BandRepository;
 import de.gigflow.backend.musician.Musician;
 import de.gigflow.backend.musician.MusicianRepository;
 import org.junit.jupiter.api.Test;
@@ -33,6 +34,8 @@ class EventParticipationServiceTest {
     private MusicianRepository musicianRepository;
     @Mock
     private BandMembershipRepository bandMembershipRepository;
+    @Mock
+    private BandRepository bandRepository;
 
     @InjectMocks
     private EventParticipationService participationService;
@@ -85,10 +88,9 @@ class EventParticipationServiceTest {
     @Test
     void inviteBandMembersInvitesAllMissingBandMembers() {
         Band band = new Band();
-        band.setId(4L);
+        band.setId(8L);
         Event event = new Event();
         event.setId(10L);
-        event.setBand(band);
 
         Musician anna = new Musician();
         anna.setId(3L);
@@ -107,7 +109,8 @@ class EventParticipationServiceTest {
         m2.setMusician(ben);
 
         when(eventRepository.findById(10L)).thenReturn(Optional.of(event));
-        when(bandMembershipRepository.findByBandId(4L)).thenReturn(List.of(m1, m2));
+        when(bandRepository.existsById(8L)).thenReturn(true);
+        when(bandMembershipRepository.findByBandId(8L)).thenReturn(List.of(m1, m2));
         when(participationRepository.existsByEventIdAndMusicianId(10L, 3L)).thenReturn(true);
         when(participationRepository.existsByEventIdAndMusicianId(10L, 5L)).thenReturn(false);
 
@@ -118,7 +121,7 @@ class EventParticipationServiceTest {
         saved.setStatus(EventParticipationStatus.INVITED);
         when(participationRepository.findByEventId(10L)).thenReturn(List.of(saved));
 
-        var result = participationService.inviteBandMembers(10L);
+        var result = participationService.inviteBandMembers(10L, 8L);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getMusicianId()).isEqualTo(5L);
@@ -127,12 +130,13 @@ class EventParticipationServiceTest {
     }
 
     @Test
-    void inviteBandMembersRejectsEventWithoutBand() {
+    void inviteBandMembersRejectsUnknownBand() {
         Event event = new Event();
         event.setId(10L);
         when(eventRepository.findById(10L)).thenReturn(Optional.of(event));
+        when(bandRepository.existsById(999L)).thenReturn(false);
 
-        assertThatThrownBy(() -> participationService.inviteBandMembers(10L))
+        assertThatThrownBy(() -> participationService.inviteBandMembers(10L, 999L))
                 .isInstanceOf(IllegalArgumentException.class);
         verify(participationRepository, never()).saveAll(anyList());
     }

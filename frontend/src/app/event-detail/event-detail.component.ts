@@ -25,6 +25,7 @@ import { PieceSheetsDialogComponent } from '../setlist/piece-sheets-dialog.compo
 import { SetlistDownloadDialogComponent } from '../setlist/setlist-download-dialog.component';
 import { formatDate, formatTime, formatTimeOnly, repertoireLabel, typeLabel } from '../event-format';
 import type {
+  Band,
   EventItem,
   EventParticipation,
   EventRequest,
@@ -154,7 +155,11 @@ export class EventDetailComponent {
   protected readonly pauseSaving = signal<Record<number, boolean>>({});
   protected readonly participationFeedback = signal<string | null>(null);
   protected readonly participationError = signal<string | null>(null);
-  protected readonly invitingBand = signal(false);
+  protected readonly bandPickerOpen = signal(false);
+  protected readonly bands = signal<Band[]>([]);
+  protected readonly bandsLoading = signal(false);
+  protected readonly bandPickerError = signal<string | null>(null);
+  protected readonly invitingBandId = signal<number | null>(null);
   protected readonly confirmingRemoval = signal<Record<number, boolean>>({});
   protected readonly pickerOpen = signal(false);
   protected readonly musicians = signal<Musician[]>([]);
@@ -339,7 +344,7 @@ export class EventDetailComponent {
   protected readonly locationType = signal<LocationType | ''>('');
   protected readonly locationName = signal('');
   protected readonly locationAddress = signal('');
-  protected readonly locationNote = signal('');
+  protected readonly locationDescription = signal('');
   protected readonly locationPhone = signal('');
   protected readonly locationMapsUrl = signal('');
   protected readonly locationTypes = LOCATION_TYPES;
@@ -496,23 +501,49 @@ export class EventDetailComponent {
     }
   }
 
-  protected inviteBand(): void {
-    const event = this.event();
-    if (!event || this.invitingBand()) {
+  protected openBandPicker(): void {
+    this.bandPickerOpen.set(true);
+    this.bandPickerError.set(null);
+    this.bandsLoading.set(true);
+    this.eventService.loadBands().subscribe({
+      next: (bands) => {
+        this.bands.set(bands);
+        this.bandsLoading.set(false);
+      },
+      error: () => {
+        this.bandsLoading.set(false);
+        this.bandPickerError.set('Bands konnten nicht geladen werden.');
+      },
+    });
+  }
+
+  protected closeBandPicker(): void {
+    if (this.invitingBandId() !== null) {
       return;
     }
-    this.invitingBand.set(true);
+    this.bandPickerOpen.set(false);
+    this.bandPickerError.set(null);
+  }
+
+  protected inviteBand(band: Band): void {
+    const event = this.event();
+    if (!event || this.invitingBandId() !== null) {
+      return;
+    }
+    this.invitingBandId.set(band.id);
     this.participationError.set(null);
     this.participationFeedback.set(null);
-    this.eventService.inviteBandMembers(event.id).subscribe({
+    this.bandPickerError.set(null);
+    this.eventService.inviteBandMembers(event.id, band.id).subscribe({
       next: (participations) => {
         this.participations.set(participations);
-        this.invitingBand.set(false);
+        this.invitingBandId.set(null);
+        this.bandPickerOpen.set(false);
         this.participationFeedback.set('Band-Mitglieder eingeladen.');
       },
       error: (err) => {
-        this.invitingBand.set(false);
-        this.participationError.set(
+        this.invitingBandId.set(null);
+        this.bandPickerError.set(
           err?.error?.message ?? 'Band-Mitglieder konnten nicht eingeladen werden.',
         );
       },
@@ -1134,7 +1165,7 @@ export class EventDetailComponent {
     this.locationType.set(location.type);
     this.locationName.set(location.name);
     this.locationAddress.set(location.address);
-    this.locationNote.set(location.note ?? '');
+    this.locationDescription.set(location.note ?? '');
     this.locationPhone.set(location.phone ?? '');
     this.locationMapsUrl.set(location.mapsUrl ?? '');
     this.locationFormOpen.set(true);
@@ -1150,7 +1181,7 @@ export class EventDetailComponent {
     this.locationType.set('');
     this.locationName.set('');
     this.locationAddress.set('');
-    this.locationNote.set('');
+    this.locationDescription.set('');
     this.locationPhone.set('');
     this.locationMapsUrl.set('');
     this.locationsError.set(null);
@@ -1168,8 +1199,8 @@ export class EventDetailComponent {
     this.locationAddress.set((event.target as HTMLInputElement).value);
   }
 
-  protected onLocationNote(event: Event): void {
-    this.locationNote.set((event.target as HTMLInputElement).value);
+  protected onLocationDescription(event: Event): void {
+    this.locationDescription.set((event.target as HTMLTextAreaElement).value);
   }
 
   protected onLocationPhone(event: Event): void {
@@ -1190,7 +1221,7 @@ export class EventDetailComponent {
       type: this.locationType() as LocationType,
       name: this.locationName().trim(),
       address: this.locationAddress().trim(),
-      note: this.locationNote().trim() || null,
+      note: this.locationDescription().trim() || null,
       phone: this.locationPhone().trim() || null,
       mapsUrl: this.locationMapsUrl().trim() || null,
     };

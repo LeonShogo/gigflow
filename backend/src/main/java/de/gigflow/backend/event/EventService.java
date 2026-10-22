@@ -129,6 +129,18 @@ public class EventService {
     }
 
     /**
+     * Deletes every event including all dependent data. Events already removed
+     * as part of a concert cleanup are skipped because they no longer exist.
+     */
+    @Transactional
+    public void deleteAllEvents() {
+        List<Long> ids = eventRepository.findAll().stream().map(Event::getId).toList();
+        for (Long id : ids) {
+            eventRepository.findById(id).ifPresent(this::deleteEventDeep);
+        }
+    }
+
+    /**
      * Deletes an event together with all of its dependent data so no orphaned or
      * dangling records remain. If the event is a concert, its linked rehearsals
      * are deleted first (they belong to the gig). Each rehearsal is itself an

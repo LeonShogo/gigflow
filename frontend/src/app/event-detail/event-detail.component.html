@@ -114,10 +114,9 @@
                         <button
                           type="button"
                           class="members__add--primary members__invite-band"
-                          (click)="inviteBand()"
-                          [disabled]="invitingBand()"
+                          (click)="openBandPicker()"
                         >
-                          {{ invitingBand() ? 'Wird eingeladen …' : 'Ganze Band einladen' }}
+                          Ganze Band einladen
                         </button>
                         <button type="button" class="members__add" (click)="togglePicker()">
                           Musiker*in hinzufügen
@@ -947,14 +946,15 @@
                           required
                         />
 
-                        <label class="sr-only" for="location-note">Notiz (optional)</label>
-                        <input
-                          id="location-note"
-                          class="picker__input"
-                          [value]="locationNote()"
-                          (input)="onLocationNote($event)"
-                          placeholder="Notiz (optional)"
-                        />
+                        <label class="sr-only" for="location-description">Beschreibung (optional)</label>
+                        <textarea
+                          id="location-description"
+                          class="picker__input locations__description"
+                          rows="3"
+                          [value]="locationDescription()"
+                          (input)="onLocationDescription($event)"
+                          placeholder="Beschreibung (optional)"
+                        ></textarea>
 
                         <label class="sr-only" for="location-phone">Telefonnummer (optional)</label>
                         <input
@@ -1311,6 +1311,44 @@
     </ul>
   }
 
+  </app-modal-dialog>
+}
+
+@if (bandPickerOpen()) {
+  <app-modal-dialog
+    title="Band einladen"
+    [closeOnEscape]="invitingBandId() === null"
+    (closed)="closeBandPicker()"
+  >
+    <p class="panel__note">Wähle die Band aus, deren Mitglieder eingeladen werden sollen.</p>
+    @if (bandsLoading()) {
+      <p class="panel__note">Bands werden geladen …</p>
+    } @else if (bandPickerError(); as message) {
+      <p class="panel__note panel__note--error" role="alert">{{ message }}</p>
+    } @else if (bands().length === 0) {
+      <p class="panel__note">Noch keine Bands angelegt.</p>
+    } @else {
+      <ul class="picker__list">
+        @for (band of bands(); track band.id) {
+          <li class="picker__item">
+            <span class="picker__name">
+              {{ band.name }}
+              @if (band.genre) {
+                <span class="picker__instrument">— {{ band.genre }}</span>
+              }
+            </span>
+            <button
+              type="button"
+              class="picker__add band-invite__button"
+              (click)="inviteBand(band)"
+              [disabled]="invitingBandId() !== null"
+            >
+              {{ invitingBandId() === band.id ? 'Wird eingeladen …' : 'Einladen' }}
+            </button>
+          </li>
+        }
+      </ul>
+    }
   </app-modal-dialog>
 }
 

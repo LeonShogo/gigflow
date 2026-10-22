@@ -129,4 +129,24 @@ class EventServiceTest {
         assertThrows(IllegalArgumentException.class, () -> eventService.deleteEvent(999L));
         verify(eventRepository, never()).delete(any(Event.class));
     }
+
+    @Test
+    void deleteAllEventsRemovesEveryEvent() {
+        Event concert = new Event();
+        concert.setId(5L);
+        Event rehearsal = new Event();
+        rehearsal.setId(7L);
+        rehearsal.setType(EventType.REHEARSAL);
+
+        when(eventRepository.findAll()).thenReturn(List.of(concert, rehearsal));
+        when(eventRepository.findById(5L)).thenReturn(Optional.of(concert));
+        when(eventRepository.findById(7L)).thenReturn(Optional.of(rehearsal));
+        when(eventRepository.findByConcertId(5L)).thenReturn(List.of());
+        when(eventRepository.findByConcertId(7L)).thenReturn(List.of());
+
+        eventService.deleteAllEvents();
+
+        verify(eventRepository).delete(concert);
+        verify(eventRepository).delete(rehearsal);
+    }
 }

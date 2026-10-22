@@ -1390,6 +1390,13 @@
   grid-column: 1 / -1;
 }
 
+.locations__description {
+  grid-column: 1 / -1;
+  min-height: 5rem;
+  font-family: inherit;
+  resize: vertical;
+}
+
 .locations {
   list-style: none;
   margin: 0;

@@ -6,12 +6,32 @@
     </div>
 
     <div class="cal__controls">
+      <select
+        id="cal-export-scope"
+        class="cal__select"
+        aria-label="Exportumfang"
+        [value]="exportScope()"
+        (change)="onExportScopeChange($event)"
+      >
+        <option value="month">Aktueller Monat</option>
+        <option value="all">Alle Termine</option>
+      </select>
       <button
         type="button"
         class="cal__export"
-        (click)="exportAll()"
-        aria-label="Alle Termine als Kalenderdatei exportieren"
-      >&#8681;&nbsp;Export</button>
+        (click)="exportEvents()"
+        [disabled]="eventsToExport().length === 0"
+        aria-label="Ausgewählte Termine als Kalenderdatei exportieren"
+      >&#8681;&nbsp;Exportieren</button>
+      @if (canDeleteAll()) {
+        <button
+          type="button"
+          class="cal__delete"
+          (click)="requestDeleteAll()"
+          [disabled]="deletingAll()"
+          aria-label="Alle Termine löschen"
+        >Alle Termine löschen</button>
+      }
       <button
         type="button"
         class="cal__nav"
@@ -27,6 +47,33 @@
       >&#8250;</button>
     </div>
   </header>
+
+  @if (confirmingDeleteAll()) {
+    <div class="cal__confirm" role="group" aria-label="Alle Termine löschen bestätigen">
+      <span class="cal__confirm-text" role="alert">
+        Alle {{ events().length }} Termine inklusive Proben, Setlists und Teilnahmen löschen?
+      </span>
+      <button
+        type="button"
+        class="cal__confirm-btn"
+        (click)="cancelDeleteAll()"
+        [disabled]="deletingAll()"
+      >Abbrechen</button>
+      <button
+        type="button"
+        class="cal__confirm-btn cal__confirm-btn--danger"
+        (click)="deleteAllEvents()"
+        [disabled]="deletingAll()"
+      >{{ deletingAll() ? 'Wird gelöscht …' : 'Alle löschen' }}</button>
+    </div>
+  }
+
+  @if (deleteAllFeedback(); as feedback) {
+    <p class="cal__feedback" role="status">{{ feedback }}</p>
+  }
+  @if (deleteAllError(); as message) {
+    <p class="cal__feedback cal__feedback--error" role="alert">{{ message }}</p>
+  }
 
   <div class="cal__legend" role="list" aria-label="Legende">
     <span class="cal__legend-item cal__legend-item--concert" role="listitem">Gig</span>

@@ -1858,12 +1858,14 @@ function loadConcertWithLocations(
       locationType: { set(v: string): void };
       locationName: { set(v: string): void };
       locationAddress: { set(v: string): void };
+      locationDescription: { set(v: string): void };
       locationPhone: { set(v: string): void };
       saveLocation(): void;
     };
     comp.locationType.set('HOTEL');
     comp.locationName.set('Hotel Stadt');
     comp.locationAddress.set('Bahnhofstraße 1, 20095 Hamburg');
+    comp.locationDescription.set('Check-in ab 15 Uhr');
     comp.locationPhone.set('040 555 666');
     fixture.detectChanges();
     comp.saveLocation();
@@ -1876,7 +1878,7 @@ function loadConcertWithLocations(
       type: 'HOTEL',
       name: 'Hotel Stadt',
       address: 'Bahnhofstraße 1, 20095 Hamburg',
-      note: null,
+      note: 'Check-in ab 15 Uhr',
       phone: '040 555 666',
       mapsUrl: null,
     });
@@ -1886,7 +1888,7 @@ function loadConcertWithLocations(
       type: 'HOTEL',
       name: 'Hotel Stadt',
       address: 'Bahnhofstraße 1, 20095 Hamburg',
-      note: null,
+      note: 'Check-in ab 15 Uhr',
       phone: '040 555 666',
       mapsUrl: null,
     });
@@ -1916,11 +1918,11 @@ function loadConcertWithLocations(
 
     const comp = fixture.componentInstance as unknown as {
       locationName: { set(v: string): void };
-      locationNote: { set(v: string): void };
+      locationDescription: { set(v: string): void };
       saveLocation(): void;
     };
     comp.locationName.set('Pizzeria Da Miro (Tisch reserviert)');
-    comp.locationNote.set('Tisch für 8 Personen');
+    comp.locationDescription.set('Tisch für 8 Personen');
     fixture.detectChanges();
     comp.saveLocation();
     fixture.detectChanges();
@@ -2105,8 +2107,19 @@ function loadConcertWithLocations(
     ) as HTMLButtonElement;
     expect(invite).toBeTruthy();
     invite.click();
+    httpMock.expectOne('/api/bands').flush([
+      { id: 4, name: 'Hafenrocker', genre: 'Rock' },
+      { id: 8, name: 'Nordlichter', genre: 'Jazz' },
+    ]);
+    fixture.detectChanges();
 
-    const req = httpMock.expectOne('/api/events/1/invite-band');
+    const dialog = fixture.nativeElement.querySelector('app-modal-dialog') as HTMLElement;
+    expect(dialog.textContent).toContain('Hafenrocker');
+    expect(dialog.textContent).toContain('Nordlichter');
+    const bandButtons = dialog.querySelectorAll('.band-invite__button');
+    (bandButtons[1] as HTMLButtonElement).click();
+
+    const req = httpMock.expectOne('/api/events/1/invite-band/8');
     expect(req.request.method).toBe('POST');
     req.flush([
       {
@@ -2122,6 +2135,7 @@ function loadConcertWithLocations(
     const el: HTMLElement = fixture.nativeElement;
     expect(el.textContent).toContain('Band-Mitglieder eingeladen.');
     expect(el.textContent).toContain('Anna Becker');
+    expect(el.querySelector('app-modal-dialog')).toBeNull();
   });
 });
     

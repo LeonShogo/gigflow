@@ -81,12 +81,14 @@ public class EventController {
     }
 
     /**
-     * Invites all musicians of the event's band as INVITED participants.
+     * Invites all musicians of the selected band as INVITED participants.
      */
-    @PostMapping("/{id}/invite-band")
-    public ResponseEntity<List<EventParticipationResponseDto>> inviteBand(@PathVariable Long id) {
+    @PostMapping("/{id}/invite-band/{bandId}")
+    public ResponseEntity<List<EventParticipationResponseDto>> inviteBand(
+            @PathVariable Long id,
+            @PathVariable Long bandId) {
         try {
-            return ResponseEntity.ok(participationService.inviteBandMembers(id));
+            return ResponseEntity.ok(participationService.inviteBandMembers(id, bandId));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         }
@@ -120,6 +122,12 @@ public class EventController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         }
+    }
+
+    @DeleteMapping
+    public ResponseEntity<Void> deleteAllEvents() {
+        eventService.deleteAllEvents();
+        return ResponseEntity.noContent().build();
     }
 
     public static class ErrorBody {

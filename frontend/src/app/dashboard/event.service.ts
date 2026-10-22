@@ -83,9 +83,9 @@ export class EventService {
     return this.http.delete<void>(`/api/memberships/${id}`);
   }
 
-  /** Adds every band member of the event's band as an invited participant. */
-  inviteBandMembers(eventId: number): Observable<EventParticipation[]> {
-    return this.http.post<EventParticipation[]>(`/api/events/${eventId}/invite-band`, {});
+  /** Adds every member of the selected band as an invited participant. */
+  inviteBandMembers(eventId: number, bandId: number): Observable<EventParticipation[]> {
+    return this.http.post<EventParticipation[]>(`/api/events/${eventId}/invite-band/${bandId}`, {});
   }
 
   createEvent(request: EventRequest): Observable<EventItem> {
@@ -98,5 +98,9 @@ export class EventService {
 
   deleteEvent(id: number): Observable<void> {
     return this.http.delete<void>(`/api/events/${id}`);
+  }
+
+  deleteAllEvents(): Observable<void> {
+    return this.http.delete<void>('/api/events');
   }
 }

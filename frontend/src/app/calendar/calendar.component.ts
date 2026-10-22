@@ -7,6 +7,7 @@ import {
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
+import { AuthService } from '../auth/auth.service';
 import type { EventItem } from '../dashboard/event.model';
 import { EventService } from '../dashboard/event.service';
 import { formatTime } from '../event-format';
@@ -39,6 +40,8 @@ const MONTHS = [
 
 const GRID_DAYS = 42;
 
+type ExportScope = 'month' | 'all';
+
 function startOfMonth(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), 1);
 }
@@ -70,11 +73,21 @@ function localKey(date: Date): string {
 })
 export class CalendarComponent {
   private readonly eventService = inject(EventService);
+  private readonly auth = inject(AuthService);
 
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
   protected readonly events = signal<EventItem[]>([]);
   protected readonly cursor = signal<Date>(startOfMonth(new Date()));
+
+  protected readonly exportScope = signal<ExportScope>('month');
+  protected readonly confirmingDeleteAll = signal(false);
+  protected readonly deletingAll = signal(false);
+  protected readonly deleteAllFeedback = signal<string | null>(null);
+  protected readonly deleteAllError = signal<string | null>(null);
+  protected readonly canDeleteAll = computed(
+    () => this.auth.isOrganizer() && this.events().length > 0,
+  );
 
   protected readonly weekdays = WEEKDAYS;
 
@@ -82,6 +95,18 @@ export class CalendarComponent {
     const anchor = this.cursor();
     return `${MONTHS[anchor.getMonth()]} ${anchor.getFullYear()}`;
   });
+
+  protected readonly monthEvents = computed(() => {
+    const anchor = this.cursor();
+    return this.events().filter((event) => {
+      const date = new Date(event.dateTime);
+      return date.getFullYear() === anchor.getFullYear() && date.getMonth() === anchor.getMonth();
+    });
+  });
+
+  protected readonly eventsToExport = computed(() =>
+    this.exportScope() === 'all' ? this.events() : this.monthEvents(),
+  );
 
   protected readonly weeks = computed<CalendarDay[][]>(() => {
     const anchor = this.cursor();
@@ -148,18 +173,59 @@ export class CalendarComponent {
     this.cursor.set(startOfMonth(new Date()));
   }
 
-  /** Exports every loaded event as a single .ics file (Google/Apple/Outlook). */
-  protected exportAll(): void {
-    const events = this.events();
+  protected onExportScopeChange(event: Event): void {
+    this.exportScope.set((event.target as HTMLSelectElement).value as ExportScope);
+  }
+
+  /** Exports the selected scope (current month or all events) as one .ics file. */
+  protected exportEvents(): void {
+    const events = this.eventsToExport();
     if (events.length === 0) {
       return;
     }
     const anchor = this.cursor();
-    const month = String(anchor.getMonth() + 1).padStart(2, '0');
+    const suffix =
+      this.exportScope() === 'all'
+        ? 'alle-termine'
+        : `${anchor.getFullYear()}-${String(anchor.getMonth() + 1).padStart(2, '0')}`;
     downloadIcs(
       buildIcs(events.map((event) => eventToIcal(event))),
-      `gigflow-kalender-${anchor.getFullYear()}-${month}.ics`,
+      `gigflow-kalender-${suffix}.ics`,
     );
+  }
+
+  protected requestDeleteAll(): void {
+    this.deleteAllError.set(null);
+    this.deleteAllFeedback.set(null);
+    this.confirmingDeleteAll.set(true);
+  }
+
+  protected cancelDeleteAll(): void {
+    if (this.deletingAll()) {
+      return;
+    }
+    this.confirmingDeleteAll.set(false);
+  }
+
+  protected deleteAllEvents(): void {
+    if (this.deletingAll()) {
+      return;
+    }
+    this.deletingAll.set(true);
+    this.deleteAllError.set(null);
+    this.deleteAllFeedback.set(null);
+    this.eventService.deleteAllEvents().subscribe({
+      next: () => {
+        this.events.set([]);
+        this.deletingAll.set(false);
+        this.confirmingDeleteAll.set(false);
+        this.deleteAllFeedback.set('Alle Termine gelöscht.');
+      },
+      error: () => {
+        this.deletingAll.set(false);
+        this.deleteAllError.set('Termine konnten nicht gelöscht werden.');
+      },
+    });
   }
 
   protected formatTime = formatTime;
