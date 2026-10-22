@@ -650,9 +650,9 @@
     color var(--t-fast) ease;
 }
 
-.member__status:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
+.member__status:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
 }
 
 .member__status:disabled {
@@ -663,7 +663,7 @@
 .member__status--suggested {
   color: var(--ink-soft);
   border-color: var(--line-strong);
-  background: var(--paper-raised);
+  background: var(--paper-inset);
 }
 
 .member__status--invited {

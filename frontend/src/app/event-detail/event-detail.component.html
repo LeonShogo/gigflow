@@ -129,20 +129,18 @@
                     @if (canSelfJoin()) {
                       <div class="members__self">
                         @if (myParticipation(); as mine) {
-                          <label class="sr-only" for="self-status">Meine Zusage</label>
+                          <label class="sr-only" for="self-status">Mein Status</label>
                           <select
                             id="self-status"
-                            class="member__status"
-                            [class.member__status--suggested]="mine.status === 'SUGGESTED'"
-                            [class.member__status--invited]="mine.status === 'INVITED'"
-                            [class.member__status--accepted]="mine.status === 'ACCEPTED'"
-                            [class.member__status--declined]="mine.status === 'DECLINED'"
+                            [class]="'member__status ' + statusClass(mine.status)"
                             [value]="mine.status"
                             [disabled]="selfSaving()"
                             (change)="changeOwnStatus($any($event.target).value)"
                           >
                             @for (status of statusOptions; track status) {
-                              <option [value]="status">{{ statusLabel(status) }}</option>
+                              <option [value]="status" [class]="statusClass(status)">
+                                {{ statusLabel(status) }}
+                              </option>
                             }
                           </select>
                           <span class="members__self-hint">
@@ -187,18 +185,16 @@
                                 Status von {{ participation.musician?.firstName }} {{ participation.musician?.lastName }}
                               </label>
                               <select
-                                class="member__status"
                                 [id]="'status-' + participation.id"
-                                [class.member__status--suggested]="participation.status === 'SUGGESTED'"
-                                [class.member__status--invited]="participation.status === 'INVITED'"
-                                [class.member__status--accepted]="participation.status === 'ACCEPTED'"
-                                [class.member__status--declined]="participation.status === 'DECLINED'"
+                                [class]="'member__status ' + statusClass(participation.status)"
                                 [value]="participation.status"
                                 [disabled]="pauseSaving()[participation.id]"
                                 (change)="changeStatus(participation, $any($event.target).value)"
                               >
                                 @for (status of statusOptions; track status) {
-                                  <option [value]="status">{{ statusLabel(status) }}</option>
+                                  <option [value]="status" [class]="statusClass(status)">
+                                    {{ statusLabel(status) }}
+                                  </option>
                                 }
                               </select>
 

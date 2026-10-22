@@ -75,48 +75,60 @@
   } @else {
     <ul class="roster">
       @for (musician of musicians(); track musician.id) {
+        @let musicianMemberships = membershipsFor(musician.id);
+        @let availableBands = assignableBands(musician.id);
         <li class="roster__item">
-          <a class="row" [routerLink]="['/musicians', musician.id, 'edit']">
-            <span class="row__name">
-              {{ musician.firstName }} {{ musician.lastName }}
-            </span>
-            <span class="row__instrument">{{ musician.instrument || '—' }}</span>
-            <span class="row__email">{{ musician.email || '—' }}</span>
-          </a>
-
-          @if (canDelete()) {
-            <div class="row__bands">
-              @for (membership of membershipsFor(musician.id); track membership.id) {
-                <span class="band-chip">
-                  {{ bandName()(membership.bandId) }}
-                  <button
-                    type="button"
-                    class="band-chip__remove"
-                    (click)="removeMembership(membership)"
-                    [disabled]="membershipSaving()"
-                    [attr.aria-label]="'Aus Band entfernen: ' + bandName()(membership.bandId)"
-                  >&times;</button>
+          <div class="row">
+            <div class="row__identity">
+              <a class="row__name-link" [routerLink]="['/musicians', musician.id, 'edit']">
+                <span class="row__name">
+                  {{ musician.firstName }} {{ musician.lastName }}
                 </span>
-              }
-              @if (assignableBands(musician.id).length > 0) {
-                <label class="band-add-wrap" [for]="'band-for-' + musician.id">
-                  <span class="band-add__label">Band</span>
-                  <select
-                    class="band-add"
-                    [id]="'band-for-' + musician.id"
-                    [value]="''"
-                    [disabled]="membershipSaving()"
-                    (change)="onAssignBand(musician, $any($event.target).value)"
-                  >
-                    <option value="">Hinzufügen</option>
-                    @for (band of assignableBands(musician.id); track band.id) {
-                      <option [value]="band.id">{{ band.name }}</option>
-                    }
-                  </select>
-                </label>
+              </a>
+
+              @if (musicianMemberships.length > 0 || (canDelete() && availableBands.length > 0)) {
+                <div
+                  class="row__bands"
+                  role="group"
+                  [attr.aria-label]="'Band-Zuordnungen von ' + musicianName(musician)"
+                >
+                  @for (membership of musicianMemberships; track membership.id) {
+                    <span class="band-chip">
+                      {{ bandName()(membership.bandId) }}
+                      @if (canDelete()) {
+                        <button
+                          type="button"
+                          class="band-chip__remove"
+                          (click)="removeMembership(membership)"
+                          [disabled]="membershipSaving()"
+                          [attr.aria-label]="'Aus Band entfernen: ' + bandName()(membership.bandId)"
+                        >&times;</button>
+                      }
+                    </span>
+                  }
+                  @if (canDelete() && availableBands.length > 0) {
+                    <label class="band-add-wrap" [for]="'band-for-' + musician.id">
+                      <span class="sr-only">Band für {{ musicianName(musician) }} hinzufügen</span>
+                      <select
+                        class="band-add"
+                        [id]="'band-for-' + musician.id"
+                        [value]="''"
+                        [disabled]="membershipSaving()"
+                        (change)="onAssignBand(musician, $any($event.target).value)"
+                      >
+                        <option value="">+ Band</option>
+                        @for (band of availableBands; track band.id) {
+                          <option [value]="band.id">{{ band.name }}</option>
+                        }
+                      </select>
+                    </label>
+                  }
+                </div>
               }
             </div>
-          }
+            <span class="row__instrument">{{ musician.instrument || '—' }}</span>
+            <span class="row__email">{{ musician.email || '—' }}</span>
+          </div>
 
           @if (canDelete()) {
             <div class="row__delete-zone">

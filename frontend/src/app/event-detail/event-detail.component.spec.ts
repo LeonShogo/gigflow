@@ -229,8 +229,19 @@ function loadConcertWithLocations(
 
     const options = Array.from(
       (el.querySelector('#status-1') as HTMLSelectElement).options,
-    ).map((option) => option.textContent);
-    expect(options).toEqual(['Vorschlag', 'Eingeladen', 'Zusage', 'Abgesagt']);
+    );
+    expect(options.map((option) => option.textContent?.trim())).toEqual([
+      'Vorschlag',
+      'Eingeladen',
+      'Zusage',
+      'Abgesagt',
+    ]);
+    expect(options.map((option) => option.className)).toEqual([
+      'member__status--suggested',
+      'member__status--invited',
+      'member__status--accepted',
+      'member__status--declined',
+    ]);
   });
 
   it('should save a suggested status', () => {
@@ -866,12 +877,13 @@ function loadConcertWithLocations(
 
     const req = httpMock.expectOne('/api/event-participations');
     expect(req.request.method).toBe('POST');
+    expect(req.request.body.status).toBe('SUGGESTED');
     req.flush({
       id: 9,
       eventId: 1,
       musicianId: 42,
       musician: { id: 42, firstName: 'Ben', lastName: 'Krüger', instrument: 'Gitarre' },
-      status: 'INVITED',
+      status: 'SUGGESTED',
     });
     fixture.detectChanges();
 
@@ -1280,7 +1292,7 @@ function loadConcertWithLocations(
     expect(fixture.nativeElement.querySelector('.rehearsal')).toBeNull();
   });
 
-  it('should offer self-join for an authenticated musician and join via /join', () => {
+  it('should join and keep the own status color synchronized', () => {
     const fixture = setup();
     fixture.detectChanges();
     httpMock.expectOne('/api/events/1').flush(CONCERT);
@@ -1316,6 +1328,24 @@ function loadConcertWithLocations(
 
     expect(fixture.nativeElement.textContent).toContain('Teilnahme bestätigt.');
     expect(fixture.nativeElement.querySelector('.members__self-hint')?.textContent).toContain('Zusage');
+
+    const status = fixture.nativeElement.querySelector('#self-status') as HTMLSelectElement;
+    expect(status.classList).toContain('member__status--accepted');
+    status.value = 'SUGGESTED';
+    status.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    expect(status.value).toBe('SUGGESTED');
+    expect(status.classList).toContain('member__status--suggested');
+    expect(status.classList).not.toContain('member__status--accepted');
+
+    const update = httpMock.expectOne('/api/event-participations/20');
+    expect(update.request.method).toBe('PUT');
+    expect(update.request.body.status).toBe('SUGGESTED');
+    update.flush({ id: 20, eventId: 1, musicianId: 3, status: 'SUGGESTED' });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Dein Status wurde aktualisiert.');
   });
 
   it('should not show the member-management add button for a non-organizer', () => {

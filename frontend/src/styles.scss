@@ -73,11 +73,11 @@
   --space-4: 2.5rem;
   --space-5: 4rem;
 
-  /* Shape — restrained, professional (8–12px), pill only for status */
-  --radius: 10px;
-  --radius-lg: 12px;
+  /* Shape — restrained, professional (4–9px), pill only for status */
+  --radius: 7px;
+  --radius-lg: 9px;
   --radius-pill: 999px;
-  --ctl-radius: 6px;
+  --ctl-radius: 4px;
 }
 
 :root[data-theme="dark"] {

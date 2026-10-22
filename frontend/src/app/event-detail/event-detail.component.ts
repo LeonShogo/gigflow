@@ -82,6 +82,13 @@ const STATUS_LABELS: Record<ParticipationStatus, string> = {
   DECLINED: 'Abgesagt',
 };
 
+const STATUS_CLASSES: Record<ParticipationStatus, string> = {
+  SUGGESTED: 'member__status--suggested',
+  INVITED: 'member__status--invited',
+  ACCEPTED: 'member__status--accepted',
+  DECLINED: 'member__status--declined',
+};
+
 const SCHEDULE_CUSTOM = 'custom';
 
 const SCHEDULE_PRESETS = [
@@ -395,6 +402,10 @@ export class EventDetailComponent {
     return STATUS_LABELS[status];
   }
 
+  protected statusClass(status: ParticipationStatus): string {
+    return STATUS_CLASSES[status];
+  }
+
   protected changeStatus(participation: EventParticipation, value: string): void {
     const status = value as ParticipationStatus;
     if (!status || status === participation.status) {
@@ -539,6 +550,10 @@ export class EventDetailComponent {
     this.selfSaving.set(true);
     this.participationError.set(null);
     this.participationFeedback.set(null);
+    const previous = participation.status;
+    this.participations.update((list) =>
+      list.map((p) => (p.id === participation.id ? { ...p, status } : p)),
+    );
     const request: ParticipationRequest = {
       eventId: participation.eventId,
       musicianId: participation.musicianId,
@@ -550,11 +565,14 @@ export class EventDetailComponent {
         this.participations.update((list) =>
           list.map((p) => (p.id === updated.id ? updated : p)),
         );
-        this.participationFeedback.set('Deine Zusage wurde aktualisiert.');
+        this.participationFeedback.set('Dein Status wurde aktualisiert.');
       },
       error: () => {
         this.selfSaving.set(false);
-        this.participationError.set('Zusage konnte nicht aktualisiert werden.');
+        this.participations.update((list) =>
+          list.map((p) => (p.id === participation.id ? { ...p, status: previous } : p)),
+        );
+        this.participationError.set('Status konnte nicht aktualisiert werden.');
       },
     });
   }
@@ -581,7 +599,7 @@ export class EventDetailComponent {
     this.addingMusicians.update((m) => ({ ...m, [musician.id]: true }));
     this.participationError.set(null);
     this.participationFeedback.set(null);
-    const request: ParticipationRequest = { eventId: event.id, musicianId: musician.id, status: 'INVITED' };
+    const request: ParticipationRequest = { eventId: event.id, musicianId: musician.id, status: 'SUGGESTED' };
     this.participationService.create(request).subscribe({
       next: (created) => {
         this.addingMusicians.update((m) => ({ ...m, [musician.id]: false }));
@@ -614,7 +632,7 @@ export class EventDetailComponent {
       .createMusician({ firstName: first, lastName: last, instrument })
       .subscribe({
         next: (musician) => {
-          const request: ParticipationRequest = { eventId: event.id, musicianId: musician.id, status: 'INVITED' };
+          const request: ParticipationRequest = { eventId: event.id, musicianId: musician.id, status: 'SUGGESTED' };
           this.participationService.create(request).subscribe({
             next: (created) => {
               this.newMusicianSaving.set(false);

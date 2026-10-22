@@ -75,10 +75,10 @@ describe('MusicianListComponent', () => {
     expect((fixture.nativeElement.querySelector('.band-form') as HTMLElement)).toBeNull();
   });
 
-  it('should list musicians', () => {
+  it('should list musicians with assigned bands beside the name', () => {
     const fixture = TestBed.createComponent(MusicianListComponent);
     fixture.detectChanges();
-    flushLoad();
+    flushLoad([{ id: 42, bandId: 1, musicianId: 1 }]);
     fixture.detectChanges();
 
     const el: HTMLElement = fixture.nativeElement;
@@ -87,6 +87,10 @@ describe('MusicianListComponent', () => {
     expect(el.textContent).toContain('Anna Becker');
     expect(el.textContent).toContain('Gesang');
     expect(el.textContent).toContain('anna@example.org');
+    const identity = rows[0].querySelector('.row__identity') as HTMLElement;
+    expect(identity.textContent).toContain('Anna Becker');
+    expect(identity.querySelector('.band-chip')?.textContent).toContain('GigFlow Quartett');
+    expect(identity.querySelector('.band-chip__remove')).toBeNull();
   });
 
   it('should show an error when loading fails', () => {
@@ -300,4 +304,3 @@ describe('MusicianListComponent', () => {
     expect(firstRow.querySelector('.band-chip')).toBeNull();
   });
 });
-
