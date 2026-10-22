@@ -13,19 +13,21 @@
         [disabled]="events().length === 0"
         aria-label="Termine als Kalenderdatei exportieren"
       >&#8681;&nbsp;Exportieren</button>
-      <button
-        type="button"
-        class="cal__nav"
-        (click)="prevMonth()"
-        aria-label="Vorheriger Monat"
-      >&#8249;</button>
-      <button type="button" class="cal__today" (click)="goToday()">Heute</button>
-      <button
-        type="button"
-        class="cal__nav"
-        (click)="nextMonth()"
-        aria-label="Nächster Monat"
-      >&#8250;</button>
+      <div class="cal__nav-group">
+        <button
+          type="button"
+          class="cal__nav"
+          (click)="prevMonth()"
+          aria-label="Vorheriger Monat"
+        >&#8249;</button>
+        <button type="button" class="cal__today" (click)="goToday()">Heute</button>
+        <button
+          type="button"
+          class="cal__nav"
+          (click)="nextMonth()"
+          aria-label="Nächster Monat"
+        >&#8250;</button>
+      </div>
     </div>
   </header>
 

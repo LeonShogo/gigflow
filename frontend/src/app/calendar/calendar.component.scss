@@ -39,6 +39,13 @@
   margin-bottom: 0.15rem;
 }
 
+.cal__nav-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: var(--space-1);
+}
+
 .cal__export {
   display: inline-flex;
   align-items: center;
@@ -206,7 +213,7 @@
 }
 
 .cal__legend-item--rehearsal::before {
-  background: var(--accent-2);
+  background: var(--gold);
 }
 
 .cal__status {
@@ -334,9 +341,9 @@
 }
 
 .cal__event--rehearsal {
-  color: var(--accent-ink);
-  background: var(--accent-soft);
-  border: 1px solid var(--accent-line);
+  color: var(--gold-ink);
+  background: var(--gold-soft);
+  border: 1px solid var(--gold-line);
 }
 
 .cal__time {
@@ -381,6 +388,10 @@
     flex-wrap: wrap;
   }
 
+  .cal__nav-group {
+    width: 100%;
+  }
+
   .cal__nav {
     min-width: 3rem;
   }
@@ -392,7 +403,7 @@
   }
 
   .cal__export {
-    flex: 1 1 auto;
+    flex: 1 1 100%;
     justify-content: center;
     min-height: 3rem;
   }
