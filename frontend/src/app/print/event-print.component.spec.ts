@@ -80,7 +80,7 @@ describe('EventPrintComponent', () => {
       },
     ]);
     httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([
-      { id: 1, setlistId: 10, pieceId: 1, pieceTitle: 'Ode an die Freude', position: 0 },
+      { id: 1, setlistId: 10, pieceId: 1, pieceTitle: 'Ode an die Freude', position: 0, sheets: [] },
     ]);
   }
 
@@ -264,7 +264,7 @@ describe('EventPrintComponent', () => {
       rehearsals: [
         { id: 4, title: 'Generalprobe', type: 'REHEARSAL', dateTime: '2026-09-11T18:00:00' },
       ],
-      entries: [{ id: 1, setlistId: 10, pieceId: 1, pieceTitle: 'Ode an die Freude', position: 0 }],
+      entries: [{ id: 1, setlistId: 10, pieceId: 1, pieceTitle: 'Ode an die Freude', position: 0, sheets: [] }],
       requirements: [
         {
           id: 7,

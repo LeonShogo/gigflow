@@ -3,31 +3,27 @@ export interface Setlist {
   eventId: number;
 }
 
+export interface PieceSheet {
+  id: number;
+  pieceId: number;
+  label: string;
+  originalName: string;
+}
+
 export interface SetlistEntry {
   id: number;
   setlistId: number;
   pieceId: number;
   pieceTitle: string;
   position: number;
-  hasSheetPdf?: boolean;
+  sheets: PieceSheet[];
   hasDemoAudio?: boolean;
   youtubeUrl?: string | null;
-}
-
-export interface PieceRequest {
-  title: string;
 }
 
 export interface Piece {
   id: number;
   title: string;
-  hasSheetPdf?: boolean;
   hasDemoAudio?: boolean;
   youtubeUrl?: string | null;
-}
-
-export interface SetlistEntryRequest {
-  setlistId: number;
-  pieceId: number;
-  position: number;
 }

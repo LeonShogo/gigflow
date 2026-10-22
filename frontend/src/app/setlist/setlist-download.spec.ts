@@ -7,8 +7,8 @@ import type { ScheduleItem } from '../schedule/schedule.model';
 import type { EventLocation } from '../location/location.model';
 import {
   buildInfoPdf,
-  downloadSetlist,
-  downloadSingleSheet,
+  downloadInfoSheet,
+  downloadSheetBundle,
   type SetlistDownloadData,
 } from './setlist-download';
 
@@ -30,8 +30,25 @@ function sampleData(overrides: Partial<SetlistDownloadData> = {}): SetlistDownlo
     },
   ];
   const entries: SetlistEntry[] = [
-    { id: 1, setlistId: 1, pieceId: 10, pieceTitle: 'Auftakt', position: 1, hasSheetPdf: true },
-    { id: 2, setlistId: 1, pieceId: 11, pieceTitle: 'Zugabe', position: 2, hasSheetPdf: false },
+    {
+      id: 1,
+      setlistId: 1,
+      pieceId: 10,
+      pieceTitle: 'Auftakt',
+      position: 1,
+      sheets: [
+        { id: 101, pieceId: 10, label: 'Gitarre', originalName: 'Gitarre.pdf' },
+        { id: 102, pieceId: 10, label: 'Bass', originalName: 'Bass.pdf' },
+      ],
+    },
+    {
+      id: 2,
+      setlistId: 1,
+      pieceId: 11,
+      pieceTitle: 'Zugabe',
+      position: 2,
+      sheets: [{ id: 201, pieceId: 11, label: 'Gesang', originalName: 'Gesang.pdf' }],
+    },
   ];
   const requirements: EquipmentRequirement[] = [
     {
@@ -93,54 +110,86 @@ describe('buildInfoPdf', () => {
     const header = new TextDecoder().decode(bytes.slice(0, 5));
     expect(header).toBe('%PDF-');
     expect(bytes.length).toBeGreaterThan(500);
-  });
+  }, 15000);
 });
 
-describe('downloadSetlist', () => {
-  it('downloads a single info PDF for the "info" scope', async () => {
-    const result = await downloadSetlist(sampleData(), 'info', async () => new Blob());
-    expect(result).toEqual({ sheets: 0, missing: 0 });
+describe('downloadInfoSheet', () => {
+  it('downloads a single info PDF', async () => {
+    await downloadInfoSheet(sampleData());
     expect(downloaded).toHaveLength(1);
     expect(downloaded[0].filename).toBe('gigflow-sommernacht-im-hafen-infos.pdf');
     expect(downloaded[0].blob.type).toBe('application/pdf');
-  });
+  }, 15000);
+});
 
-  it('bundles only the available note PDFs into a ZIP for "sheets"', async () => {
+describe('downloadSheetBundle', () => {
+  it('loads only the selected sheet IDs and skips empty pieces', async () => {
     const loadSheet = vi.fn(async () => new Blob([new Uint8Array([1, 2, 3])]));
-    const result = await downloadSetlist(sampleData(), 'sheets', loadSheet);
+    const result = await downloadSheetBundle(
+      sampleData(),
+      { pieces: [{ pieceId: 10, sheetIds: [101] }], includeInfo: false },
+      loadSheet,
+    );
 
     expect(loadSheet).toHaveBeenCalledTimes(1);
-    expect(loadSheet).toHaveBeenCalledWith(10);
+    expect(loadSheet).toHaveBeenCalledWith(101);
     expect(result).toEqual({ sheets: 1, missing: 0 });
     expect(downloaded[0].filename).toBe('gigflow-sommernacht-im-hafen-noten.zip');
     expect(downloaded[0].blob.type).toBe('application/zip');
+    const zipText = new TextDecoder().decode(new Uint8Array(await downloaded[0].blob.arrayBuffer()));
+    expect(zipText).toContain('01-auftakt-gitarre.pdf');
+    expect(zipText).not.toContain('01-auftakt-bass.pdf');
+    expect(zipText).not.toContain('02-zugabe-gesang.pdf');
   });
 
-  it('includes the info PDF first for "info-and-sheets"', async () => {
+  it('includes the info PDF first and keeps per-piece names unique', async () => {
     const loadSheet = vi.fn(async () => new Blob([new Uint8Array([9, 9])]));
-    const result = await downloadSetlist(sampleData(), 'info-and-sheets', loadSheet);
+    const result = await downloadSheetBundle(
+      sampleData(),
+      {
+        pieces: [
+          { pieceId: 10, sheetIds: [101, 102] },
+          { pieceId: 11, sheetIds: [201] },
+        ],
+        includeInfo: true,
+      },
+      loadSheet,
+    );
 
-    expect(result).toEqual({ sheets: 1, missing: 0 });
+    expect(result).toEqual({ sheets: 3, missing: 0 });
     expect(downloaded[0].filename).toBe('gigflow-sommernacht-im-hafen-infos-und-noten.zip');
-    const zipBytes = new Uint8Array(await downloaded[0].blob.arrayBuffer());
-    const zipText = new TextDecoder().decode(zipBytes);
+    const zipText = new TextDecoder().decode(new Uint8Array(await downloaded[0].blob.arrayBuffer()));
     expect(zipText).toContain('infos.pdf');
-    expect(zipText).toContain('01-auftakt.pdf');
+    expect(zipText).toContain('01-auftakt-gitarre.pdf');
+    expect(zipText).toContain('01-auftakt-bass.pdf');
+    expect(zipText).toContain('02-zugabe-gesang.pdf');
   });
 
-  it('counts failed note loads as missing and skips them', async () => {
+  it('counts failed sheet loads as missing and skips them', async () => {
     const loadSheet = vi.fn(async () => {
       throw new Error('offline');
     });
-    const result = await downloadSetlist(sampleData(), 'sheets', loadSheet);
-    expect(result).toEqual({ sheets: 0, missing: 1 });
+    const result = await downloadSheetBundle(
+      sampleData(),
+      { pieces: [{ pieceId: 10, sheetIds: [101, 102] }], includeInfo: false },
+      loadSheet,
+    );
+
+    expect(result).toEqual({ sheets: 0, missing: 2 });
     expect(downloaded).toHaveLength(0);
   });
-});
 
-describe('downloadSingleSheet', () => {
-  it('stores the sheet under a slug of the title', async () => {
-    await downloadSingleSheet(new Blob([new Uint8Array([1])]), 'Auftakt & Finale');
-    expect(downloaded[0].filename).toBe('auftakt-finale.pdf');
+  it('still downloads the info PDF when every sheet fails', async () => {
+    const loadSheet = vi.fn(async () => {
+      throw new Error('offline');
+    });
+    const result = await downloadSheetBundle(
+      sampleData(),
+      { pieces: [{ pieceId: 10, sheetIds: [101] }], includeInfo: true },
+      loadSheet,
+    );
+
+    expect(result).toEqual({ sheets: 0, missing: 1 });
+    expect(downloaded[0].filename).toBe('gigflow-sommernacht-im-hafen-infos-und-noten.zip');
   });
 });

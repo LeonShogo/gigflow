@@ -1,0 +1,58 @@
+<app-modal-dialog title="Noten herunterladen" [wide]="true" (closed)="close()">
+  <p class="download-intro">Wähle eine Stimme. Stücke ohne passende Stimme werden übersprungen.</p>
+
+  <div class="download-control">
+    <label class="download-label" for="global-part">Stimme</label>
+    <select id="global-part" class="download-select" [value]="globalPart()" (change)="onGlobalPart($event)">
+      <option value="*">Alle Stimmen</option>
+      <option value="-">Keine Noten</option>
+      @for (label of labels(); track label) {
+        <option [value]="label">{{ label }}</option>
+      }
+    </select>
+  </div>
+
+  <label class="download-info">
+    <input type="checkbox" [checked]="includeInfo()" (change)="toggleInfo($event)" />
+    Infoblatt beilegen
+  </label>
+
+  @if (!hasAnySheet()) {
+    <p class="download-empty">Für diese Setlist sind keine Noten hinterlegt.</p>
+  } @else {
+    <ul class="download-list">
+      @for (entry of pieces(); track entry.pieceId; let index = $index) {
+        <li class="download-row">
+          <span class="download-row__title">{{ index + 1 }}. {{ entry.pieceTitle }}</span>
+          <span class="download-row__count">{{ selectedSheets(entry).length }} / {{ entry.sheets.length }}</span>
+          <select
+            class="download-select download-select--row"
+            [value]="overrideValue(entry)"
+            (change)="onOverride(entry.pieceId, $event)"
+            [attr.aria-label]="'Stimme für ' + entry.pieceTitle"
+          >
+            <option value="">Wie oben ({{ effectiveLabel(entry) }})</option>
+            <option value="*">Alle Stimmen</option>
+            <option value="-">Keine</option>
+            @for (label of labels(); track label) {
+              <option [value]="label">{{ label }}</option>
+            }
+          </select>
+        </li>
+      }
+    </ul>
+  }
+
+  <footer class="download-footer">
+    <span class="download-count">{{ selectedCount() }} PDFs</span>
+    <button type="button" class="download-btn" (click)="close()">Abbrechen</button>
+    <button
+      type="button"
+      class="download-btn download-btn--primary"
+      [disabled]="!canDownload() || busy()"
+      (click)="confirm()"
+    >
+      {{ busy() ? 'Packe ZIP …' : 'ZIP herunterladen' }}
+    </button>
+  </footer>
+</app-modal-dialog>

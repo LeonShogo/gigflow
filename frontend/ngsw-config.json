@@ -32,7 +32,7 @@
   "dataGroups": [
     {
       "name": "sheet-pdfs",
-      "urls": ["/api/pieces/*/sheet-pdf"],
+      "urls": ["/api/piece-sheets/*"],
       "cacheConfig": {
         "strategy": "performance",
         "maxSize": 200,

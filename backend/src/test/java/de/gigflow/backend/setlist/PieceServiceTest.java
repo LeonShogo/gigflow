@@ -3,10 +3,12 @@ package de.gigflow.backend.setlist;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.mockito.ArgumentCaptor;
 import org.springframework.mock.web.MockMultipartFile;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -16,6 +18,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class PieceServiceTest {
@@ -24,75 +28,187 @@ class PieceServiceTest {
     Path tempDir;
 
     private PieceRepository pieceRepository;
+    private PieceSheetRepository sheetRepository;
     private PieceService pieceService;
 
     @BeforeEach
     void setUp() {
         pieceRepository = mock(PieceRepository.class);
-        pieceService = new PieceService(pieceRepository, tempDir.toString());
+        sheetRepository = mock(PieceSheetRepository.class);
+        pieceService = new PieceService(pieceRepository, sheetRepository, tempDir.toString());
     }
 
     @Test
-    void saveSheetPdfStoresFileAndMetadata() throws Exception {
-        Piece piece = new Piece();
-        piece.setId(1L);
-        when(pieceRepository.findById(1L)).thenReturn(Optional.of(piece));
-        when(pieceRepository.save(any(Piece.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    void addSheetsStoresFilesAndMetadata() throws Exception {
+        when(pieceRepository.existsById(1L)).thenReturn(true);
+        when(sheetRepository.findByPieceIdOrderBySortOrderAscIdAsc(1L)).thenReturn(List.of());
+        when(sheetRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        PieceResponse response = pieceService.saveSheetPdf(1L, new MockMultipartFile(
-                "file", "Noten.pdf", "application/pdf", new byte[]{37, 80, 68, 70}));
+        List<PieceSheetResponse> created = pieceService.addSheets(1L, List.of(
+                new MockMultipartFile("files", "Gitarre.pdf", "application/pdf", new byte[]{37, 80, 68, 70}),
+                new MockMultipartFile("files", "Bass.pdf", "application/pdf", new byte[]{37, 80, 68, 70})));
 
-        assertTrue(response.getHasSheetPdf());
-        String storedName = piece.getSheetPdfPath();
-        assertTrue(storedName.matches("piece-1-[a-f0-9-]+\\.pdf"));
-        assertTrue(Files.isRegularFile(tempDir.resolve(storedName)));
-        assertEquals("Noten.pdf", piece.getSheetPdfOriginalName());
+        assertEquals(List.of("Gitarre", "Bass"), created.stream().map(PieceSheetResponse::getLabel).toList());
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<PieceSheet>> captor = ArgumentCaptor.forClass(List.class);
+        verify(sheetRepository).saveAll(captor.capture());
+        List<PieceSheet> saved = captor.getValue();
+        assertTrue(saved.get(0).getStoredPath().matches("piece-1-sheet-[a-f0-9-]+\\.pdf"));
+        assertTrue(Files.isRegularFile(tempDir.resolve(saved.get(0).getStoredPath())));
+        assertTrue(Files.isRegularFile(tempDir.resolve(saved.get(1).getStoredPath())));
+        assertEquals(0, saved.get(0).getSortOrder());
+        assertEquals(1, saved.get(1).getSortOrder());
+        assertEquals("Gitarre.pdf", saved.get(0).getOriginalName());
     }
 
     @Test
-    void saveSheetPdfRejectsNonPdf() {
-        Piece piece = new Piece();
-        piece.setId(1L);
-        when(pieceRepository.findById(1L)).thenReturn(Optional.of(piece));
+    void addSheetsUsesDefaultLabelWhenFileNameHasNoUsableStem() {
+        when(pieceRepository.existsById(1L)).thenReturn(true);
+        when(sheetRepository.findByPieceIdOrderBySortOrderAscIdAsc(1L)).thenReturn(List.of());
+        when(sheetRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        List<PieceSheetResponse> created = pieceService.addSheets(1L, List.of(
+                new MockMultipartFile("files", ".pdf", "application/pdf", new byte[]{37, 80, 68, 70})));
+
+        assertEquals("Noten", created.get(0).getLabel());
+    }
+
+    @Test
+    void addSheetsAcceptsPdfContentTypeWithoutFileNameExtension() {
+        when(pieceRepository.existsById(1L)).thenReturn(true);
+        when(sheetRepository.findByPieceIdOrderBySortOrderAscIdAsc(1L)).thenReturn(List.of());
+        when(sheetRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        List<PieceSheetResponse> created = pieceService.addSheets(1L, List.of(
+                new MockMultipartFile("files", "Gitarre", "application/pdf", new byte[]{37, 80, 68, 70})));
+
+        assertEquals("Gitarre", created.get(0).getLabel());
+        assertEquals("Gitarre.pdf", created.get(0).getOriginalName());
+    }
+
+    @Test
+    void addSheetsAppendsAfterExistingOnes() {
+        when(pieceRepository.existsById(1L)).thenReturn(true);
+        PieceSheet existing = sheet(9L, 1L, "Alt", "alt.pdf", 4);
+        when(sheetRepository.findByPieceIdOrderBySortOrderAscIdAsc(1L)).thenReturn(List.of(existing));
+        when(sheetRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        pieceService.addSheets(1L, List.of(
+                new MockMultipartFile("files", "Neu.pdf", "application/pdf", new byte[]{37, 80, 68, 70})));
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<PieceSheet>> captor = ArgumentCaptor.forClass(List.class);
+        verify(sheetRepository).saveAll(captor.capture());
+        assertEquals(5, captor.getValue().get(0).getSortOrder());
+    }
+
+    @Test
+    void addSheetsRejectsNonPdf() {
+        when(pieceRepository.existsById(1L)).thenReturn(true);
 
         MockMultipartFile txt = new MockMultipartFile(
-                "file", "noten.txt", "text/plain", new byte[]{1, 2, 3});
+                "files", "noten.txt", "text/plain", new byte[]{1, 2, 3});
 
-        assertThrows(IllegalArgumentException.class, () -> pieceService.saveSheetPdf(1L, txt));
-        assertNull(piece.getSheetPdfPath());
+        assertThrows(IllegalArgumentException.class, () -> pieceService.addSheets(1L, List.of(txt)));
+        verify(sheetRepository, never()).saveAll(any());
     }
 
     @Test
-    void loadSheetPdfReturnsStoredFile() throws Exception {
-        Files.write(tempDir.resolve("piece-1-abc.pdf"), new byte[]{37, 80, 68, 70});
-        Piece piece = new Piece();
-        piece.setId(1L);
-        piece.setSheetPdfPath("piece-1-abc.pdf");
-        piece.setSheetPdfOriginalName("Noten.pdf");
-        when(pieceRepository.findById(1L)).thenReturn(Optional.of(piece));
+    void addSheetsRejectsUnknownPiece() {
+        when(pieceRepository.existsById(99L)).thenReturn(false);
 
-        Optional<PieceService.SheetPdfFile> loaded = pieceService.loadSheetPdf(1L);
+        assertThrows(IllegalArgumentException.class, () -> pieceService.addSheets(99L, List.of(
+                new MockMultipartFile("files", "Noten.pdf", "application/pdf", new byte[]{1}))));
+    }
+
+    @Test
+    void findSheetsReturnsSheetsInOrder() {
+        when(pieceRepository.existsById(1L)).thenReturn(true);
+        when(sheetRepository.findByPieceIdOrderBySortOrderAscIdAsc(1L)).thenReturn(List.of(
+                sheet(2L, 1L, "Bass", "bass.pdf", 1),
+                sheet(1L, 1L, "Gitarre", "gitarre.pdf", 0)));
+
+        List<PieceSheetResponse> sheets = pieceService.findSheets(1L);
+
+        assertEquals(List.of("Bass", "Gitarre"), sheets.stream().map(PieceSheetResponse::getLabel).toList());
+    }
+
+    @Test
+    void loadSheetReturnsStoredFile() throws Exception {
+        Files.write(tempDir.resolve("piece-1-sheet-abc.pdf"), new byte[]{37, 80, 68, 70});
+        PieceSheet sheet = sheet(7L, 1L, "Gitarre", "Gitarre.pdf", 0);
+        sheet.setStoredPath("piece-1-sheet-abc.pdf");
+        when(sheetRepository.findById(7L)).thenReturn(Optional.of(sheet));
+
+        Optional<PieceService.SheetFile> loaded = pieceService.loadSheet(7L);
 
         assertTrue(loaded.isPresent());
-        assertEquals("Noten.pdf", loaded.get().originalName());
+        assertEquals("Gitarre.pdf", loaded.get().originalName());
     }
 
     @Test
-    void removeSheetPdfDeletesFileAndClearsMetadata() throws Exception {
-        Path saved = tempDir.resolve("piece-1-abc.pdf");
-        Files.write(saved, new byte[]{1, 2, 3});
-        Piece piece = new Piece();
-        piece.setId(1L);
-        piece.setSheetPdfPath("piece-1-abc.pdf");
-        piece.setSheetPdfOriginalName("Noten.pdf");
-        when(pieceRepository.findById(1L)).thenReturn(Optional.of(piece));
-        when(pieceRepository.save(any(Piece.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    void loadSheetReturnsEmptyForMissingRecord() {
+        when(sheetRepository.findById(7L)).thenReturn(Optional.empty());
 
-        pieceService.removeSheetPdf(1L);
+        assertTrue(pieceService.loadSheet(7L).isEmpty());
+    }
+
+    @Test
+    void renameSheetSavesTrimmedLabel() {
+        PieceSheet sheet = sheet(7L, 1L, "Alt", "Gitarre.pdf", 0);
+        when(sheetRepository.findById(7L)).thenReturn(Optional.of(sheet));
+        when(sheetRepository.save(any(PieceSheet.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        PieceSheetResponse response = pieceService.renameSheet(7L, "  Gitarre 1  ");
+
+        assertEquals("Gitarre 1", response.getLabel());
+    }
+
+    @Test
+    void renameSheetRejectsBlankLabel() {
+        when(sheetRepository.findById(7L))
+                .thenReturn(Optional.of(sheet(7L, 1L, "Alt", "alt.pdf", 0)));
+
+        assertThrows(IllegalArgumentException.class, () -> pieceService.renameSheet(7L, "  "));
+    }
+
+    @Test
+    void deleteSheetDeletesFileAndRecord() throws Exception {
+        Path saved = tempDir.resolve("piece-1-sheet-abc.pdf");
+        Files.write(saved, new byte[]{1, 2, 3});
+        PieceSheet sheet = sheet(7L, 1L, "Gitarre", "Gitarre.pdf", 0);
+        sheet.setStoredPath("piece-1-sheet-abc.pdf");
+        when(sheetRepository.findById(7L)).thenReturn(Optional.of(sheet));
+
+        pieceService.deleteSheet(7L);
 
         assertFalse(Files.exists(saved));
-        assertNull(piece.getSheetPdfPath());
-        assertNull(piece.getSheetPdfOriginalName());
+        verify(sheetRepository).delete(sheet);
+    }
+
+    @Test
+    void deletePieceRemovesAllSheets() throws Exception {
+        Piece piece = new Piece();
+        piece.setId(1L);
+        when(pieceRepository.findById(1L)).thenReturn(Optional.of(piece));
+
+        Path first = tempDir.resolve("piece-1-sheet-a.pdf");
+        Path second = tempDir.resolve("piece-1-sheet-b.pdf");
+        Files.write(first, new byte[]{1});
+        Files.write(second, new byte[]{2});
+        PieceSheet a = sheet(7L, 1L, "Gitarre", "Gitarre.pdf", 0);
+        a.setStoredPath("piece-1-sheet-a.pdf");
+        PieceSheet b = sheet(8L, 1L, "Bass", "Bass.pdf", 1);
+        b.setStoredPath("piece-1-sheet-b.pdf");
+        when(sheetRepository.findByPieceIdOrderBySortOrderAscIdAsc(1L)).thenReturn(List.of(a, b));
+
+        pieceService.deletePiece(1L);
+
+        assertFalse(Files.exists(first));
+        assertFalse(Files.exists(second));
+        verify(sheetRepository).deleteAll(List.of(a, b));
+        verify(pieceRepository).deleteById(1L);
     }
 
     @Test
@@ -204,5 +320,16 @@ class PieceServiceTest {
 
         assertThrows(IllegalArgumentException.class,
                 () -> pieceService.setYoutubeUrl(1L, "https://example.com/watch?v=abc"));
+    }
+
+    private PieceSheet sheet(Long id, Long pieceId, String label, String originalName, int sortOrder) {
+        PieceSheet sheet = new PieceSheet();
+        sheet.setId(id);
+        sheet.setPieceId(pieceId);
+        sheet.setLabel(label);
+        sheet.setOriginalName(originalName);
+        sheet.setStoredPath("piece-" + pieceId + "-sheet-" + id + ".pdf");
+        sheet.setSortOrder(sortOrder);
+        return sheet;
     }
 }

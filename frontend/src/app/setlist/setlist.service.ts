@@ -1,9 +1,8 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { catchError, Observable, switchMap } from 'rxjs';
-import { throwError } from 'rxjs';
+import { catchError, Observable, switchMap, throwError } from 'rxjs';
 
-import type { Piece, Setlist, SetlistEntry } from './setlist.model';
+import type { Piece, PieceSheet, Setlist, SetlistEntry } from './setlist.model';
 
 @Injectable({ providedIn: 'root' })
 export class SetlistService {
@@ -56,19 +55,29 @@ export class SetlistService {
     });
   }
 
-  uploadSheetPdf(pieceId: number, file: File): Observable<Piece> {
+  loadSheets(pieceId: number): Observable<PieceSheet[]> {
+    return this.http.get<PieceSheet[]>(`/api/pieces/${pieceId}/sheets`);
+  }
+
+  uploadSheets(pieceId: number, files: File[]): Observable<PieceSheet[]> {
     const formData = new FormData();
-    formData.append('file', file, file.name);
-    return this.http.post<Piece>(`/api/pieces/${pieceId}/sheet-pdf`, formData);
+    for (const file of files) {
+      formData.append('files', file, file.name);
+    }
+    return this.http.post<PieceSheet[]>(`/api/pieces/${pieceId}/sheets`, formData);
   }
 
-  downloadSheetPdf(pieceId: number, download = false): Observable<Blob> {
+  renameSheet(sheetId: number, label: string): Observable<PieceSheet> {
+    return this.http.put<PieceSheet>(`/api/piece-sheets/${sheetId}`, { label });
+  }
+
+  downloadSheet(sheetId: number, download = false): Observable<Blob> {
     const query = download ? '?download=true' : '';
-    return this.http.get(`/api/pieces/${pieceId}/sheet-pdf${query}`, { responseType: 'blob' });
+    return this.http.get(`/api/piece-sheets/${sheetId}${query}`, { responseType: 'blob' });
   }
 
-  removeSheetPdf(pieceId: number): Observable<void> {
-    return this.http.delete<void>(`/api/pieces/${pieceId}/sheet-pdf`);
+  removeSheet(sheetId: number): Observable<void> {
+    return this.http.delete<void>(`/api/piece-sheets/${sheetId}`);
   }
 
   uploadDemoAudio(pieceId: number, file: File): Observable<Piece> {

@@ -9,6 +9,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -19,19 +20,22 @@ public class PieceService {
 
     private static final long MAX_AUDIO_SIZE_BYTES = 10L * 1024 * 1024;
 
-    public record SheetPdfFile(Path path, String originalName) {
+    public record SheetFile(Path path, String originalName) {
     }
 
     public record DemoAudioFile(Path path, String originalName) {
     }
 
     private final PieceRepository pieceRepository;
+    private final PieceSheetRepository sheetRepository;
     private final Path uploadDir;
 
     public PieceService(
             PieceRepository pieceRepository,
+            PieceSheetRepository sheetRepository,
             @Value("${app.sheet-pdf-dir:./uploads/sheet-music}") String uploadDir) {
         this.pieceRepository = pieceRepository;
+        this.sheetRepository = sheetRepository;
         this.uploadDir = Path.of(uploadDir).toAbsolutePath().normalize();
     }
 
@@ -60,50 +64,87 @@ public class PieceService {
 
     public void deletePiece(Long id) {
         pieceRepository.findById(id).ifPresent(piece -> {
-            deleteStoredPdf(piece);
             deleteStoredAudio(piece);
+            List<PieceSheet> sheets = sheetRepository.findByPieceIdOrderBySortOrderAscIdAsc(id);
+            sheets.forEach(sheet -> deleteStoredFile(sheet.getStoredPath()));
+            sheetRepository.deleteAll(sheets);
             pieceRepository.deleteById(id);
         });
     }
 
-    public PieceResponse saveSheetPdf(Long id, MultipartFile file) {
-        Piece piece = pieceRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Stück nicht gefunden: " + id));
-        validatePdf(file);
+    public List<PieceSheetResponse> findSheets(Long pieceId) {
+        requirePiece(pieceId);
+        return sheetRepository.findByPieceIdOrderBySortOrderAscIdAsc(pieceId).stream()
+                .map(PieceSheetResponse::from)
+                .toList();
+    }
+
+    public List<PieceSheetResponse> addSheets(Long pieceId, List<MultipartFile> files) {
+        requirePiece(pieceId);
+        if (files == null || files.isEmpty()) {
+            throw new IllegalArgumentException("Keine Datei hochgeladen");
+        }
+        files.forEach(this::validatePdf);
+
+        List<PieceSheet> existing = sheetRepository.findByPieceIdOrderBySortOrderAscIdAsc(pieceId);
+        int nextOrder = existing.stream().mapToInt(PieceSheet::getSortOrder).max().orElse(-1) + 1;
+        List<PieceSheet> created = new ArrayList<>();
+        List<Path> written = new ArrayList<>();
         try {
             Files.createDirectories(uploadDir);
-            String storedName = "piece-" + id + "-" + UUID.randomUUID() + ".pdf";
-            file.transferTo(uploadDir.resolve(storedName));
-            deleteStoredPdf(piece);
-            piece.setSheetPdfPath(storedName);
-            piece.setSheetPdfOriginalName(sanitizeOriginalName(file.getOriginalFilename()));
-            return PieceResponse.from(pieceRepository.save(piece));
+            for (MultipartFile file : files) {
+                String storedName = "piece-" + pieceId + "-sheet-" + UUID.randomUUID() + ".pdf";
+                Path target = uploadDir.resolve(storedName);
+                file.transferTo(target);
+                written.add(target);
+
+                PieceSheet sheet = new PieceSheet();
+                sheet.setPieceId(pieceId);
+                sheet.setLabel(labelFromFileName(file.getOriginalFilename()));
+                sheet.setOriginalName(sanitizePdfName(file.getOriginalFilename()));
+                sheet.setStoredPath(storedName);
+                sheet.setSortOrder(nextOrder++);
+                created.add(sheet);
+            }
+            return sheetRepository.saveAll(created).stream().map(PieceSheetResponse::from).toList();
         } catch (IOException e) {
+            written.forEach(this::deleteFileQuietly);
             throw new IllegalStateException("PDF konnte nicht gespeichert werden", e);
+        } catch (RuntimeException e) {
+            written.forEach(this::deleteFileQuietly);
+            throw e;
         }
     }
 
-    public Optional<SheetPdfFile> loadSheetPdf(Long id) {
-        return pieceRepository.findById(id).flatMap(piece -> {
-            if (piece.getSheetPdfPath() == null) {
-                return Optional.empty();
-            }
-            Path path = resolveStoredPath(piece.getSheetPdfPath());
+    public Optional<SheetFile> loadSheet(Long sheetId) {
+        return sheetRepository.findById(sheetId).flatMap(sheet -> {
+            Path path = resolveStoredPath(sheet.getStoredPath());
             if (!Files.isRegularFile(path)) {
                 return Optional.empty();
             }
-            return Optional.of(new SheetPdfFile(path, piece.getSheetPdfOriginalName()));
+            return Optional.of(new SheetFile(path, sheet.getOriginalName()));
         });
     }
 
-    public void removeSheetPdf(Long id) {
-        Piece piece = pieceRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Stück nicht gefunden: " + id));
-        if (deleteStoredPdf(piece)) {
-            piece.setSheetPdfPath(null);
-            piece.setSheetPdfOriginalName(null);
-            pieceRepository.save(piece);
+    public PieceSheetResponse renameSheet(Long sheetId, String label) {
+        PieceSheet sheet = sheetRepository.findById(sheetId)
+                .orElseThrow(() -> new IllegalArgumentException("Notenblatt nicht gefunden: " + sheetId));
+        String trimmed = label == null ? "" : label.trim();
+        if (trimmed.isEmpty()) {
+            throw new IllegalArgumentException("Bezeichnung darf nicht leer sein");
         }
+        if (trimmed.length() > 120) {
+            throw new IllegalArgumentException("Bezeichnung ist zu lang (max. 120 Zeichen)");
+        }
+        sheet.setLabel(trimmed);
+        return PieceSheetResponse.from(sheetRepository.save(sheet));
+    }
+
+    public void deleteSheet(Long sheetId) {
+        sheetRepository.findById(sheetId).ifPresent(sheet -> {
+            deleteStoredFile(sheet.getStoredPath());
+            sheetRepository.delete(sheet);
+        });
     }
 
     public PieceResponse saveDemoAudio(Long id, MultipartFile file) {
@@ -204,14 +245,24 @@ public class PieceService {
         }
     }
 
-    private boolean deleteStoredPdf(Piece piece) {
-        if (piece.getSheetPdfPath() == null) {
-            return false;
+    private void requirePiece(Long pieceId) {
+        if (!pieceRepository.existsById(pieceId)) {
+            throw new IllegalArgumentException("Stück nicht gefunden: " + pieceId);
         }
+    }
+
+    private void deleteStoredFile(String storedName) {
+        if (storedName == null) {
+            return;
+        }
+        deleteFileQuietly(resolveStoredPath(storedName));
+    }
+
+    private void deleteFileQuietly(Path path) {
         try {
-            return Files.deleteIfExists(resolveStoredPath(piece.getSheetPdfPath()));
-        } catch (IOException e) {
-            return false;
+            Files.deleteIfExists(path);
+        } catch (IOException ignored) {
+            // A stale file must not block deleting the database record.
         }
     }
 
@@ -223,31 +274,39 @@ public class PieceService {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("Keine Datei hochgeladen");
         }
-        String ext = Optional.ofNullable(file.getOriginalFilename())
-                .map(name -> name.substring(name.lastIndexOf('.')))
-                .orElse("");
-        if (!".pdf".equalsIgnoreCase(ext) && !"application/pdf".equalsIgnoreCase(file.getContentType())) {
+        String name = file.getOriginalFilename();
+        boolean pdfName = name != null && name.toLowerCase(Locale.ROOT).endsWith(".pdf");
+        if (!pdfName && !"application/pdf".equalsIgnoreCase(file.getContentType())) {
             throw new IllegalArgumentException("Nur PDF-Dateien sind erlaubt");
         }
     }
 
-    private String sanitizeOriginalName(String originalName) {
+    private String sanitizePdfName(String originalName) {
         if (originalName == null || originalName.isBlank()) {
             return "noten.pdf";
         }
-        return originalName.toLowerCase(Locale.ROOT).endsWith(".pdf")
-                ? originalName
-                : originalName + ".pdf";
+        String name = originalName.trim();
+        return name.toLowerCase(Locale.ROOT).endsWith(".pdf") ? name : name + ".pdf";
+    }
+
+    private String labelFromFileName(String originalName) {
+        String name = sanitizePdfName(originalName).trim();
+        String label = name.toLowerCase(Locale.ROOT).endsWith(".pdf")
+                ? name.substring(0, name.length() - 4).trim()
+                : name;
+        if (label.isEmpty()) {
+            return "Noten";
+        }
+        return label.length() > 120 ? label.substring(0, 120) : label;
     }
 
     private void validateMp3(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("Keine Datei hochgeladen");
         }
-        String ext = Optional.ofNullable(file.getOriginalFilename())
-                .map(name -> name.substring(name.lastIndexOf('.')))
-                .orElse("");
-        if (!".mp3".equalsIgnoreCase(ext) && !"audio/mpeg".equalsIgnoreCase(file.getContentType())) {
+        String name = file.getOriginalFilename();
+        boolean mp3Name = name != null && name.toLowerCase(Locale.ROOT).endsWith(".mp3");
+        if (!mp3Name && !"audio/mpeg".equalsIgnoreCase(file.getContentType())) {
             throw new IllegalArgumentException("Nur MP3-Dateien sind erlaubt");
         }
         if (file.getSize() > MAX_AUDIO_SIZE_BYTES) {
@@ -259,8 +318,7 @@ public class PieceService {
         if (originalName == null || originalName.isBlank()) {
             return "demoaudio.mp3";
         }
-        return originalName.toLowerCase(Locale.ROOT).endsWith(".mp3")
-                ? originalName
-                : originalName + ".mp3";
+        String name = originalName.trim();
+        return name.toLowerCase(Locale.ROOT).endsWith(".mp3") ? name : name + ".mp3";
     }
 }

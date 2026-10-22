@@ -28,6 +28,9 @@ const REHEARSAL: EventItem = {
 
 const EMPTY_SETLIST = { id: 10, eventId: 1 };
 
+const SHEET_GUITAR = { id: 101, pieceId: 3, label: 'Gitarre', originalName: 'Gitarre.pdf' };
+const SHEET_BASS = { id: 102, pieceId: 3, label: 'Bass', originalName: 'Bass.pdf' };
+
 const DEFAULT_LAYOUT = {
   order: ['members', 'setlist', 'rehearsals', 'equipment', 'locations', 'schedule'],
   collapsed: {},
@@ -75,6 +78,23 @@ function loadConcertWithEntries(
   httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush(entries);
   httpMock.expectOne('/api/equipment-requirements/event/1').flush([])
   httpMock.expectOne('/api/schedule-items/event/1').flush([]);
+  fixture.detectChanges();
+}
+
+/** Logs in as the organizer so management controls become visible. */
+function loginAsOrganizer(fixture: ComponentFixture<EventDetailComponent>): void {
+  const auth = TestBed.inject(AuthService);
+  auth.login({ email: 'o@gigflow.local', password: 'password' }).subscribe();
+  httpMock.expectOne('/api/auth/login').flush({
+    token: 't',
+    user: { id: 1, email: 'o@gigflow.local', organizer: true, musicianId: null },
+  });
+  fixture.detectChanges();
+}
+
+/** Waits for the promise chain triggered by a flushed HTTP response. */
+async function settle(fixture: ComponentFixture<EventDetailComponent>): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve));
   fixture.detectChanges();
 }
 
@@ -234,8 +254,8 @@ function loadConcertWithLocations(
   it('should open the setlist and render pieces in order', () => {
     const fixture = setup();
     loadConcertWithEntries(fixture, [
-      { id: 5, setlistId: 10, pieceId: 3, pieceTitle: 'Hallo Welt', position: 0 },
-      { id: 6, setlistId: 10, pieceId: 4, pieceTitle: 'Nachtfahrt', position: 1 },
+      { id: 5, setlistId: 10, pieceId: 3, pieceTitle: 'Hallo Welt', position: 0, sheets: [] },
+      { id: 6, setlistId: 10, pieceId: 4, pieceTitle: 'Nachtfahrt', position: 1, sheets: [] },
     ]);
 
     const entries = fixture.nativeElement.querySelectorAll('.entry');
@@ -340,7 +360,7 @@ function loadConcertWithLocations(
   it('should require a deliberate hold before dragging on touch devices', () => {
     const fixture = setup();
     loadConcertWithEntries(fixture, [
-      { id: 5, setlistId: 10, pieceId: 3, pieceTitle: 'Hallo Welt', position: 0 },
+      { id: 5, setlistId: 10, pieceId: 3, pieceTitle: 'Hallo Welt', position: 0, sheets: [] },
     ]);
 
     const drags = fixture.debugElement.queryAll(By.directive(CdkDrag));
@@ -459,6 +479,7 @@ function loadConcertWithLocations(
       pieceId: 9,
       pieceTitle: 'Neuer Song',
       position: 0,
+      sheets: [],
     });
     fixture.detectChanges();
 
@@ -488,6 +509,7 @@ function loadConcertWithLocations(
       pieceId: 11,
       pieceTitle: 'Enter-Song',
       position: 0,
+      sheets: [],
     });
     fixture.detectChanges();
 
@@ -499,7 +521,7 @@ function loadConcertWithLocations(
   it('should remove a piece from the setlist', () => {
     const fixture = setup();
     loadConcertWithEntries(fixture, [
-      { id: 5, setlistId: 10, pieceId: 3, pieceTitle: 'Hallo Welt', position: 0 },
+      { id: 5, setlistId: 10, pieceId: 3, pieceTitle: 'Hallo Welt', position: 0, sheets: [] },
     ]);
 
     (fixture.nativeElement.querySelector('.entry__btn--danger') as HTMLButtonElement).click();
@@ -513,8 +535,8 @@ function loadConcertWithLocations(
   it('should move a piece up in the setlist', () => {
     const fixture = setup();
     loadConcertWithEntries(fixture, [
-      { id: 5, setlistId: 10, pieceId: 3, pieceTitle: 'Hallo Welt', position: 0 },
-      { id: 6, setlistId: 10, pieceId: 4, pieceTitle: 'Nachtfahrt', position: 1 },
+      { id: 5, setlistId: 10, pieceId: 3, pieceTitle: 'Hallo Welt', position: 0, sheets: [] },
+      { id: 6, setlistId: 10, pieceId: 4, pieceTitle: 'Nachtfahrt', position: 1, sheets: [] },
     ]);
 
     const secondRow = fixture.nativeElement.querySelectorAll('.entry')[1] as HTMLElement;
@@ -527,6 +549,7 @@ function loadConcertWithLocations(
       pieceId: 4,
       pieceTitle: 'Nachtfahrt',
       position: 0,
+      sheets: [],
     });
     fixture.detectChanges();
     httpMock.expectOne('/api/setlist-entries/5').flush({
@@ -535,6 +558,7 @@ function loadConcertWithLocations(
       pieceId: 3,
       pieceTitle: 'Hallo Welt',
       position: 1,
+      sheets: [],
     });
     fixture.detectChanges();
 
@@ -546,9 +570,9 @@ function loadConcertWithLocations(
   it('should reorder pieces via drag & drop', () => {
     const fixture = setup();
     loadConcertWithEntries(fixture, [
-      { id: 5, setlistId: 10, pieceId: 3, pieceTitle: 'Hallo Welt', position: 0 },
-      { id: 6, setlistId: 10, pieceId: 4, pieceTitle: 'Nachtfahrt', position: 1 },
-      { id: 7, setlistId: 10, pieceId: 2, pieceTitle: 'Feuertanz', position: 2 },
+      { id: 5, setlistId: 10, pieceId: 3, pieceTitle: 'Hallo Welt', position: 0, sheets: [] },
+      { id: 6, setlistId: 10, pieceId: 4, pieceTitle: 'Nachtfahrt', position: 1, sheets: [] },
+      { id: 7, setlistId: 10, pieceId: 2, pieceTitle: 'Feuertanz', position: 2, sheets: [] },
     ]);
 
     const setlistEl = fixture.debugElement.query(By.css('.setlist__entries'));
@@ -572,6 +596,7 @@ function loadConcertWithLocations(
       pieceId: 2,
       pieceTitle: 'Feuertanz',
       position: 0,
+      sheets: [],
     });
     fixture.detectChanges();
     httpMock.expectOne('/api/setlist-entries/5').flush({
@@ -580,6 +605,7 @@ function loadConcertWithLocations(
       pieceId: 3,
       pieceTitle: 'Hallo Welt',
       position: 1,
+      sheets: [],
     });
     fixture.detectChanges();
     httpMock.expectOne('/api/setlist-entries/6').flush({
@@ -588,6 +614,7 @@ function loadConcertWithLocations(
       pieceId: 4,
       pieceTitle: 'Nachtfahrt',
       position: 2,
+      sheets: [],
     });
     fixture.detectChanges();
 
@@ -796,8 +823,8 @@ function loadConcertWithLocations(
     fixture.detectChanges();
 
     expect(comp.pickerOpen()).toBe(true);
-    expect(fixture.nativeElement.querySelector('.picker-dialog [role="dialog"]')).toBeTruthy();
-    expect(fixture.nativeElement.querySelector('.detail .picker-dialog')).toBeNull();
+    expect(fixture.nativeElement.querySelector('app-modal-dialog [role="dialog"]')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.detail app-modal-dialog')).toBeNull();
   });
 
   it('should toggle a requirement status via PUT', () => {
@@ -1265,176 +1292,150 @@ function loadConcertWithLocations(
     expect(fixture.nativeElement.querySelector('.members__add')?.textContent?.trim()).toBe('Ich mache mit');
   });
 
-  it('should show a PDF badge and an open button for a piece with sheet music', () => {
+  it('should show a notes badge and open the sheet manager', () => {
     const fixture = setup();
-    fixture.detectChanges();
-    httpMock.expectOne('/api/events/1').flush(CONCERT);
-    fixture.detectChanges();
-    httpMock.expectOne('/api/event-participations/event/1').flush([]);
-    httpMock.expectOne('/api/events/by-concert/1').flush([]);
-    httpMock.expectOne('/api/setlists/event/1').flush(EMPTY_SETLIST);
-    httpMock.expectOne('/api/events/1/layout').flush(DEFAULT_LAYOUT);
-    httpMock.expectOne('/api/event-locations/event/1').flush([]);
-    fixture.detectChanges();
-    httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([
-      { id: 5, setlistId: 10, pieceId: 3, pieceTitle: 'Hallo Welt', position: 0, hasSheetPdf: true },
-      { id: 6, setlistId: 10, pieceId: 4, pieceTitle: 'Nachtfahrt', position: 1, hasSheetPdf: false },
+    loadConcertWithEntries(fixture, [
+      {
+        id: 5,
+        setlistId: 10,
+        pieceId: 3,
+        pieceTitle: 'Hallo Welt',
+        position: 0,
+        sheets: [SHEET_GUITAR],
+      },
+      { id: 6, setlistId: 10, pieceId: 4, pieceTitle: 'Nachtfahrt', position: 1, sheets: [] },
     ]);
-    httpMock.expectOne('/api/equipment-requirements/event/1').flush([]);
-    httpMock.expectOne('/api/schedule-items/event/1').flush([]);
-    fixture.detectChanges();
-
-    const auth = TestBed.inject(AuthService);
-    auth.login({ email: 'o@gigflow.local', password: 'password' }).subscribe();
-    httpMock.expectOne('/api/auth/login').flush({
-      token: 't',
-      user: { id: 1, email: 'o@gigflow.local', organizer: true, musicianId: null },
-    });
-    fixture.detectChanges();
+    loginAsOrganizer(fixture);
 
     const first = fixture.nativeElement.querySelectorAll('.entry')[0] as HTMLElement;
-    expect(first.querySelector('.entry__sheet')?.textContent?.trim()).toBe('PDF');
-    expect(first.querySelector('.entry__btn--pdf')?.textContent?.trim()).toBe('Öffnen');
+    expect(first.querySelector('.entry__sheet')?.textContent?.trim()).toBe('Noten (1)');
+    expect(first.querySelector('.entry__btn--pdf')?.textContent?.trim()).toBe('Noten');
 
-    const second = fixture.nativeElement.querySelectorAll('.entry')[1] as HTMLElement;
-    expect(second.querySelector('.entry__sheet')).toBeNull();
-    expect(second.querySelector('.entry__btn--pdf')?.textContent?.trim()).toBe('PDF laden');
+    (first.querySelector('.entry__btn--pdf') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('app-piece-sheets-dialog')).toBeTruthy();
+    httpMock.expectOne('/api/pieces/3/sheets').flush([SHEET_GUITAR]);
+    fixture.detectChanges();
+
+    const dialog = fixture.nativeElement.querySelector('app-piece-sheets-dialog') as HTMLElement;
+    expect(dialog.querySelector('.sheet__label')?.textContent?.trim()).toBe('Gitarre');
   });
 
-  it('should upload a sheet PDF and show the badge afterwards', () => {
+  it('should add multiple sheet PDFs through the sheet manager', async () => {
     const fixture = setup();
-    fixture.detectChanges();
-    httpMock.expectOne('/api/events/1').flush(CONCERT);
-    fixture.detectChanges();
-    httpMock.expectOne('/api/event-participations/event/1').flush([]);
-    httpMock.expectOne('/api/events/by-concert/1').flush([]);
-    httpMock.expectOne('/api/setlists/event/1').flush(EMPTY_SETLIST);
-    httpMock.expectOne('/api/events/1/layout').flush(DEFAULT_LAYOUT);
-    httpMock.expectOne('/api/event-locations/event/1').flush([]);
-    fixture.detectChanges();
-    httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([
-      { id: 5, setlistId: 10, pieceId: 3, pieceTitle: 'Hallo Welt', position: 0, hasSheetPdf: false },
+    loadConcertWithEntries(fixture, [
+      { id: 5, setlistId: 10, pieceId: 3, pieceTitle: 'Hallo Welt', position: 0, sheets: [] },
     ]);
-    httpMock.expectOne('/api/equipment-requirements/event/1').flush([]);
-    httpMock.expectOne('/api/schedule-items/event/1').flush([]);
-    fixture.detectChanges();
-
-    const auth = TestBed.inject(AuthService);
-    auth.login({ email: 'o@gigflow.local', password: 'password' }).subscribe();
-    httpMock.expectOne('/api/auth/login').flush({
-      token: 't',
-      user: { id: 1, email: 'o@gigflow.local', organizer: true, musicianId: null },
-    });
-    fixture.detectChanges();
+    loginAsOrganizer(fixture);
 
     const first = fixture.nativeElement.querySelectorAll('.entry')[0] as HTMLElement;
+    expect(first.querySelector('.entry__btn--pdf')?.textContent?.trim()).toBe('PDF laden');
     (first.querySelector('.entry__btn--pdf') as HTMLButtonElement).click();
-
-    const input = fixture.nativeElement.querySelector('input[type="file"]') as HTMLInputElement;
-    const file = new File(['%PDF-1.4'], 'noten.pdf', { type: 'application/pdf' });
-    Object.defineProperty(input, 'files', { value: [file] });
-    input.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    httpMock.expectOne('/api/pieces/3/sheets').flush([]);
     fixture.detectChanges();
 
-    const req = httpMock.expectOne('/api/pieces/3/sheet-pdf');
+    const dialog = fixture.nativeElement.querySelector('app-piece-sheets-dialog') as HTMLElement;
+    const fileInput = dialog.querySelector('input[type="file"]') as HTMLInputElement;
+    const files = [
+      new File(['%PDF-1.4'], 'Gitarre.pdf', { type: 'application/pdf' }),
+      new File(['%PDF-1.4'], 'Bass.pdf', { type: 'application/pdf' }),
+    ];
+    Object.defineProperty(fileInput, 'files', { value: files });
+    fileInput.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    const req = httpMock.expectOne('/api/pieces/3/sheets');
     expect(req.request.method).toBe('POST');
-    req.flush({ id: 3, title: 'Hallo Welt', hasSheetPdf: true });
-    fixture.detectChanges();
+    expect(req.request.body instanceof FormData).toBe(true);
+    req.flush([SHEET_GUITAR, SHEET_BASS]);
+    await settle(fixture);
 
-    expect(fixture.nativeElement.textContent).toContain('Noten hochgeladen.');
-    expect(first.querySelector('.entry__sheet')).toBeTruthy();
+    expect(dialog.textContent).toContain('2 Notenblätter hinzugefügt.');
+    expect(first.querySelector('.entry__sheet')?.textContent?.trim()).toBe('Noten (2)');
   });
 
-  it('should download and open an existing sheet PDF inline', () => {
+  it('should open a selected sheet in the viewer', async () => {
     const fixture = setup();
-    fixture.detectChanges();
-    httpMock.expectOne('/api/events/1').flush(CONCERT);
-    fixture.detectChanges();
-    httpMock.expectOne('/api/event-participations/event/1').flush([]);
-    httpMock.expectOne('/api/events/by-concert/1').flush([]);
-    httpMock.expectOne('/api/setlists/event/1').flush(EMPTY_SETLIST);
-    httpMock.expectOne('/api/events/1/layout').flush(DEFAULT_LAYOUT);
-    httpMock.expectOne('/api/event-locations/event/1').flush([]);
-    fixture.detectChanges();
-    httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([
-      { id: 5, setlistId: 10, pieceId: 3, pieceTitle: 'Hallo Welt', position: 0, hasSheetPdf: true },
+    loadConcertWithEntries(fixture, [
+      {
+        id: 5,
+        setlistId: 10,
+        pieceId: 3,
+        pieceTitle: 'Hallo Welt',
+        position: 0,
+        sheets: [SHEET_GUITAR],
+      },
     ]);
-    httpMock.expectOne('/api/equipment-requirements/event/1').flush([]);
-    httpMock.expectOne('/api/schedule-items/event/1').flush([]);
-    fixture.detectChanges();
-
-    const auth = TestBed.inject(AuthService);
-    auth.login({ email: 'o@gigflow.local', password: 'password' }).subscribe();
-    httpMock.expectOne('/api/auth/login').flush({
-      token: 't',
-      user: { id: 1, email: 'o@gigflow.local', organizer: true, musicianId: null },
-    });
-    fixture.detectChanges();
 
     const first = fixture.nativeElement.querySelectorAll('.entry')[0] as HTMLElement;
     (first.querySelector('.entry__btn--pdf') as HTMLButtonElement).click();
-    const req = httpMock.expectOne('/api/pieces/3/sheet-pdf');
+    fixture.detectChanges();
+    httpMock.expectOne('/api/pieces/3/sheets').flush([SHEET_GUITAR]);
+    fixture.detectChanges();
+
+    const dialog = fixture.nativeElement.querySelector('app-piece-sheets-dialog') as HTMLElement;
+    (dialog.querySelectorAll('.sheet__btn')[0] as HTMLButtonElement).click();
+    const req = httpMock.expectOne('/api/piece-sheets/101');
     expect(req.request.responseType).toBe('blob');
     req.flush(new Blob(['%PDF-1.4'], { type: 'application/pdf' }));
-    fixture.detectChanges();
+    await settle(fixture);
 
-    expect(fixture.nativeElement.textContent).not.toContain('Noten konnten nicht geöffnet werden.');
     expect(fixture.nativeElement.querySelector('app-sheet-viewer')).toBeTruthy();
   });
 
-  it('should download a single sheet PDF as an attachment', () => {
+  it('should download a selected sheet as an attachment', async () => {
     const fixture = setup();
-    fixture.detectChanges();
-    httpMock.expectOne('/api/events/1').flush(CONCERT);
-    fixture.detectChanges();
-    httpMock.expectOne('/api/event-participations/event/1').flush([]);
-    httpMock.expectOne('/api/events/by-concert/1').flush([]);
-    httpMock.expectOne('/api/setlists/event/1').flush(EMPTY_SETLIST);
-    httpMock.expectOne('/api/events/1/layout').flush(DEFAULT_LAYOUT);
-    httpMock.expectOne('/api/event-locations/event/1').flush([]);
-    fixture.detectChanges();
-    httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([
-      { id: 5, setlistId: 10, pieceId: 3, pieceTitle: 'Hallo Welt', position: 0, hasSheetPdf: true },
+    loadConcertWithEntries(fixture, [
+      {
+        id: 5,
+        setlistId: 10,
+        pieceId: 3,
+        pieceTitle: 'Hallo Welt',
+        position: 0,
+        sheets: [SHEET_GUITAR],
+      },
     ]);
-    httpMock.expectOne('/api/equipment-requirements/event/1').flush([]);
-    httpMock.expectOne('/api/schedule-items/event/1').flush([]);
-    fixture.detectChanges();
 
-    const createObjectURL = vi.fn(() => 'blob:mock');
-    const revokeObjectURL = vi.fn();
-    vi.spyOn(URL, 'createObjectURL').mockImplementation(createObjectURL);
-    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(revokeObjectURL);
-    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
+    let savedFilename = '';
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock');
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+      this: HTMLAnchorElement,
+    ) {
+      savedFilename = this.download;
+    });
 
     const first = fixture.nativeElement.querySelectorAll('.entry')[0] as HTMLElement;
-    (first.querySelector('.entry__btn--pdf-download') as HTMLButtonElement).click();
-    const req = httpMock.expectOne('/api/pieces/3/sheet-pdf?download=true');
-    expect(req.request.responseType).toBe('blob');
-    req.flush(new Blob(['%PDF-1.4'], { type: 'application/pdf' }));
+    (first.querySelector('.entry__btn--pdf') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    httpMock.expectOne('/api/pieces/3/sheets').flush([SHEET_GUITAR]);
     fixture.detectChanges();
 
-    expect(click).toHaveBeenCalledTimes(1);
-    expect(fixture.nativeElement.textContent).toContain('„Hallo Welt“ heruntergeladen.');
+    const dialog = fixture.nativeElement.querySelector('app-piece-sheets-dialog') as HTMLElement;
+    (dialog.querySelectorAll('.sheet__btn')[1] as HTMLButtonElement).click();
+    const req = httpMock.expectOne('/api/piece-sheets/101?download=true');
+    expect(req.request.responseType).toBe('blob');
+    req.flush(new Blob(['%PDF-1.4'], { type: 'application/pdf' }));
+    await settle(fixture);
+
+    expect(savedFilename).toBe('Gitarre.pdf');
     vi.restoreAllMocks();
   });
 
   it('should offer setlist downloads and save the info PDF', async () => {
     const fixture = setup();
-    fixture.detectChanges();
-    httpMock.expectOne('/api/events/1').flush(CONCERT);
-    fixture.detectChanges();
-    httpMock.expectOne('/api/event-participations/event/1').flush([]);
-    httpMock.expectOne('/api/events/by-concert/1').flush([]);
-    httpMock.expectOne('/api/setlists/event/1').flush(EMPTY_SETLIST);
-    httpMock.expectOne('/api/events/1/layout').flush(DEFAULT_LAYOUT);
-    httpMock.expectOne('/api/event-locations/event/1').flush([]);
-    fixture.detectChanges();
-    httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([
-      { id: 5, setlistId: 10, pieceId: 3, pieceTitle: 'Hallo Welt', position: 0, hasSheetPdf: true },
+    loadConcertWithEntries(fixture, [
+      {
+        id: 5,
+        setlistId: 10,
+        pieceId: 3,
+        pieceTitle: 'Hallo Welt',
+        position: 0,
+        sheets: [SHEET_GUITAR],
+      },
     ]);
-    httpMock.expectOne('/api/equipment-requirements/event/1').flush([]);
-    httpMock.expectOne('/api/schedule-items/event/1').flush([]);
-    fixture.detectChanges();
 
     let savedFilename = '';
     vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock');
@@ -1464,6 +1465,41 @@ function loadConcertWithLocations(
     expect(savedFilename).toBe('gigflow-hafenrocker-infos.pdf');
     expect(fixture.nativeElement.textContent).toContain('Infos als PDF gespeichert.');
     vi.restoreAllMocks();
+  }, 15000);
+
+  it('should open the sheet download dialog with a voice selection', () => {
+    const fixture = setup();
+    loadConcertWithEntries(fixture, [
+      {
+        id: 5,
+        setlistId: 10,
+        pieceId: 3,
+        pieceTitle: 'Hallo Welt',
+        position: 0,
+        sheets: [SHEET_GUITAR, SHEET_BASS],
+      },
+    ]);
+
+    const toggle = fixture.nativeElement.querySelector(
+      '.setlist__download-btn',
+    ) as HTMLButtonElement;
+    toggle.click();
+    fixture.detectChanges();
+
+    const items = fixture.nativeElement.querySelectorAll(
+      '.setlist__download-item',
+    ) as NodeListOf<HTMLButtonElement>;
+    expect(items.length).toBe(2);
+    expect(items[1].disabled).toBe(false);
+    items[1].click();
+    fixture.detectChanges();
+
+    const dialog = fixture.nativeElement.querySelector(
+      'app-setlist-download-dialog',
+    ) as HTMLElement;
+    expect(dialog).toBeTruthy();
+    expect(dialog.querySelectorAll('.download-row').length).toBe(1);
+    expect(dialog.querySelector('.download-select--row')).toBeTruthy();
   });
 
   it('should show Demo and YouTube badges and play a demo inline', () => {
@@ -1484,7 +1520,7 @@ function loadConcertWithLocations(
         pieceId: 3,
         pieceTitle: 'Hallo Welt',
         position: 0,
-        hasSheetPdf: true,
+        sheets: [],
         hasDemoAudio: true,
         youtubeUrl: 'https://youtu.be/abc123',
       },
@@ -1529,7 +1565,7 @@ function loadConcertWithLocations(
     httpMock.expectOne('/api/event-locations/event/1').flush([]);
     fixture.detectChanges();
     httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([
-      { id: 5, setlistId: 10, pieceId: 3, pieceTitle: 'Hallo Welt', position: 0, hasSheetPdf: false },
+      { id: 5, setlistId: 10, pieceId: 3, pieceTitle: 'Hallo Welt', position: 0, sheets: [] },
     ]);
     httpMock.expectOne('/api/equipment-requirements/event/1').flush([]);
     httpMock.expectOne('/api/schedule-items/event/1').flush([]);
@@ -1548,7 +1584,7 @@ function loadConcertWithLocations(
     (first.querySelector('.entry__btn--audio') as HTMLButtonElement).click();
 
     const inputs = fixture.nativeElement.querySelectorAll('input[type="file"]');
-    const input = inputs[1] as HTMLInputElement;
+    const input = inputs[0] as HTMLInputElement;
     const file = new File(['abc'], 'demo.mp3', { type: 'audio/mpeg' });
     Object.defineProperty(input, 'files', { value: [file] });
     input.dispatchEvent(new Event('change'));
@@ -1575,7 +1611,7 @@ function loadConcertWithLocations(
     httpMock.expectOne('/api/event-locations/event/1').flush([]);
     fixture.detectChanges();
     httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([
-      { id: 5, setlistId: 10, pieceId: 3, pieceTitle: 'Hallo Welt', position: 0, hasDemoAudio: true },
+      { id: 5, setlistId: 10, pieceId: 3, pieceTitle: 'Hallo Welt', position: 0, sheets: [], hasDemoAudio: true },
     ]);
     httpMock.expectOne('/api/equipment-requirements/event/1').flush([]);
     httpMock.expectOne('/api/schedule-items/event/1').flush([]);
@@ -1612,7 +1648,7 @@ function loadConcertWithLocations(
     httpMock.expectOne('/api/event-locations/event/1').flush([]);
     fixture.detectChanges();
     httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([
-      { id: 5, setlistId: 10, pieceId: 3, pieceTitle: 'Hallo Welt', position: 0 },
+      { id: 5, setlistId: 10, pieceId: 3, pieceTitle: 'Hallo Welt', position: 0, sheets: [] },
     ]);
     httpMock.expectOne('/api/equipment-requirements/event/1').flush([]);
     httpMock.expectOne('/api/schedule-items/event/1').flush([]);

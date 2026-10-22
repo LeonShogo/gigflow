@@ -17,8 +17,11 @@ export interface SetlistDownloadData {
   locations: EventLocation[];
 }
 
-/** The three concert-wide download scopes. */
-export type SetlistDownloadScope = 'info' | 'info-and-sheets' | 'sheets';
+/** Per-piece sheet selection for the bundled ZIP download. */
+export interface SheetSelection {
+  pieces: { pieceId: number; sheetIds: number[] }[];
+  includeInfo: boolean;
+}
 
 const STATUS_LABELS: Record<ParticipationStatus, string> = {
   INVITED: 'Eingeladen',
@@ -159,7 +162,7 @@ export async function buildInfoDocument(data: SetlistDownloadData): Promise<PDFD
       headingBlock(
         'Setlist',
         sortedEntries.map((entry, index) => {
-          const sheet = entry.hasSheetPdf ? ' · Noten' : '';
+          const sheet = entry.sheets.length > 0 ? ' · Noten' : '';
           return `${index + 1}. ${entry.pieceTitle}${sheet}`;
         }),
       ),
@@ -316,61 +319,83 @@ function sanitize(value: string): string {
   return value.replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"').replace(/[\u2013\u2014]/g, '-');
 }
 
+/** Downloads the formatted gig sheet as a standalone PDF. */
+export async function downloadInfoSheet(data: SetlistDownloadData): Promise<void> {
+  const bytes = await buildInfoPdf(data);
+  downloadBlob(
+    new Blob([new Uint8Array(bytes)], { type: 'application/pdf' }),
+    `gigflow-${slugify(data.event.title)}-infos.pdf`,
+  );
+}
+
 /**
- * Downloads a setlist scope as a file.
- * - `info`: a single gig-sheet PDF
- * - `sheets`: a ZIP with one PDF per setlist entry that has notes
- * - `info-and-sheets`: a ZIP with the gig sheet plus all note PDFs
- *
- * Note PDFs are fetched via the given loader so callers stay in control of
- * error handling and caching.
+ * Downloads the selected note sheets as a ZIP, optionally prefixed with the
+ * gig-sheet PDF. Note PDFs are fetched via the given loader so callers stay in
+ * control of error handling and caching.
  */
-export async function downloadSetlist(
+export async function downloadSheetBundle(
   data: SetlistDownloadData,
-  scope: SetlistDownloadScope,
-  loadSheet: (pieceId: number) => Promise<Blob>,
+  selection: SheetSelection,
+  loadSheet: (sheetId: number) => Promise<Blob>,
 ): Promise<{ sheets: number; missing: number }> {
   const base = `gigflow-${slugify(data.event.title)}`;
   const sortedEntries = [...data.entries].sort((a, b) => a.position - b.position);
-  const withSheets = sortedEntries.filter((e) => e.hasSheetPdf);
-
-  if (scope === 'info') {
-    const pdf = await buildInfoPdf(data);
-    downloadBlob(new Blob([new Uint8Array(pdf)], { type: 'application/pdf' }), `${base}-infos.pdf`);
-    return { sheets: 0, missing: 0 };
-  }
-
+  const usedNames = new Set<string>();
   const files: { name: string; data: Uint8Array }[] = [];
   let missing = 0;
-  let index = 0;
-  for (const entry of withSheets) {
-    index += 1;
-    try {
-      const blob = await loadSheet(entry.pieceId);
-      files.push({
-        name: `${String(index).padStart(2, '0')}-${slugify(entry.pieceTitle)}.pdf`,
-        data: new Uint8Array(await blob.arrayBuffer()),
-      });
-    } catch {
-      missing += 1;
+
+  for (const [index, entry] of sortedEntries.entries()) {
+    const choice = selection.pieces.find((piece) => piece.pieceId === entry.pieceId);
+    if (!choice || choice.sheetIds.length === 0) {
+      continue;
+    }
+    for (const sheet of entry.sheets) {
+      if (!choice.sheetIds.includes(sheet.id)) {
+        continue;
+      }
+      try {
+        const blob = await loadSheet(sheet.id);
+        const name = uniqueFileName(
+          `${String(index + 1).padStart(2, '0')}-${slugify(entry.pieceTitle)}-${slugify(sheet.label)}.pdf`,
+          usedNames,
+        );
+        files.push({ name, data: new Uint8Array(await blob.arrayBuffer()) });
+      } catch {
+        missing += 1;
+      }
     }
   }
 
-  if (scope === 'info-and-sheets') {
-    const pdf = await buildInfoPdf(data);
-    files.unshift({ name: 'infos.pdf', data: pdf });
+  const sheets = files.length;
+  if (selection.includeInfo) {
+    files.unshift({ name: 'infos.pdf', data: await buildInfoPdf(data) });
   }
 
   if (files.length === 0) {
     return { sheets: 0, missing };
   }
 
-  const suffix = scope === 'sheets' ? 'noten' : 'infos-und-noten';
-  downloadBlob(createZip(files), `${base}-${suffix}.zip`);
-  return { sheets: withSheets.length - missing, missing };
+  downloadBlob(
+    createZip(files),
+    `${base}-${selection.includeInfo ? 'infos-und-noten' : 'noten'}.zip`,
+  );
+  return { sheets, missing };
 }
 
-/** Downloads a single piece's sheet music as a PDF file. */
-export async function downloadSingleSheet(blob: Blob, pieceTitle: string): Promise<void> {
-  downloadBlob(blob, `${slugify(pieceTitle)}.pdf`);
+function uniqueFileName(name: string, used: Set<string>): string {
+  if (!used.has(name)) {
+    used.add(name);
+    return name;
+  }
+  const dot = name.lastIndexOf('.');
+  const stem = dot > 0 ? name.slice(0, dot) : name;
+  const extension = dot > 0 ? name.slice(dot) : '';
+  let counter = 2;
+  let candidate = `${stem}-${counter}${extension}`;
+  while (used.has(candidate)) {
+    counter += 1;
+    candidate = `${stem}-${counter}${extension}`;
+  }
+  used.add(candidate);
+  return candidate;
 }

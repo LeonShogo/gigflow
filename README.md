@@ -74,7 +74,7 @@ Das kostenlose Testdeployment verwendet ein flüchtiges Container-Dateisystem. H
 | `/api/memberships` | Band-Mitgliedschaften |
 | `/api/events` | Konzerte & Proben, Teilnahmen, Panel-Layout |
 | `/api/musicians` | Musiker:innen-Profile |
-| `/api/setlists` & `/api/pieces` | Setlisten, Stücke, Noten-PDFs |
+| `/api/setlists`, `/api/pieces` & `/api/piece-sheets` | Setlisten, Stücke, mehrere Noten-Stimmen pro Stück |
 | `/api/equipment` & `/api/equipment-requirements` | Equipment-Katalog & Eventspezifische Anforderungen |
 | `/api/schedule-items` | Zeitplan / Ablauf eines Events |
 

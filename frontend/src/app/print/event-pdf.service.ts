@@ -12,22 +12,21 @@ import type { SetlistDownloadData } from '../setlist/setlist-download';
 export class EventPdfService {
   async build(
     data: SetlistDownloadData,
-    loadSheet: (pieceId: number) => Promise<Blob>,
+    loadSheet: (sheetId: number) => Promise<Blob>,
   ): Promise<Uint8Array> {
     const { PDFDocument } = await import('pdf-lib');
     const doc = await buildInfoDocument(data);
 
     const entries = [...data.entries].sort((a, b) => a.position - b.position);
     for (const entry of entries) {
-      if (!entry.hasSheetPdf) {
-        continue;
-      }
-      try {
-        const source = await PDFDocument.load(await (await loadSheet(entry.pieceId)).arrayBuffer());
-        const pages = await doc.copyPages(source, source.getPageIndices());
-        pages.forEach((page) => doc.addPage(page));
-      } catch {
-        // ein einzelnes fehlerhaftes Notenblatt darf das PDF nicht blockieren
+      for (const sheet of entry.sheets) {
+        try {
+          const source = await PDFDocument.load(await (await loadSheet(sheet.id)).arrayBuffer());
+          const pages = await doc.copyPages(source, source.getPageIndices());
+          pages.forEach((page) => doc.addPage(page));
+        } catch {
+          // ein einzelnes fehlerhaftes Notenblatt darf das PDF nicht blockieren
+        }
       }
     }
 

@@ -14,6 +14,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -22,7 +23,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(PieceController.class)
@@ -45,69 +45,55 @@ class PieceControllerTest {
     Path tempDir;
 
     @Test
-    void uploadedPdfShouldReturnUpdatedPiece() throws Exception {
-        PieceResponse updated = new PieceResponse();
-        updated.setId(1L);
-        updated.setTitle("Hallo Welt");
-        updated.setHasSheetPdf(true);
-        when(pieceService.saveSheetPdf(eq(1L), any())).thenReturn(updated);
+    void uploadedSheetsShouldReturnCreatedList() throws Exception {
+        PieceSheetResponse first = sheetResponse(7L, 1L, "Gitarre");
+        PieceSheetResponse second = sheetResponse(8L, 1L, "Bass");
+        when(pieceService.addSheets(eq(1L), any())).thenReturn(List.of(first, second));
 
-        MockMultipartFile file = new MockMultipartFile(
-                "file", "noten.pdf", "application/pdf", new byte[]{1, 2, 3});
+        MockMultipartFile guitar = new MockMultipartFile(
+                "files", "Gitarre.pdf", "application/pdf", new byte[]{1, 2, 3});
+        MockMultipartFile bass = new MockMultipartFile(
+                "files", "Bass.pdf", "application/pdf", new byte[]{1, 2, 3});
 
-        mockMvc.perform(multipart("/api/pieces/1/sheet-pdf").file(file))
-                .andExpect(status().isOk())
-                .andExpect(content().json("{\"id\":1,\"title\":\"Hallo Welt\",\"hasSheetPdf\":true}"));
+        mockMvc.perform(multipart("/api/pieces/1/sheets").file(guitar).file(bass))
+                .andExpect(status().isCreated())
+                .andExpect(content().json("""
+                        [
+                          {"id":7,"pieceId":1,"label":"Gitarre","originalName":"Gitarre.pdf"},
+                          {"id":8,"pieceId":1,"label":"Bass","originalName":"Bass.pdf"}
+                        ]
+                        """));
     }
 
     @Test
-    void invalidFileShouldReturnBadRequest() throws Exception {
-        when(pieceService.saveSheetPdf(eq(1L), any()))
+    void invalidSheetFileShouldReturnBadRequest() throws Exception {
+        when(pieceService.addSheets(eq(1L), any()))
                 .thenThrow(new IllegalArgumentException("Nur PDF-Dateien sind erlaubt"));
 
         MockMultipartFile file = new MockMultipartFile(
-                "file", "noten.txt", "text/plain", new byte[]{1, 2, 3});
+                "files", "noten.txt", "text/plain", new byte[]{1, 2, 3});
 
-        mockMvc.perform(multipart("/api/pieces/1/sheet-pdf").file(file))
+        mockMvc.perform(multipart("/api/pieces/1/sheets").file(file))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
-    void missingPdfShouldReturnNotFound() throws Exception {
-        when(pieceService.loadSheetPdf(1L)).thenReturn(java.util.Optional.empty());
+    void sheetsOfUnknownPieceShouldReturnNotFound() throws Exception {
+        when(pieceService.findSheets(99L))
+                .thenThrow(new IllegalArgumentException("Stück nicht gefunden: 99"));
 
-        mockMvc.perform(get("/api/pieces/1/sheet-pdf"))
+        mockMvc.perform(get("/api/pieces/99/sheets"))
                 .andExpect(status().isNotFound());
     }
 
     @Test
-    void existingPdfShouldBeDownloaded() throws Exception {
-        Path pdf = tempDir.resolve("piece-1.pdf");
-        byte[] bytes = new byte[]{37, 80, 68, 70, 45};
-        Files.write(pdf, bytes);
-        when(pieceService.loadSheetPdf(1L))
-                .thenReturn(java.util.Optional.of(new PieceService.SheetPdfFile(pdf, "noten.pdf")));
+    void sheetsShouldBeListed() throws Exception {
+        when(pieceService.findSheets(1L)).thenReturn(List.of(sheetResponse(7L, 1L, "Gitarre")));
 
-        mockMvc.perform(get("/api/pieces/1/sheet-pdf"))
+        mockMvc.perform(get("/api/pieces/1/sheets"))
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_PDF))
-                .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.startsWith("inline")))
-                .andExpect(content().bytes(bytes));
-    }
-
-    @Test
-    void existingPdfWithDownloadParamShouldBeAttachment() throws Exception {
-        Path pdf = tempDir.resolve("piece-1.pdf");
-        byte[] bytes = new byte[]{37, 80, 68, 70, 45};
-        Files.write(pdf, bytes);
-        when(pieceService.loadSheetPdf(1L))
-                .thenReturn(java.util.Optional.of(new PieceService.SheetPdfFile(pdf, "noten.pdf")));
-
-        mockMvc.perform(get("/api/pieces/1/sheet-pdf").param("download", "true"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_PDF))
-                .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.startsWith("attachment")))
-                .andExpect(content().bytes(bytes));
+                .andExpect(content().json(
+                        "[{\"id\":7,\"pieceId\":1,\"label\":\"Gitarre\",\"originalName\":\"Gitarre.pdf\"}]"));
     }
 
     @Test
@@ -185,5 +171,14 @@ class PieceControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"youtubeUrl\":\"https://example.com\"}"))
                 .andExpect(status().isBadRequest());
+    }
+
+    private PieceSheetResponse sheetResponse(Long id, Long pieceId, String label) {
+        PieceSheetResponse response = new PieceSheetResponse();
+        response.setId(id);
+        response.setPieceId(pieceId);
+        response.setLabel(label);
+        response.setOriginalName(label + ".pdf");
+        return response;
     }
 }

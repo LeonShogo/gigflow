@@ -52,12 +52,12 @@ const DEMO_DATA: EventPrintData = {
     { id: 12, title: 'Soundcheck-Probe', type: 'REHEARSAL', dateTime: '2026-09-09T19:30:00', bandId: 2 },
   ],
   entries: [
-    { id: 1, setlistId: 10, pieceId: 1, pieceTitle: 'Hafenlichter', position: 0 },
-    { id: 2, setlistId: 10, pieceId: 2, pieceTitle: 'Leinen los', position: 1 },
-    { id: 3, setlistId: 10, pieceId: 3, pieceTitle: 'Mitternachtswelle', position: 2 },
-    { id: 4, setlistId: 10, pieceId: 4, pieceTitle: 'Ankerplatz Blues', position: 3 },
-    { id: 5, setlistId: 10, pieceId: 5, pieceTitle: 'Nordwind', position: 4 },
-    { id: 6, setlistId: 10, pieceId: 6, pieceTitle: 'Zugabe: Heimathafen', position: 5 },
+    { id: 1, setlistId: 10, pieceId: 1, pieceTitle: 'Hafenlichter', position: 0, sheets: [] },
+    { id: 2, setlistId: 10, pieceId: 2, pieceTitle: 'Leinen los', position: 1, sheets: [] },
+    { id: 3, setlistId: 10, pieceId: 3, pieceTitle: 'Mitternachtswelle', position: 2, sheets: [] },
+    { id: 4, setlistId: 10, pieceId: 4, pieceTitle: 'Ankerplatz Blues', position: 3, sheets: [] },
+    { id: 5, setlistId: 10, pieceId: 5, pieceTitle: 'Nordwind', position: 4, sheets: [] },
+    { id: 6, setlistId: 10, pieceId: 6, pieceTitle: 'Zugabe: Heimathafen', position: 5, sheets: [] },
   ],
   requirements: [
     {

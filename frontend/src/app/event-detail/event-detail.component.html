@@ -271,20 +271,16 @@
                               type="button"
                               role="menuitem"
                               class="setlist__download-item"
-                              (click)="downloadSetlist('info')"
+                              (click)="downloadInfoPdf()"
                             >Nur Infos (PDF)</button>
                             <button
                               type="button"
                               role="menuitem"
                               class="setlist__download-item"
-                              (click)="downloadSetlist('info-and-sheets')"
-                            >Infos + Noten (ZIP)</button>
-                            <button
-                              type="button"
-                              role="menuitem"
-                              class="setlist__download-item"
-                              (click)="downloadSetlist('sheets')"
-                            >Nur Noten (ZIP)</button>
+                              (click)="openSheetDownloadDialog()"
+                              [disabled]="!hasAnySheets()"
+                              [attr.title]="hasAnySheets() ? null : 'Keine Noten vorhanden'"
+                            >Noten (ZIP) …</button>
                           </div>
                         }
                       </div>
@@ -302,8 +298,11 @@
                             <span class="entry__pos">{{ i + 1 }}</span>
                             <span class="entry__title">
                               {{ entry.pieceTitle }}
-                              @if (entry.hasSheetPdf) {
-                                <span class="entry__sheet" aria-label="Noten-PDF vorhanden">PDF</span>
+                              @if (entry.sheets.length > 0) {
+                                <span
+                                  class="entry__sheet"
+                                  [attr.aria-label]="entry.sheets.length + ' Noten hinterlegt'"
+                                >Noten ({{ entry.sheets.length }})</span>
                               }
                               @if (entry.hasDemoAudio) {
                                 <span class="entry__sheet entry__sheet--audio" aria-label="Demo-Audio vorhanden">Demo</span>
@@ -319,35 +318,18 @@
                               }
                             </span>
                             <span class="entry__actions">
-                               @if (entry.hasSheetPdf) {
-                                 <button
-                                   type="button"
-                                   class="entry__btn entry__btn--pdf"
-                                   (click)="openSheetPdf(entry)"
-                                   [disabled]="sheetUploading()[entry.pieceId]"
-                                   aria-label="Noten öffnen"
-                                 >Öffnen</button>
-                                 <button
-                                   type="button"
-                                   class="entry__btn entry__btn--pdf-download"
-                                   (click)="downloadSheetPdf(entry)"
-                                   [disabled]="sheetUploading()[entry.pieceId]"
-                                   aria-label="Noten herunterladen"
-                                 >&#8681;</button>
-                                 @if (canUploadSheets()) {
-                                  <button
-                                    type="button"
-                                    class="entry__btn entry__btn--danger"
-                                    (click)="removeSheetPdf(entry)"
-                                    [disabled]="sheetUploading()[entry.pieceId]"
-                                    aria-label="Noten entfernen"
-                                  >&times;</button>
-                                }
+                              @if (entry.sheets.length > 0) {
+                                <button
+                                  type="button"
+                                  class="entry__btn entry__btn--pdf"
+                                  (click)="openSheetDialog(entry)"
+                                  [attr.aria-label]="canUploadSheets() ? 'Noten verwalten' : 'Noten anzeigen'"
+                                >Noten</button>
                               } @else if (canUploadSheets()) {
                                 <button
                                   type="button"
                                   class="entry__btn entry__btn--pdf"
-                                  (click)="selectSheetPdf(entry)"
+                                  (click)="openSheetDialog(entry)"
                                   aria-label="Noten hochladen"
                                 >PDF laden</button>
                               }
@@ -481,14 +463,6 @@
                       <p class="panel__note panel__note--error" role="alert">{{ message }}</p>
                     }
 
-                    <input
-                      #pdfInput
-                      class="sr-only"
-                      type="file"
-                      accept=".pdf,application/pdf"
-                      aria-label="Noten-PDF auswählen"
-                      (change)="onSheetFileSelected($event)"
-                    />
                     <input
                       #audioInput
                       class="sr-only"
@@ -1266,101 +1240,101 @@
 }
 
 @if (pickerOpen()) {
-  <div class="picker-dialog" tabindex="-1" (document:keydown.escape)="togglePicker()">
+  <app-modal-dialog title="Musiker*in hinzufügen" (closed)="togglePicker()">
     <button
       type="button"
-      class="picker-dialog__backdrop"
-      tabindex="-1"
-      aria-label="Dialog schließen"
-      (click)="togglePicker()"
-    ></button>
-    <div
-      class="picker-dialog__panel"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="musician-picker-title"
+      class="picker__toggle-new"
+      (click)="toggleNewMusician()"
+      [attr.aria-expanded]="newMusicianOpen()"
     >
-      <header class="picker-dialog__head">
-        <h2 class="panel__title" id="musician-picker-title">Musiker*in hinzufügen</h2>
-        <button
-          type="button"
-          class="picker-dialog__close"
-          (click)="togglePicker()"
-          aria-label="Dialog schließen"
-        >&times;</button>
-      </header>
+    {{ newMusicianOpen() ? 'Neue Person schließen' : 'Neue Person anlegen' }}
+  </button>
 
+  @if (newMusicianOpen()) {
+    <form class="picker__new" (ngSubmit)="addNewMusician()">
+      <label class="sr-only" for="new-first">Vorname</label>
+      <input
+        id="new-first"
+        class="picker__input"
+        [value]="newFirstName()"
+        (input)="onNewFirstName($event)"
+        placeholder="Vorname"
+        required
+      />
+      <label class="sr-only" for="new-last">Nachname</label>
+      <input
+        id="new-last"
+        class="picker__input"
+        [value]="newLastName()"
+        (input)="onNewLastName($event)"
+        placeholder="Nachname"
+        required
+      />
+      <label class="sr-only" for="new-instrument">Instrument</label>
+      <input
+        id="new-instrument"
+        class="picker__input"
+        [value]="newInstrument()"
+        (input)="onNewInstrument($event)"
+        placeholder="Instrument (optional)"
+      />
       <button
-        type="button"
-        class="picker__toggle-new"
-        (click)="toggleNewMusician()"
-        [attr.aria-expanded]="newMusicianOpen()"
-      >
-        {{ newMusicianOpen() ? 'Neue Person schließen' : 'Neue Person anlegen' }}
-      </button>
+        type="submit"
+        class="picker__submit"
+        [disabled]="!canAddNewMusician()"
+      >Anlegen & hinzufügen</button>
+    </form>
+  }
 
-      @if (newMusicianOpen()) {
-        <form class="picker__new" (ngSubmit)="addNewMusician()">
-          <label class="sr-only" for="new-first">Vorname</label>
-          <input
-            id="new-first"
-            class="picker__input"
-            [value]="newFirstName()"
-            (input)="onNewFirstName($event)"
-            placeholder="Vorname"
-            required
-          />
-          <label class="sr-only" for="new-last">Nachname</label>
-          <input
-            id="new-last"
-            class="picker__input"
-            [value]="newLastName()"
-            (input)="onNewLastName($event)"
-            placeholder="Nachname"
-            required
-          />
-          <label class="sr-only" for="new-instrument">Instrument</label>
-          <input
-            id="new-instrument"
-            class="picker__input"
-            [value]="newInstrument()"
-            (input)="onNewInstrument($event)"
-            placeholder="Instrument (optional)"
-          />
+  @if (musiciansLoading()) {
+    <p class="panel__note">Musiker*innen werden geladen …</p>
+  } @else if (availableMusicians().length === 0) {
+    <p class="panel__note">Keine weiteren Musiker*innen verfügbar.</p>
+  } @else {
+    <ul class="picker__list">
+      @for (musician of availableMusicians(); track musician.id) {
+        <li class="picker__item">
+          <span class="picker__name">
+            {{ musician.firstName }} {{ musician.lastName }}
+            @if (musician.instrument) {
+              <span class="picker__instrument">— {{ musician.instrument }}</span>
+            }
+          </span>
           <button
-            type="submit"
-            class="picker__submit"
-            [disabled]="!canAddNewMusician()"
-          >Anlegen & hinzufügen</button>
-        </form>
+            type="button"
+            class="picker__add"
+            (click)="addExistingMusician(musician)"
+            [disabled]="addingMusicians()[musician.id]"
+          >
+            {{ addingMusicians()[musician.id] ? 'Füge hinzu …' : 'Hinzufügen' }}
+          </button>
+        </li>
       }
+    </ul>
+  }
 
-      @if (musiciansLoading()) {
-        <p class="panel__note">Musiker*innen werden geladen …</p>
-      } @else if (availableMusicians().length === 0) {
-        <p class="panel__note">Keine weiteren Musiker*innen verfügbar.</p>
-      } @else {
-        <ul class="picker__list">
-          @for (musician of availableMusicians(); track musician.id) {
-            <li class="picker__item">
-              <span class="picker__name">
-                {{ musician.firstName }} {{ musician.lastName }}
-                @if (musician.instrument) {
-                  <span class="picker__instrument">— {{ musician.instrument }}</span>
-                }
-              </span>
-              <button
-                type="button"
-                class="picker__add"
-                (click)="addExistingMusician(musician)"
-                [disabled]="addingMusicians()[musician.id]"
-              >
-                {{ addingMusicians()[musician.id] ? 'Füge hinzu …' : 'Hinzufügen' }}
-              </button>
-            </li>
-          }
-        </ul>
-      }
-    </div>
-  </div>
+  </app-modal-dialog>
+}
+
+@if (sheetDialogEntry(); as entry) {
+  <app-piece-sheets-dialog
+    [pieceId]="entry.pieceId"
+    [pieceTitle]="entry.pieceTitle"
+    [canManage]="canUploadSheets()"
+    [initialSheets]="entry.sheets"
+    [suspendEscape]="sheetFile() !== null"
+    [attr.inert]="sheetFile() !== null ? '' : null"
+    (closed)="closeSheetDialog()"
+    (sheetsChanged)="onSheetsChanged($event)"
+    (openSheet)="openSheetFromDialog(entry.pieceId, $event)"
+  />
+}
+
+@if (sheetDownloadOpen()) {
+  <app-setlist-download-dialog
+    [entries]="entries()"
+    [busy]="setlistDownloading()"
+    (closed)="closeSheetDownloadDialog()"
+    (confirmed)="onSheetDownloadConfirmed($event)"
+  />
 }

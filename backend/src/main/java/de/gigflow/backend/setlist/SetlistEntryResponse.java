@@ -1,17 +1,19 @@
 package de.gigflow.backend.setlist;
 
+import java.util.List;
+
 public class SetlistEntryResponse {
 
     private Long id;
     private Long setlistId;
     private Long pieceId;
     private String pieceTitle;
-    private boolean hasSheetPdf;
+    private List<PieceSheetResponse> sheets = List.of();
     private boolean hasDemoAudio;
     private String youtubeUrl;
     private int position;
 
-    public static SetlistEntryResponse from(SetlistEntry entry) {
+    public static SetlistEntryResponse from(SetlistEntry entry, List<PieceSheet> sheets) {
         SetlistEntryResponse response = new SetlistEntryResponse();
         response.setId(entry.getId());
         if (entry.getSetlist() != null) {
@@ -20,7 +22,7 @@ public class SetlistEntryResponse {
         if (entry.getPiece() != null) {
             response.setPieceId(entry.getPiece().getId());
             response.setPieceTitle(entry.getPiece().getTitle());
-            response.setHasSheetPdf(entry.getPiece().getSheetPdfPath() != null);
+            response.setSheets(sheets.stream().map(PieceSheetResponse::from).toList());
             response.setHasDemoAudio(entry.getPiece().getDemoAudioPath() != null);
             response.setYoutubeUrl(entry.getPiece().getYoutubeUrl());
         }
@@ -60,12 +62,12 @@ public class SetlistEntryResponse {
         this.pieceTitle = pieceTitle;
     }
 
-    public boolean getHasSheetPdf() {
-        return hasSheetPdf;
+    public List<PieceSheetResponse> getSheets() {
+        return sheets;
     }
 
-    public void setHasSheetPdf(boolean hasSheetPdf) {
-        this.hasSheetPdf = hasSheetPdf;
+    public void setSheets(List<PieceSheetResponse> sheets) {
+        this.sheets = sheets;
     }
 
     public boolean getHasDemoAudio() {

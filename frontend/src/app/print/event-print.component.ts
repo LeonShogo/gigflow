@@ -235,7 +235,7 @@ export class EventPrintComponent implements OnInit {
           scheduleItems: this.scheduleItems(),
           locations: this.locations(),
         },
-        (pieceId) => firstValueFrom(this.setlistService.downloadSheetPdf(pieceId)),
+        (sheetId) => firstValueFrom(this.setlistService.downloadSheet(sheetId)),
       );
       downloadBlob(
         new Blob([new Uint8Array(bytes)], { type: 'application/pdf' }),

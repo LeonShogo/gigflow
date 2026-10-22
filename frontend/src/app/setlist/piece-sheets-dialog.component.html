@@ -1,0 +1,91 @@
+<app-modal-dialog
+  [title]="'Noten · ' + pieceTitle()"
+  [wide]="true"
+  [closeOnEscape]="!suspendEscape()"
+  (closed)="close()"
+>
+  @if (canManage()) {
+    <div class="sheet-actions">
+      <input
+        #sheetFiles
+        type="file"
+        class="sr-only"
+        accept="application/pdf"
+        multiple
+        (change)="onFilesSelected($event)"
+      />
+      <button type="button" class="sheet-upload" (click)="openFilePicker()" [disabled]="uploading()">
+        {{ uploading() ? 'Lade hoch …' : 'PDFs hinzufügen' }}
+      </button>
+      <span class="sheet-hint">Mehrfachauswahl möglich · max. 10 MB pro Datei</span>
+    </div>
+  }
+
+  @if (feedback()) {
+    <p class="status status--ok">{{ feedback() }}</p>
+  }
+  @if (error()) {
+    <p class="status status--error">{{ error() }}</p>
+  }
+
+  @if (loading() && sheets().length === 0) {
+    <p class="sheet-empty">Noten werden geladen …</p>
+  } @else if (sheets().length === 0) {
+    <p class="sheet-empty">
+      {{ canManage() ? 'Noch keine Noten hinterlegt. Lade die erste Stimme hoch.' : 'Noch keine Noten hinterlegt.' }}
+    </p>
+  } @else {
+    <ul class="sheet-list">
+      @for (sheet of sheets(); track sheet.id) {
+        <li class="sheet">
+          @if (renamingId() === sheet.id) {
+            <form class="sheet__rename" (ngSubmit)="saveRename(sheet)">
+              <label class="sr-only" [for]="'sheet-label-' + sheet.id">Bezeichnung</label>
+              <input
+                [id]="'sheet-label-' + sheet.id"
+                class="sheet__input"
+                [value]="renameDraft()"
+                (input)="onRenameInput($event)"
+                maxlength="120"
+              />
+              <button type="submit" class="sheet__btn sheet__btn--primary" [disabled]="!renameDraft().trim() || savingRename()">
+                Speichern
+              </button>
+              <button type="button" class="sheet__btn" (click)="cancelRename()">Abbrechen</button>
+            </form>
+          } @else {
+            <div class="sheet__meta">
+              <span class="sheet__label">{{ sheet.label }}</span>
+              <span class="sheet__name">{{ sheet.originalName }}</span>
+            </div>
+            <div class="sheet__actions">
+              <button type="button" class="sheet__btn" (click)="open(sheet)">Öffnen</button>
+              <button type="button" class="sheet__btn" (click)="download(sheet)">Download</button>
+              @if (canManage()) {
+                <button type="button" class="sheet__btn" (click)="startRename(sheet)">Umbenennen</button>
+                @if (confirmingDeleteId() === sheet.id) {
+                  <span class="sheet__confirm">
+                    Wirklich löschen?
+                    <button
+                      type="button"
+                      class="sheet__btn sheet__btn--danger"
+                      (click)="confirmDelete(sheet)"
+                      [disabled]="deletingId() === sheet.id"
+                    >
+                      {{ deletingId() === sheet.id ? 'Lösche …' : 'Löschen' }}
+                    </button>
+                    <button type="button" class="sheet__btn" (click)="cancelDelete()">Abbrechen</button>
+                  </span>
+                } @else {
+                  <button type="button" class="sheet__btn sheet__btn--danger" (click)="requestDelete(sheet)">
+                    Entfernen
+                  </button>
+                }
+              }
+            </div>
+          }
+        </li>
+      }
+    </ul>
+  }
+</app-modal-dialog>

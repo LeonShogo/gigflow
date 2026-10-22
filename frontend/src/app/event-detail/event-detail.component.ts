@@ -13,13 +13,16 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { forkJoin, filter, firstValueFrom, map, switchMap, tap } from 'rxjs';
 
 import { SheetViewerComponent } from './sheet-viewer.component';
+import { ModalDialogComponent } from '../shared/modal-dialog.component';
 
 import {
-  downloadSetlist,
-  downloadSingleSheet,
+  downloadInfoSheet,
+  downloadSheetBundle,
+  type SheetSelection,
   type SetlistDownloadData,
-  type SetlistDownloadScope,
 } from '../setlist/setlist-download';
+import { PieceSheetsDialogComponent } from '../setlist/piece-sheets-dialog.component';
+import { SetlistDownloadDialogComponent } from '../setlist/setlist-download-dialog.component';
 import { formatDate, formatTime, formatTimeOnly, typeLabel } from '../event-format';
 import type {
   EventItem,
@@ -35,7 +38,7 @@ import {
 } from '../dashboard/event-participation.service';
 import type { Musician } from '../musicians/musician.model';
 import { MusicianService } from '../musicians/musician.service';
-import type { SetlistEntry } from '../setlist/setlist.model';
+import type { PieceSheet, SetlistEntry } from '../setlist/setlist.model';
 import { SetlistService } from '../setlist/setlist.service';
 import type {
   Equipment,
@@ -99,7 +102,15 @@ const SCHEDULE_PRESETS = [
 
 @Component({
   selector: 'app-event-detail',
-  imports: [RouterLink, FormsModule, DragDropModule, SheetViewerComponent],
+  imports: [
+    RouterLink,
+    FormsModule,
+    DragDropModule,
+    SheetViewerComponent,
+    ModalDialogComponent,
+    PieceSheetsDialogComponent,
+    SetlistDownloadDialogComponent,
+  ],
   templateUrl: './event-detail.component.html',
   styleUrl: './event-detail.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -199,14 +210,16 @@ export class EventDetailComponent {
   protected readonly canAdd = computed(() => this.adding() || !this.newTitle().trim());
 
   protected readonly canUploadSheets = computed(() => this.auth.isOrganizer());
-  protected readonly sheetUploading = signal<Record<number, boolean>>({});
   protected readonly sheetFeedback = signal<string | null>(null);
   protected readonly sheetError = signal<string | null>(null);
   protected readonly sheetFile = signal<File | null>(null);
   protected readonly openSheetTitle = signal<string | null>(null);
   protected readonly openSheetPieceId = signal<number | null>(null);
-  protected pendingPdfPieceId = signal<number | null>(null);
-  @ViewChild('pdfInput') protected readonly pdfInputRef?: ElementRef<HTMLInputElement>;
+  protected readonly sheetDialogEntry = signal<SetlistEntry | null>(null);
+  protected readonly sheetDownloadOpen = signal(false);
+  protected readonly hasAnySheets = computed(() =>
+    this.entries().some((entry) => entry.sheets.length > 0),
+  );
 
   protected readonly mediaUploading = signal<Record<number, boolean>>({});
   protected readonly mediaFeedback = signal<string | null>(null);
@@ -1703,69 +1716,37 @@ export class EventDetailComponent {
       });
   }
 
-  protected selectSheetPdf(entry: SetlistEntry): void {
-    this.pendingPdfPieceId.set(entry.pieceId);
+  protected openSheetDialog(entry: SetlistEntry): void {
     this.sheetError.set(null);
     this.sheetFeedback.set(null);
-    this.pdfInputRef?.nativeElement.click();
+    this.sheetDialogEntry.set(entry);
   }
 
-  protected onSheetFileSelected(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    const pieceId = this.pendingPdfPieceId();
-    input.value = '';
-    this.pendingPdfPieceId.set(null);
-    if (!pieceId || !file) {
+  protected closeSheetDialog(): void {
+    this.sheetDialogEntry.set(null);
+  }
+
+  protected onSheetsChanged(sheets: PieceSheet[]): void {
+    const entry = this.sheetDialogEntry();
+    if (!entry) {
       return;
     }
-    this.sheetUploading.update((m) => ({ ...m, [pieceId]: true }));
-    this.sheetError.set(null);
-    this.sheetFeedback.set(null);
-    this.setlistService.uploadSheetPdf(pieceId, file).subscribe({
-      next: (piece) => {
-        this.sheetUploading.update((m) => ({ ...m, [pieceId]: false }));
-        this.entries.update((list) =>
-          list.map((e) => (e.pieceId === pieceId ? { ...e, hasSheetPdf: piece.hasSheetPdf } : e)),
-        );
-        this.sheetFeedback.set('Noten hochgeladen.');
-      },
-      error: () => {
-        this.sheetUploading.update((m) => ({ ...m, [pieceId]: false }));
-        this.sheetError.set('Noten konnten nicht hochgeladen werden.');
-      },
-    });
+    this.entries.update((list) =>
+      list.map((item) => (item.pieceId === entry.pieceId ? { ...item, sheets } : item)),
+    );
+    this.sheetDialogEntry.set({ ...entry, sheets });
   }
 
-  protected openSheetPdf(entry: SetlistEntry): void {
-    this.sheetError.set(null);
-    this.sheetFeedback.set(null);
-    this.setlistService.downloadSheetPdf(entry.pieceId).subscribe({
-      next: (blob) => {
-        this.sheetFile.set(new File([blob], `${entry.pieceTitle}.pdf`, { type: 'application/pdf' }));
-        this.openSheetTitle.set(entry.pieceTitle);
-        this.openSheetPieceId.set(entry.pieceId);
-      },
-      error: () => this.sheetError.set('Noten konnten nicht geöffnet werden.'),
-    });
+  protected openSheetFromDialog(pieceId: number, sheet: { file: File; title: string }): void {
+    this.sheetFile.set(sheet.file);
+    this.openSheetTitle.set(sheet.title);
+    this.openSheetPieceId.set(pieceId);
   }
 
   protected closeSheet(): void {
     this.sheetFile.set(null);
     this.openSheetTitle.set(null);
     this.openSheetPieceId.set(null);
-  }
-
-  protected downloadSheetPdf(entry: SetlistEntry): void {
-    this.sheetError.set(null);
-    this.sheetFeedback.set(null);
-    this.setlistService.downloadSheetPdf(entry.pieceId, true).subscribe({
-      next: (blob) => {
-        void downloadSingleSheet(blob, entry.pieceTitle);
-        this.sheetFeedback.set(`„${entry.pieceTitle}“ heruntergeladen.`);
-      },
-      error: () => this.sheetError.set('Noten konnten nicht heruntergeladen werden.'),
-    });
   }
 
   protected readonly setlistDownloading = signal(false);
@@ -1775,37 +1756,51 @@ export class EventDetailComponent {
     this.setlistDownloadMenuOpen.update((open) => !open);
   }
 
-  protected downloadSetlist(scope: SetlistDownloadScope): void {
+  protected downloadInfoPdf(): void {
     this.setlistDownloadMenuOpen.set(false);
-    const event = this.event();
-    if (!event || this.setlistDownloading()) {
+    const data = this.setlistDownloadData();
+    if (!data || this.setlistDownloading()) {
       return;
     }
-    const data: SetlistDownloadData = {
-      event,
-      participations: this.participations(),
-      entries: this.entries(),
-      requirements: this.requirements(),
-      scheduleItems: this.scheduleItems(),
-      locations: this.locations(),
-    };
     this.setlistDownloading.set(true);
     this.sheetError.set(null);
     this.sheetFeedback.set(null);
-    void downloadSetlist(data, scope, (pieceId) =>
-      firstValueFrom(this.setlistService.downloadSheetPdf(pieceId)),
+    void downloadInfoSheet(data)
+      .then(() => this.sheetFeedback.set('Infos als PDF gespeichert.'))
+      .catch(() => this.sheetError.set('Download konnte nicht erstellt werden.'))
+      .finally(() => this.setlistDownloading.set(false));
+  }
+
+  protected openSheetDownloadDialog(): void {
+    this.setlistDownloadMenuOpen.set(false);
+    if (!this.hasAnySheets()) {
+      return;
+    }
+    this.sheetDownloadOpen.set(true);
+  }
+
+  protected closeSheetDownloadDialog(): void {
+    this.sheetDownloadOpen.set(false);
+  }
+
+  protected onSheetDownloadConfirmed(selection: SheetSelection): void {
+    this.sheetDownloadOpen.set(false);
+    const data = this.setlistDownloadData();
+    if (!data || this.setlistDownloading()) {
+      return;
+    }
+    this.setlistDownloading.set(true);
+    this.sheetError.set(null);
+    this.sheetFeedback.set(null);
+    void downloadSheetBundle(data, selection, (sheetId) =>
+      firstValueFrom(this.setlistService.downloadSheet(sheetId)),
     )
       .then((result) => {
-        if (scope === 'info') {
-          this.sheetFeedback.set('Infos als PDF gespeichert.');
-          return;
-        }
         if (result.sheets === 0 && result.missing > 0) {
           this.sheetError.set('Es konnten keine Noten heruntergeladen werden.');
           return;
         }
-        const base =
-          result.sheets === 1 ? '1 Notenblatt' : `${result.sheets} Notenblätter`;
+        const base = result.sheets === 1 ? '1 Notenblatt' : `${result.sheets} Notenblätter`;
         const skipped = result.missing > 0 ? `, ${result.missing} übersprungen` : '';
         this.sheetFeedback.set(`${base} als ZIP gespeichert${skipped}.`);
       })
@@ -1813,24 +1808,19 @@ export class EventDetailComponent {
       .finally(() => this.setlistDownloading.set(false));
   }
 
-  protected removeSheetPdf(entry: SetlistEntry): void {
-    this.sheetUploading.update((m) => ({ ...m, [entry.pieceId]: true }));
-    this.sheetError.set(null);
-    this.sheetFeedback.set(null);
-    this.setlistService.removeSheetPdf(entry.pieceId).subscribe({
-      next: () => {
-        this.sheetUploading.update((m) => ({ ...m, [entry.pieceId]: false }));
-        this.entries.update((list) =>
-          list.map((e) => (e.pieceId === entry.pieceId ? { ...e, hasSheetPdf: false } : e)),
-        );
-        this.sheetFeedback.set('Noten entfernt.');
-        this.toast.show('Noten entfernt.');
-      },
-      error: () => {
-        this.sheetUploading.update((m) => ({ ...m, [entry.pieceId]: false }));
-        this.sheetError.set('Noten konnten nicht entfernt werden.');
-      },
-    });
+  private setlistDownloadData(): SetlistDownloadData | null {
+    const event = this.event();
+    if (!event) {
+      return null;
+    }
+    return {
+      event,
+      participations: this.participations(),
+      entries: this.entries(),
+      requirements: this.requirements(),
+      scheduleItems: this.scheduleItems(),
+      locations: this.locations(),
+    };
   }
 
   protected toggleDemo(entry: SetlistEntry): void {
