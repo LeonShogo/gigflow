@@ -32,6 +32,14 @@ class MusicianControllerTest {
     private UserRepository userRepository;
 
     @Test
+    void deleteAllMusiciansReturnsNoContent() throws Exception {
+        mockMvc.perform(delete("/api/musicians"))
+                .andExpect(status().isNoContent());
+
+        verify(musicianService).deleteAllMusicians();
+    }
+
+    @Test
     void deleteMusicianReturnsNoContentOnSuccess() throws Exception {
         mockMvc.perform(delete("/api/musicians/2"))
                 .andExpect(status().isNoContent());

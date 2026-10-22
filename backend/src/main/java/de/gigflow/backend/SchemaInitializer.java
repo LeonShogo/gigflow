@@ -170,7 +170,9 @@ public class SchemaInitializer implements CommandLineRunner {
                 "alter table equipment_requirement alter column available_on_site set default 'UNKNOWN'",
                 "alter table equipment_requirement alter column needs_to_be_brought type varchar(20) using (case needs_to_be_brought when true then 'YES' else 'NO' end)",
                 "alter table equipment_requirement alter column needs_to_be_brought set not null",
-                "alter table equipment_requirement alter column needs_to_be_brought set default 'UNKNOWN'"
+                "alter table equipment_requirement alter column needs_to_be_brought set default 'UNKNOWN'",
+                "alter table event_participation drop constraint if exists event_participation_status_check",
+                "alter table event_participation add constraint event_participation_status_check check (status in ('SUGGESTED', 'INVITED', 'ACCEPTED', 'DECLINED'))"
         ));
         migrateLegacyPieceSheets();
     }

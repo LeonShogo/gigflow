@@ -1,6 +1,7 @@
 package de.gigflow.backend.musician;
 
 import de.gigflow.backend.band.BandMembershipRepository;
+import de.gigflow.backend.equipment.EquipmentRequirement;
 import de.gigflow.backend.equipment.EquipmentRequirementRepository;
 import de.gigflow.backend.event.EventParticipation;
 import de.gigflow.backend.event.EventParticipationRepository;
@@ -15,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -93,6 +95,30 @@ class MusicianServiceTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("verknüpftes Benutzerkonto");
         verify(musicianRepository, never()).delete(musician);
+    }
+
+    @Test
+    void deleteAllMusiciansRemovesDependenciesAndUnlinksReferences() {
+        Musician musician = new Musician();
+        musician.setId(2L);
+        EquipmentRequirement requirement = new EquipmentRequirement();
+        requirement.setResponsibleMusician(musician);
+        User user = new User();
+        user.setMusician(musician);
+        when(equipmentRequirementRepository.findAll()).thenReturn(List.of(requirement));
+        when(userRepository.findAll()).thenReturn(List.of(user));
+
+        musicianService.deleteAllMusicians();
+
+        assertThat(requirement.getResponsibleMusician()).isNull();
+        assertThat(user.getMusician()).isNull();
+        verify(participationRepository).deleteAllInBatch();
+        verify(bandMembershipRepository).deleteAllInBatch();
+        verify(equipmentRequirementRepository).saveAll(List.of(requirement));
+        verify(equipmentRequirementRepository).flush();
+        verify(userRepository).saveAll(List.of(user));
+        verify(userRepository).flush();
+        verify(musicianRepository).deleteAllInBatch();
     }
 
     @Test

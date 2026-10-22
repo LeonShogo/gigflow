@@ -133,6 +133,10 @@
                           <select
                             id="self-status"
                             class="member__status"
+                            [class.member__status--suggested]="mine.status === 'SUGGESTED'"
+                            [class.member__status--invited]="mine.status === 'INVITED'"
+                            [class.member__status--accepted]="mine.status === 'ACCEPTED'"
+                            [class.member__status--declined]="mine.status === 'DECLINED'"
                             [value]="mine.status"
                             [disabled]="selfSaving()"
                             (change)="changeOwnStatus($any($event.target).value)"
@@ -185,6 +189,8 @@
                               <select
                                 class="member__status"
                                 [id]="'status-' + participation.id"
+                                [class.member__status--suggested]="participation.status === 'SUGGESTED'"
+                                [class.member__status--invited]="participation.status === 'INVITED'"
                                 [class.member__status--accepted]="participation.status === 'ACCEPTED'"
                                 [class.member__status--declined]="participation.status === 'DECLINED'"
                                 [value]="participation.status"

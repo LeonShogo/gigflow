@@ -6,7 +6,17 @@
       <p class="eyebrow">Musiker*innen</p>
       <h1 class="title">Band besetzen</h1>
     </div>
-    <a class="head__add" routerLink="/musicians/new">+ Musiker*in hinzufügen</a>
+    <div class="head__actions">
+      @if (canDelete() && musicians().length > 0) {
+        <button
+          type="button"
+          class="head__delete"
+          (click)="requestDeleteAll()"
+          aria-label="Alle Musiker*innen löschen"
+        >Alle löschen</button>
+      }
+      <a class="head__add" routerLink="/musicians/new">+ Musiker*in hinzufügen</a>
+    </div>
   </header>
 
   @if (canDelete()) {
@@ -147,6 +157,30 @@
     </ul>
   }
 </section>
+
+@if (confirmingDeleteAll()) {
+  <app-modal-dialog title="Alle Musiker*innen löschen" (closed)="cancelDeleteAll()">
+    <p class="confirm-dialog__text">
+      Alle {{ musicians().length }} Musiker*innen werden gelöscht. Band-Zuordnungen und
+      Event-Zusagen werden entfernt; Equipment-Verantwortungen und verknüpfte
+      Benutzerkonten werden gelöst. Das kann nicht rückgängig gemacht werden.
+    </p>
+    <div class="confirm-dialog__actions">
+      <button
+        type="button"
+        class="row__confirm-btn"
+        (click)="cancelDeleteAll()"
+        [disabled]="deletingAll()"
+      >Abbrechen</button>
+      <button
+        type="button"
+        class="row__confirm-btn row__confirm-btn--danger"
+        (click)="confirmDeleteAll()"
+        [disabled]="deletingAll()"
+      >{{ deletingAll() ? 'Wird gelöscht …' : 'Alle löschen' }}</button>
+    </div>
+  </app-modal-dialog>
+}
 
 @if (deleteError(); as message) {
   <div class="notice-dialog" tabindex="-1" (document:keydown.escape)="dismissDeleteError()">

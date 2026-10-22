@@ -76,6 +76,7 @@ const PANEL_META: Record<string, PanelMeta> = {
 };
 
 const STATUS_LABELS: Record<ParticipationStatus, string> = {
+  SUGGESTED: 'Vorschlag',
   INVITED: 'Eingeladen',
   ACCEPTED: 'Zusage',
   DECLINED: 'Abgesagt',
@@ -164,7 +165,8 @@ export class EventDetailComponent {
     const priority: Record<ParticipationStatus, number> = {
       ACCEPTED: 0,
       INVITED: 1,
-      DECLINED: 2,
+      SUGGESTED: 2,
+      DECLINED: 3,
     };
     return [...this.participations()].sort(
       (a, b) => priority[a.status] - priority[b.status],
@@ -180,7 +182,12 @@ export class EventDetailComponent {
       this.newFirstName().trim().length > 0 &&
       this.newLastName().trim().length > 0,
   );
-  protected readonly statusOptions: ParticipationStatus[] = ['INVITED', 'ACCEPTED', 'DECLINED'];
+  protected readonly statusOptions: ParticipationStatus[] = [
+    'SUGGESTED',
+    'INVITED',
+    'ACCEPTED',
+    'DECLINED',
+  ];
   protected readonly canManageMembers = computed(() => this.auth.isOrganizer());
   protected readonly canSelfJoin = computed(
     () => this.auth.isAuthenticated() && this.auth.musicianId() != null,

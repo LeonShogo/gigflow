@@ -24,6 +24,7 @@ export interface SheetSelection {
 }
 
 const STATUS_LABELS: Record<ParticipationStatus, string> = {
+  SUGGESTED: 'Vorschlag',
   INVITED: 'Eingeladen',
   ACCEPTED: 'Zusage',
   DECLINED: 'Abgesagt',
@@ -311,7 +312,13 @@ async function loadLogo(doc: PDFDocument) {
 }
 
 function statusRank(status: ParticipationStatus): number {
-  return status === 'ACCEPTED' ? 0 : status === 'INVITED' ? 1 : 2;
+  if (status === 'ACCEPTED') {
+    return 0;
+  }
+  if (status === 'INVITED') {
+    return 1;
+  }
+  return status === 'SUGGESTED' ? 2 : 3;
 }
 
 /** pdf-lib's standard fonts use WinAnsi; strip characters they cannot encode. */

@@ -1,8 +1,10 @@
 package de.gigflow.backend.musician;
 
 import de.gigflow.backend.band.BandMembershipRepository;
+import de.gigflow.backend.equipment.EquipmentRequirement;
 import de.gigflow.backend.equipment.EquipmentRequirementRepository;
 import de.gigflow.backend.event.EventParticipationRepository;
+import de.gigflow.backend.user.User;
 import de.gigflow.backend.user.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -102,5 +104,29 @@ public class MusicianService {
         }
 
         musicianRepository.delete(musician);
+    }
+
+    @Transactional
+    public void deleteAllMusicians() {
+        participationRepository.deleteAllInBatch();
+        bandMembershipRepository.deleteAllInBatch();
+
+        List<EquipmentRequirement> responsibleRequirements = equipmentRequirementRepository.findAll()
+                .stream()
+                .filter(requirement -> requirement.getResponsibleMusician() != null)
+                .toList();
+        responsibleRequirements.forEach(requirement -> requirement.setResponsibleMusician(null));
+        equipmentRequirementRepository.saveAll(responsibleRequirements);
+        equipmentRequirementRepository.flush();
+
+        List<User> linkedUsers = userRepository.findAll()
+                .stream()
+                .filter(user -> user.getMusician() != null)
+                .toList();
+        linkedUsers.forEach(user -> user.setMusician(null));
+        userRepository.saveAll(linkedUsers);
+        userRepository.flush();
+
+        musicianRepository.deleteAllInBatch();
     }
 }

@@ -660,6 +660,18 @@
   cursor: default;
 }
 
+.member__status--suggested {
+  color: var(--ink-soft);
+  border-color: var(--line-strong);
+  background: var(--paper-raised);
+}
+
+.member__status--invited {
+  color: var(--warn);
+  border-color: var(--warn);
+  background: var(--warn-bg);
+}
+
 .member__status--accepted {
   color: var(--ok);
   border-color: var(--ok);

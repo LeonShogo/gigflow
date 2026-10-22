@@ -27,4 +27,8 @@ export class MusicianService {
   deleteMusician(id: number): Observable<void> {
     return this.http.delete<void>(`/api/musicians/${id}`);
   }
+
+  deleteAllMusicians(): Observable<void> {
+    return this.http.delete<void>('/api/musicians');
+  }
 }

@@ -51,6 +51,33 @@
   line-height: 1.05;
 }
 
+.head__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: 0.15rem;
+}
+
+.head__delete {
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0.6rem 1rem;
+  color: var(--accent-ink);
+  background: transparent;
+  border: 1px solid var(--accent-line);
+  border-radius: var(--radius);
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color var(--t-fast) ease,
+    border-color var(--t-fast) ease;
+}
+
+.head__delete:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
 .head__add {
   font-size: 0.95rem;
   font-weight: 600;
@@ -61,7 +88,6 @@
   border-radius: var(--radius);
   padding: 0.6rem 1.1rem;
   white-space: nowrap;
-  margin-bottom: 0.15rem;
   box-shadow: var(--shadow-sm);
   transition:
     background-color var(--t-fast) ease,
@@ -421,6 +447,20 @@
 /* ------------------------------------------------------------------ */
 
 @media (max-width: 40rem) {
+  .head {
+    align-items: stretch;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .head__actions {
+    justify-content: space-between;
+  }
+
+  .head__add {
+    text-align: center;
+  }
+
   .musician-list {
     padding: var(--space-3) var(--space-2) var(--space-5);
   }
@@ -469,6 +509,21 @@
   .band-form {
     grid-template-columns: 1fr;
   }
+}
+
+.confirm-dialog__text {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.confirm-dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
 }
 
 .notice-dialog {

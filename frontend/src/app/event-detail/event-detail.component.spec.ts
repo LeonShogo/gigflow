@@ -44,12 +44,15 @@ describe('EventDetailComponent', () => {
     return TestBed.createComponent(EventDetailComponent);
   }
 
-  /** Loads a CONCERT with no participants, no rehearsals, an empty setlist and the default layout. */
-  function loadConcert(fixture: ComponentFixture<EventDetailComponent>): void {
+  /** Loads a CONCERT with the given participants, no rehearsals, an empty setlist and the default layout. */
+  function loadConcert(
+    fixture: ComponentFixture<EventDetailComponent>,
+    participations: unknown[] = [],
+  ): void {
     fixture.detectChanges();
     httpMock.expectOne('/api/events/1').flush(CONCERT);
     fixture.detectChanges();
-    httpMock.expectOne('/api/event-participations/event/1').flush([]);
+    httpMock.expectOne('/api/event-participations/event/1').flush(participations);
     httpMock.expectOne('/api/events/by-concert/1').flush([]);
     httpMock.expectOne('/api/setlists/event/1').flush(EMPTY_SETLIST);
     httpMock.expectOne('/api/events/1/layout').flush(DEFAULT_LAYOUT);
@@ -154,12 +157,9 @@ function loadConcertWithLocations(
     await expectNoA11yViolations(fixture.nativeElement);
   });
 
-  it('should render participants with name, instrument, status and opt-in email', () => {
+  it('should render participants with distinct status colors', () => {
     const fixture = setup();
-    fixture.detectChanges();
-    httpMock.expectOne('/api/events/1').flush(CONCERT);
-    fixture.detectChanges();
-    httpMock.expectOne('/api/event-participations/event/1').flush([
+    loadConcert(fixture, [
       {
         id: 1,
         eventId: 1,
@@ -185,31 +185,84 @@ function loadConcertWithLocations(
         },
         status: 'INVITED',
       },
+      {
+        id: 3,
+        eventId: 1,
+        musicianId: 5,
+        musician: { id: 5, firstName: 'Mia', lastName: 'Sommer', instrument: 'Bass' },
+        status: 'SUGGESTED',
+      },
+      {
+        id: 4,
+        eventId: 1,
+        musicianId: 6,
+        musician: { id: 6, firstName: 'Tom', lastName: 'Winter', instrument: 'Schlagzeug' },
+        status: 'DECLINED',
+      },
     ]);
-    httpMock.expectOne('/api/events/by-concert/1').flush([]);
-    httpMock.expectOne('/api/setlists/event/1').flush(EMPTY_SETLIST);
-    httpMock.expectOne('/api/events/1/layout').flush(DEFAULT_LAYOUT);
-    httpMock.expectOne('/api/event-locations/event/1').flush([]);
-    fixture.detectChanges();
-    httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([]);
-    httpMock.expectOne('/api/equipment-requirements/event/1').flush([])
-    httpMock.expectOne('/api/schedule-items/event/1').flush([]);
-    fixture.detectChanges();
 
     const el: HTMLElement = fixture.nativeElement;
     const members = el.querySelectorAll('.member');
-    expect(members.length).toBe(2);
+    expect(members.length).toBe(4);
 
-    const first = members[0] as HTMLElement;
-    expect(first.textContent).toContain('Anna Becker');
-    expect(first.textContent).toContain('Gesang');
-    expect(first.textContent).toContain('Zusage');
+    const classesOf = (member: Element): string[] =>
+      Array.from((member.querySelector('.member__status') as HTMLElement).classList)
+        .filter((name) => name.startsWith('member__status--'));
+
+    expect(members[0].textContent).toContain('Anna Becker');
+    expect(members[0].textContent).toContain('Zusage');
+    expect(classesOf(members[0])).toEqual(['member__status--accepted']);
     // E-Mail nicht dauerhaft anzeigen (nur bei Opt-in in separaten Views) -> nicht in der Liste
-    expect(first.querySelector('.member__email')).toBeNull();
+    expect(members[0].querySelector('.member__email')).toBeNull();
 
-    const second = members[1] as HTMLElement;
-    expect(second.textContent).toContain('Jonas Keller');
-    expect(second.textContent).toContain('Eingeladen');
+    expect(members[1].textContent).toContain('Jonas Keller');
+    expect(members[1].textContent).toContain('Eingeladen');
+    expect(classesOf(members[1])).toEqual(['member__status--invited']);
+
+    expect(members[2].textContent).toContain('Mia Sommer');
+    expect(members[2].textContent).toContain('Vorschlag');
+    expect(classesOf(members[2])).toEqual(['member__status--suggested']);
+
+    expect(members[3].textContent).toContain('Tom Winter');
+    expect(members[3].textContent).toContain('Abgesagt');
+    expect(classesOf(members[3])).toEqual(['member__status--declined']);
+
+    const options = Array.from(
+      (el.querySelector('#status-1') as HTMLSelectElement).options,
+    ).map((option) => option.textContent);
+    expect(options).toEqual(['Vorschlag', 'Eingeladen', 'Zusage', 'Abgesagt']);
+  });
+
+  it('should save a suggested status', () => {
+    const fixture = setup();
+    loadConcert(fixture, [
+      {
+        id: 2,
+        eventId: 1,
+        musicianId: 4,
+        musician: { id: 4, firstName: 'Jonas', lastName: 'Keller' },
+        status: 'INVITED',
+      },
+    ]);
+
+    const select = fixture.nativeElement.querySelector('#status-2') as HTMLSelectElement;
+    select.value = 'SUGGESTED';
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    expect(select.classList).toContain('member__status--suggested');
+
+    const req = httpMock.expectOne('/api/event-participations/2');
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.body).toEqual({
+      eventId: 1,
+      musicianId: 4,
+      status: 'SUGGESTED',
+    });
+    req.flush({ id: 2, eventId: 1, musicianId: 4, status: 'SUGGESTED' });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Status gespeichert.');
   });
 
   it('should show the empty state when no participants exist', () => {

@@ -15,11 +15,12 @@ import { MusicianService } from './musician.service';
 import { AuthService } from '../auth/auth.service';
 import { EventService } from '../dashboard/event.service';
 import { ToastService } from '../notifications/toast.service';
+import { ModalDialogComponent } from '../shared/modal-dialog.component';
 import type { Band, BandMembership } from '../dashboard/event.model';
 
 @Component({
   selector: 'app-musician-list',
-  imports: [RouterLink, FormsModule],
+  imports: [RouterLink, FormsModule, ModalDialogComponent],
   templateUrl: './musician-list.component.html',
   styleUrl: './musician-list.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -48,6 +49,8 @@ export class MusicianListComponent {
 
   protected readonly confirmingDelete = signal<Record<number, boolean>>({});
   protected readonly deleting = signal<Record<number, boolean>>({});
+  protected readonly confirmingDeleteAll = signal(false);
+  protected readonly deletingAll = signal(false);
   protected readonly deleteError = signal<string | null>(null);
   private deleteErrorTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -186,6 +189,42 @@ export class MusicianListComponent {
       error: (err) => {
         this.creatingBand.set(false);
         this.bandError.set(err?.error?.message ?? 'Band konnte nicht angelegt werden.');
+      },
+    });
+  }
+
+  protected requestDeleteAll(): void {
+    this.dismissDeleteError();
+    this.confirmingDeleteAll.set(true);
+  }
+
+  protected cancelDeleteAll(): void {
+    if (this.deletingAll()) {
+      return;
+    }
+    this.confirmingDeleteAll.set(false);
+  }
+
+  protected confirmDeleteAll(): void {
+    if (this.deletingAll()) {
+      return;
+    }
+    this.deletingAll.set(true);
+    this.dismissDeleteError();
+    this.musicianService.deleteAllMusicians().subscribe({
+      next: () => {
+        this.deletingAll.set(false);
+        this.confirmingDeleteAll.set(false);
+        this.musicians.set([]);
+        this.memberships.set([]);
+        this.toast.show('Alle Musiker*innen gelöscht.');
+      },
+      error: (err) => {
+        this.deletingAll.set(false);
+        this.confirmingDeleteAll.set(false);
+        this.showDeleteError(
+          err?.error?.message ?? 'Musiker*innen konnten nicht gelöscht werden.',
+        );
       },
     });
   }

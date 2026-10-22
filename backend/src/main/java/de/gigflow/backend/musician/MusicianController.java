@@ -53,6 +53,12 @@ public class MusicianController {
         }
     }
 
+    @DeleteMapping
+    public ResponseEntity<Void> deleteAllMusicians() {
+        musicianService.deleteAllMusicians();
+        return ResponseEntity.noContent().build();
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteMusician(@PathVariable Long id) {
         try {

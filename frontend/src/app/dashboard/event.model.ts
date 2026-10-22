@@ -43,7 +43,7 @@ export interface BandMembershipRequest {
   musicianId: number;
 }
 
-export type ParticipationStatus = 'INVITED' | 'ACCEPTED' | 'DECLINED';
+export type ParticipationStatus = 'SUGGESTED' | 'INVITED' | 'ACCEPTED' | 'DECLINED';
 
 export interface MusicianPublic {
   id: number;

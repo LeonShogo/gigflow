@@ -35,6 +35,7 @@ import { LOCATION_TYPES } from '../location/location.model';
 import { LocationService } from '../location/location.service';
 
 const STATUS_LABELS: Record<ParticipationStatus, string> = {
+  SUGGESTED: 'Vorschlag',
   INVITED: 'Eingeladen',
   ACCEPTED: 'Zusage',
   DECLINED: 'Abgesagt',
@@ -43,7 +44,8 @@ const STATUS_LABELS: Record<ParticipationStatus, string> = {
 const STATUS_ORDER: Record<ParticipationStatus, number> = {
   ACCEPTED: 0,
   INVITED: 1,
-  DECLINED: 2,
+  SUGGESTED: 2,
+  DECLINED: 3,
 };
 
 /** Pre-loaded data for rendering the sheet without any HTTP request (used by the demo route). */

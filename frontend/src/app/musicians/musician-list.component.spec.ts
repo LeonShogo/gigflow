@@ -135,6 +135,42 @@ describe('MusicianListComponent', () => {
     expect((remaining[0] as HTMLElement).textContent).toContain('Jonas Keller');
   });
 
+  it('should delete all musicians after confirmation', () => {
+    const fixture = TestBed.createComponent(MusicianListComponent);
+    fixture.detectChanges();
+    flushLoad([{ id: 42, bandId: 1, musicianId: 1 }]);
+    loginAsOrganizer();
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('.head__delete') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Alle 2 Musiker*innen werden gelöscht.');
+
+    const confirm = fixture.nativeElement.querySelector(
+      '.confirm-dialog__actions .row__confirm-btn--danger',
+    ) as HTMLButtonElement;
+    confirm.click();
+
+    const req = httpMock.expectOne('/api/musicians');
+    expect(req.request.method).toBe('DELETE');
+    req.flush(null, { status: 204, statusText: 'No Content' });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelectorAll('.roster__item').length).toBe(0);
+    expect(fixture.nativeElement.textContent).toContain('Noch keine Musiker*innen angelegt.');
+    expect(fixture.nativeElement.querySelector('.head__delete')).toBeNull();
+  });
+
+  it('should only show the bulk delete action for organizers', () => {
+    const fixture = TestBed.createComponent(MusicianListComponent);
+    fixture.detectChanges();
+    flushLoad();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.head__delete')).toBeNull();
+  });
+
   it('should show a server message when deletion is blocked', () => {
     const fixture = TestBed.createComponent(MusicianListComponent);
     fixture.detectChanges();
