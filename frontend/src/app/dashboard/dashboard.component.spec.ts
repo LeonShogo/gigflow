@@ -141,6 +141,42 @@ describe('DashboardComponent', () => {
     expect(titles).toEqual(['Hafenrocker', 'Lagerfeuer-Open-Air']);
   });
 
+  it('should delete all events after confirmation', () => {
+    const fixture = TestBed.createComponent(DashboardComponent);
+    fixture.detectChanges();
+    httpMock.expectOne('/api/events').flush(MOCK_EVENTS);
+    fixture.detectChanges();
+
+    const auth = TestBed.inject(AuthService);
+    auth.login({ email: 'o@gigflow.local', password: 'password' }).subscribe();
+    httpMock.expectOne('/api/auth/login').flush({
+      token: 't',
+      user: { id: 1, email: 'o@gigflow.local', organizer: true, musicianId: null },
+    });
+    fixture.detectChanges();
+
+    const deleteAll = fixture.nativeElement.querySelector(
+      '.page-head__delete',
+    ) as HTMLButtonElement;
+    expect(deleteAll.textContent).toContain('Alle Termine löschen');
+    deleteAll.click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Alle 3 Termine');
+    const confirm = fixture.nativeElement.querySelector(
+      '.bulk-confirm__btn--danger',
+    ) as HTMLButtonElement;
+    confirm.click();
+
+    const req = httpMock.expectOne('/api/events');
+    expect(req.request.method).toBe('DELETE');
+    req.flush(null, { status: 204, statusText: 'No Content' });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelectorAll('.event:not(.event--empty)').length).toBe(0);
+    expect(fixture.nativeElement.querySelector('.page-head__delete')).toBeNull();
+  });
+
   it('should hide the delete action for non-organizers', () => {
     const fixture = TestBed.createComponent(DashboardComponent);
     fixture.detectChanges();
@@ -156,5 +192,6 @@ describe('DashboardComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('.event__delete')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.page-head__delete')).toBeNull();
   });
 });

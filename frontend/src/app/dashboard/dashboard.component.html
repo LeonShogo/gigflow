@@ -4,8 +4,40 @@
       <p class="kicker">Tourplan</p>
       <h1 class="title">Termine</h1>
     </div>
-    <a class="page-head__add" routerLink="/events/new">+ Neues Event</a>
+    <div class="page-head__actions">
+      @if (canDeleteAll()) {
+        <button
+          type="button"
+          class="page-head__delete"
+          (click)="requestDeleteAll()"
+          [disabled]="deletingAll()"
+        >Alle Termine löschen</button>
+      }
+      <a class="page-head__add" routerLink="/events/new">+ Neues Event</a>
+    </div>
   </header>
+
+  @if (confirmingDeleteAll()) {
+    <div class="bulk-confirm" role="group" aria-label="Alle Termine löschen bestätigen">
+      <span class="bulk-confirm__text" role="alert">
+        Alle {{ events().length }} Termine inklusive Proben, Setlists und Teilnahmen löschen?
+      </span>
+      <div class="bulk-confirm__actions">
+        <button
+          type="button"
+          class="bulk-confirm__btn"
+          (click)="cancelDeleteAll()"
+          [disabled]="deletingAll()"
+        >Abbrechen</button>
+        <button
+          type="button"
+          class="bulk-confirm__btn bulk-confirm__btn--danger"
+          (click)="deleteAllEvents()"
+          [disabled]="deletingAll()"
+        >{{ deletingAll() ? 'Wird gelöscht …' : 'Alle löschen' }}</button>
+      </div>
+    </div>
+  }
 
   <nav class="filters" aria-label="Events filtern">
     @for (item of filters; track item.value) {

@@ -36,8 +36,13 @@ export class DashboardComponent {
   protected readonly confirmingDelete = signal<Record<number, boolean>>({});
   protected readonly deleting = signal<Record<number, boolean>>({});
   protected readonly deleteError = signal<string | null>(null);
+  protected readonly confirmingDeleteAll = signal(false);
+  protected readonly deletingAll = signal(false);
 
   protected readonly canDelete = this.auth.isOrganizer;
+  protected readonly canDeleteAll = computed(
+    () => this.auth.isOrganizer() && this.events().length > 0,
+  );
 
   protected readonly filteredEvents = computed(() => {
     const current = this.filter();
@@ -93,6 +98,38 @@ export class DashboardComponent {
         this.deleting.update((m) => ({ ...m, [event.id]: false }));
         this.confirmingDelete.update((m) => ({ ...m, [event.id]: false }));
         this.deleteError.set('Termin konnte nicht gelöscht werden.');
+      },
+    });
+  }
+
+  protected requestDeleteAll(): void {
+    this.deleteError.set(null);
+    this.confirmingDeleteAll.set(true);
+  }
+
+  protected cancelDeleteAll(): void {
+    if (this.deletingAll()) {
+      return;
+    }
+    this.confirmingDeleteAll.set(false);
+  }
+
+  protected deleteAllEvents(): void {
+    if (this.deletingAll()) {
+      return;
+    }
+    this.deletingAll.set(true);
+    this.deleteError.set(null);
+    this.eventService.deleteAllEvents().subscribe({
+      next: () => {
+        this.events.set([]);
+        this.deletingAll.set(false);
+        this.confirmingDeleteAll.set(false);
+        this.toast.show('Alle Termine gelöscht.');
+      },
+      error: () => {
+        this.deletingAll.set(false);
+        this.deleteError.set('Termine konnten nicht gelöscht werden.');
       },
     });
   }

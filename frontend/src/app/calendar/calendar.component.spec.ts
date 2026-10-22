@@ -2,8 +2,8 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { vi } from 'vitest';
 
-import { AuthService } from '../auth/auth.service';
 import type { EventItem } from '../dashboard/event.model';
 
 import { CalendarComponent } from './calendar.component';
@@ -34,16 +34,6 @@ describe('CalendarComponent', () => {
     return fixture;
   }
 
-  function loginAsOrganizer(fixture: ComponentFixture<CalendarComponent>): void {
-    const auth = TestBed.inject(AuthService);
-    auth.login({ email: 'o@gigflow.local', password: 'password' }).subscribe();
-    httpMock.expectOne('/api/auth/login').flush({
-      token: 't',
-      user: { id: 1, email: 'o@gigflow.local', organizer: true, musicianId: null },
-    });
-    fixture.detectChanges();
-  }
-
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [CalendarComponent],
@@ -53,73 +43,73 @@ describe('CalendarComponent', () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     httpMock.verify();
   });
 
-  it('exports the displayed month by default', () => {
+  it('opens an export dialog with both scopes', () => {
     const fixture = createLoaded();
     const component = fixture.componentInstance as unknown as {
       cursor: { set(value: Date): void };
-      eventsToExport: () => EventItem[];
     };
     component.cursor.set(new Date(2026, 8, 1));
     fixture.detectChanges();
 
-    const select = fixture.nativeElement.querySelector('#cal-export-scope') as HTMLSelectElement;
-    expect(Array.from(select.options).map((option) => option.textContent?.trim())).toEqual([
-      'Aktueller Monat',
-      'Alle Termine',
-    ]);
-    expect(component.eventsToExport().map((event) => event.title)).toEqual(['September-Gig']);
+    (fixture.nativeElement.querySelector('.cal__export') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeTruthy();
+    const labels = Array.from(
+      fixture.nativeElement.querySelectorAll('.cal__export-option-label'),
+    ).map((label) => (label as HTMLElement).textContent?.trim());
+    const metas = Array.from(
+      fixture.nativeElement.querySelectorAll('.cal__export-option-meta'),
+    ).map((meta) => (meta as HTMLElement).textContent?.replace(/\s+/g, ' ').trim());
+    expect(labels).toEqual(['Aktueller Monat', 'Alle Termine']);
+    expect(metas).toEqual(['September 2026 · 1 Termin', '2 Termine']);
   });
 
-  it('can switch the export to all events', () => {
+  it('exports the chosen scope and closes the dialog', () => {
     const fixture = createLoaded();
     const component = fixture.componentInstance as unknown as {
       cursor: { set(value: Date): void };
-      eventsToExport: () => EventItem[];
     };
     component.cursor.set(new Date(2026, 8, 1));
     fixture.detectChanges();
 
-    const select = fixture.nativeElement.querySelector('#cal-export-scope') as HTMLSelectElement;
-    select.value = 'all';
-    select.dispatchEvent(new Event('change'));
+    let filename = '';
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock');
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+      this: HTMLAnchorElement,
+    ) {
+      filename = this.download;
+    });
+
+    (fixture.nativeElement.querySelector('.cal__export') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelectorAll('.cal__export-option')[0] as HTMLButtonElement).click();
     fixture.detectChanges();
 
-    expect(component.eventsToExport().map((event) => event.title)).toEqual([
-      'September-Gig',
-      'Oktober-Probe',
-    ]);
-  });
+    expect(filename).toBe('gigflow-kalender-2026-09.ics');
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
 
-  it('shows the delete-all action only for organizers', () => {
-    const fixture = createLoaded();
-
-    expect(fixture.nativeElement.querySelector('.cal__delete')).toBeNull();
-  });
-
-  it('deletes all events after confirmation', () => {
-    const fixture = createLoaded();
-    loginAsOrganizer(fixture);
-
-    const deleteButton = fixture.nativeElement.querySelector('.cal__delete') as HTMLButtonElement;
-    expect(deleteButton.textContent).toContain('Alle Termine löschen');
-    deleteButton.click();
+    (fixture.nativeElement.querySelector('.cal__export') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelectorAll('.cal__export-option')[1] as HTMLButtonElement).click();
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).toContain('Alle 2 Termine');
-    const confirmButton = fixture.nativeElement.querySelector(
-      '.cal__confirm-btn--danger',
+    expect(filename).toBe('gigflow-kalender-alle-termine.ics');
+  });
+
+  it('disables the export when there are no events', () => {
+    const fixture = TestBed.createComponent(CalendarComponent);
+    fixture.detectChanges();
+    httpMock.expectOne('/api/events').flush([]);
+    fixture.detectChanges();
+
+    const exportButton = fixture.nativeElement.querySelector(
+      '.cal__export',
     ) as HTMLButtonElement;
-    confirmButton.click();
-
-    const req = httpMock.expectOne('/api/events');
-    expect(req.request.method).toBe('DELETE');
-    req.flush(null, { status: 204, statusText: 'No Content' });
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.textContent).toContain('Alle Termine gelöscht.');
-    expect(fixture.nativeElement.querySelector('.cal__delete')).toBeNull();
+    expect(exportButton.disabled).toBe(true);
   });
 });
