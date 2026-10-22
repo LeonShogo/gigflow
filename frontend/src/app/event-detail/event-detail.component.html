@@ -65,13 +65,12 @@
       }
     </header>
 
-    @if (event.type === 'CONCERT') {
-      <div
-        #board
-        class="board"
-        cdkDropList
-        (cdkDropListDropped)="onPanelDrop($event)"
-      >
+    <div
+      #board
+      class="board"
+      cdkDropList
+      (cdkDropListDropped)="onPanelDrop($event)"
+    >
         @for (panelKey of panelOrder(); track panelKey) {
           @switch (panelKey) {
             @case ('members') {
@@ -105,7 +104,7 @@
                   } @else {
                     <div class="members__bar">
                       @if (participations().length === 0) {
-                        <span class="members__count">Noch keine Musiker*innen zu diesem Gig eingeladen.</span>
+                        <span class="members__count">Noch keine Musiker*innen für diesen Termin vorgemerkt.</span>
                       } @else {
                         <span class="members__count">
                           {{ confirmedCount() }} von {{ participations().length }} bestätigt
@@ -241,7 +240,7 @@
                       (click)="togglePanel('setlist')"
                       [attr.aria-expanded]="!isCollapsed('setlist')"
                     >
-                      <h2 class="panel__title">Setlist</h2>
+                      <h2 class="panel__title">{{ repertoireLabel(event.type) }}</h2>
                       <span class="panel__desc">{{ panelDescription('setlist') }}</span>
                     </button>
                   </span>
@@ -265,7 +264,7 @@
                           [attr.aria-expanded]="setlistDownloadMenuOpen()"
                           aria-haspopup="true"
                         >
-                          {{ setlistDownloading() ? 'Wird erstellt …' : 'Setlist herunterladen' }}
+                          {{ setlistDownloading() ? 'Wird erstellt …' : repertoireLabel(event.type) + ' herunterladen' }}
                         </button>
                         @if (setlistDownloadMenuOpen()) {
                           <div class="setlist__download-menu" role="menu">
@@ -288,11 +287,11 @@
                       </div>
                     }
                     @if (setlistLoading()) {
-                      <p class="panel__note">Setlist wird geladen …</p>
+                      <p class="panel__note">{{ repertoireLabel(event.type) }} wird geladen …</p>
                     } @else if (setlistError(); as message) {
                       <p class="panel__note panel__note--error" role="alert">{{ message }}</p>
                     } @else if (entries().length === 0) {
-                      <p class="panel__note">Noch keine Stücke in der Setlist.</p>
+                      <p class="panel__note">Noch keine Stücke hinterlegt.</p>
                     } @else {
                       <ol class="setlist__entries" cdkDropList (cdkDropListDropped)="onDrop($event)">
                         @for (entry of entries(); track entry.id; let i = $index) {
@@ -708,7 +707,7 @@
                     }
 
                     @if (requirements().length === 0) {
-                      <p class="panel__note">Noch kein Equipment für diesen Gig erfasst.</p>
+                      <p class="panel__note">Noch kein Equipment für diesen Termin erfasst.</p>
                     } @else {
                       <ul class="equipment">
                         @for (requirement of requirements(); track requirement.id) {
@@ -995,7 +994,7 @@
                     }
 
                     @if (locations().length === 0) {
-                      <p class="panel__note">Noch keine Orte für diesen Gig erfasst.</p>
+                      <p class="panel__note">Noch keine Orte für diesen Termin erfasst.</p>
                     } @else {
                       <ul class="locations">
                         @for (location of locations(); track location.id) {
@@ -1162,7 +1161,7 @@
                     }
 
                     @if (scheduleItems().length === 0) {
-                      <p class="panel__note">Noch kein Ablauf für diesen Gig erfasst.</p>
+                      <p class="panel__note">Noch kein Ablauf für diesen Termin erfasst.</p>
                     } @else {
                       <ol class="schedule">
                         @for (item of scheduleItems(); track item.id) {
@@ -1225,10 +1224,7 @@
             }
           }
         }
-      </div>
-    } @else {
-      <p class="note">Dieser Termin ist eine Probe.</p>
-    }
+    </div>
   }
 </section>
 

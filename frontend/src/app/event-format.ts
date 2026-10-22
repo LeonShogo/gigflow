@@ -25,6 +25,10 @@ export function typeLabel(type: EventType): string {
   return TYPE_LABELS[type];
 }
 
+export function repertoireLabel(type: EventType): string {
+  return type === 'REHEARSAL' ? 'Probenrepertoire' : 'Setlist';
+}
+
 export function formatDate(dateTime: string): string {
   const parsed = new Date(dateTime);
   const day = DAYS[parsed.getDay()];

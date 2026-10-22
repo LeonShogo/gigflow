@@ -10,7 +10,7 @@ import {
 import { FormsModule } from '@angular/forms';
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { forkJoin, filter, firstValueFrom, map, switchMap, tap } from 'rxjs';
+import { catchError, filter, firstValueFrom, forkJoin, map, of, switchMap, tap, throwError } from 'rxjs';
 
 import { SheetViewerComponent } from './sheet-viewer.component';
 import { ModalDialogComponent } from '../shared/modal-dialog.component';
@@ -23,7 +23,7 @@ import {
 } from '../setlist/setlist-download';
 import { PieceSheetsDialogComponent } from '../setlist/piece-sheets-dialog.component';
 import { SetlistDownloadDialogComponent } from '../setlist/setlist-download-dialog.component';
-import { formatDate, formatTime, formatTimeOnly, typeLabel } from '../event-format';
+import { formatDate, formatTime, formatTimeOnly, repertoireLabel, typeLabel } from '../event-format';
 import type {
   EventItem,
   EventParticipation,
@@ -65,10 +65,11 @@ interface PanelMeta {
 }
 
 const PANEL_ORDER_DEFAULT = ['members', 'setlist', 'rehearsals', 'equipment', 'locations', 'schedule'];
+const PANEL_ORDER_REHEARSAL = PANEL_ORDER_DEFAULT.filter((key) => key !== 'rehearsals');
 
 const PANEL_META: Record<string, PanelMeta> = {
   members: { title: 'Musiker*innen / Zusagen', description: 'Besetzung & Zusagen' },
-  setlist: { title: 'Setlist', description: 'Spielreihenfolge & Noten' },
+  setlist: { title: 'Setlist', description: 'Stücke, Reihenfolge & Noten' },
   rehearsals: { title: 'Proben zu diesem Gig', description: 'Vorbereitung für diesen Gig' },
   equipment: { title: 'Equipment', description: 'Instrumente & Technik' },
   locations: { title: 'Orte & Logistik', description: 'Venue, Hotel, Catering & Treffpunkte' },
@@ -364,15 +365,16 @@ export class EventDetailComponent {
       .subscribe({
         next: (event) => {
           this.event.set(event);
+          this.panelOrder.set(this.defaultPanelOrder(event.type));
           this.loading.set(false);
           this.loadParticipants(event.id);
+          this.loadSetlist(event.id);
+          this.loadPanelLayout(event.id);
+          this.loadRequirements(event.id);
+          this.loadScheduleItems(event.id);
+          this.loadLocations(event.id);
           if (event.type === 'CONCERT') {
             this.loadRehearsals(event.id);
-            this.loadSetlist(event.id);
-            this.loadPanelLayout(event.id);
-            this.loadRequirements(event.id);
-            this.loadScheduleItems(event.id);
-            this.loadLocations(event.id);
           }
         },
         error: () => {
@@ -675,8 +677,18 @@ export class EventDetailComponent {
   }
 
   protected panelDescription(key: string): string | undefined {
+    if (this.event()?.type === 'REHEARSAL') {
+      if (key === 'setlist') {
+        return 'Stücke & Noten für die Probe';
+      }
+      if (key === 'schedule') {
+        return 'Ankommen, Aufbau, Probe, Abbau';
+      }
+    }
     return PANEL_META[key]?.description;
   }
+
+  protected repertoireLabel = repertoireLabel;
 
   protected isCollapsed(key: string): boolean {
     return this.panelCollapsed()[key] === true;
@@ -752,24 +764,34 @@ export class EventDetailComponent {
   }
 
   private applyLayout(layout: PanelLayout): void {
+    const defaultOrder = this.defaultPanelOrder(this.event()?.type);
+    const allowed = new Set(defaultOrder);
     const baseOrder = Array.isArray(layout.order) && layout.order.length > 0
-      ? layout.order.filter((key) => key !== 'sheet')
-      : [...PANEL_ORDER_DEFAULT];
+      ? layout.order.filter((key) => key !== 'sheet' && allowed.has(key))
+      : defaultOrder;
     const mergedOrder = [...baseOrder];
-    for (const key of PANEL_ORDER_DEFAULT) {
+    for (const key of defaultOrder) {
       if (!mergedOrder.includes(key)) {
         mergedOrder.push(key);
       }
     }
     this.panelOrder.set(mergedOrder);
     if (layout.stored) {
-      this.panelCollapsed.set({ ...(layout.collapsed ?? {}) });
+      this.panelCollapsed.set(
+        Object.fromEntries(
+          Object.entries(layout.collapsed ?? {}).filter(([key]) => allowed.has(key)),
+        ),
+      );
     } else {
       // First visit: start with a compact overview where every section is collapsed.
       this.panelCollapsed.set(
         Object.fromEntries(mergedOrder.map((key) => [key, true])),
       );
     }
+  }
+
+  private defaultPanelOrder(type = this.event()?.type): string[] {
+    return [...(type === 'REHEARSAL' ? PANEL_ORDER_REHEARSAL : PANEL_ORDER_DEFAULT)];
   }
 
   private saveLayout(): void {
@@ -1089,7 +1111,7 @@ export class EventDetailComponent {
       .sort((a, b) => a.position - b.position)
       .map((e) => e.pieceTitle);
     const setlistDescription = setlist.length
-      ? `Setlist: ${setlist.join(' → ')}`
+      ? `${repertoireLabel(event.type)}: ${setlist.join(' → ')}`
       : undefined;
 
     const ical = eventToIcal(event, { end, location, description: setlistDescription });
@@ -1663,11 +1685,21 @@ export class EventDetailComponent {
   private loadSetlist(eventId: number): void {
     this.setlistLoading.set(true);
     this.setlistError.set(null);
-    this.setlistService
-      .getOrCreateForEvent(eventId)
+    const setlistRequest = this.auth.isOrganizer()
+      ? this.setlistService.getOrCreateForEvent(eventId)
+      : this.setlistService.getByEvent(eventId);
+    setlistRequest
       .pipe(
-        tap((setlist) => this.setlistId.set(setlist.id)),
-        switchMap((setlist) => this.setlistService.loadEntries(setlist.id)),
+        catchError((err) => {
+          if (err?.status === 404) {
+            return of(null);
+          }
+          return throwError(() => err);
+        }),
+        tap((setlist) => this.setlistId.set(setlist?.id ?? null)),
+        switchMap((setlist) =>
+          setlist ? this.setlistService.loadEntries(setlist.id) : of([] as SetlistEntry[]),
+        ),
       )
       .subscribe({
         next: (entries) => {
@@ -1676,7 +1708,7 @@ export class EventDetailComponent {
         },
         error: () => {
           this.setlistLoading.set(false);
-          this.setlistError.set('Setlist konnte nicht geladen werden.');
+          this.setlistError.set('Repertoire konnte nicht geladen werden.');
         },
       });
   }

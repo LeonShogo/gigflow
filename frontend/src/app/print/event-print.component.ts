@@ -13,7 +13,7 @@ import { filter, map } from 'rxjs';
 
 import { EventPdfService } from './event-pdf.service';
 import { downloadBlob, slugify } from '../download';
-import { formatDate, formatTime, typeLabel } from '../event-format';
+import { formatDate, formatTime, repertoireLabel, typeLabel } from '../event-format';
 import type {
   EventItem,
   EventParticipation,
@@ -91,6 +91,9 @@ export class EventPrintComponent implements OnInit {
 
   protected readonly includeSetlist = signal(true);
   protected readonly downloading = signal(false);
+  protected readonly repertoireTitle = computed(() =>
+    repertoireLabel(this.event()?.type ?? 'CONCERT'),
+  );
 
   protected readonly confirmedCount = computed(
     () => this.participations().filter((p) => p.status === 'ACCEPTED').length,
@@ -153,7 +156,7 @@ export class EventPrintComponent implements OnInit {
         error: () => {
           this.loading.set(false);
           this.event.set(null);
-          this.error.set('Gig-Sheet konnte nicht geladen werden.');
+          this.error.set('Druckansicht konnte nicht geladen werden.');
         },
       });
   }

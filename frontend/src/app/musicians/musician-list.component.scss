@@ -112,7 +112,8 @@
 }
 
 .band-chip--static {
-  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.4rem 0.25rem 0.65rem;
 }
 
 .bands__empty {
@@ -415,11 +416,6 @@
 .band-chip__remove:disabled {
   opacity: 0.4;
   cursor: default;
-}
-
-.band-add-wrap {
-  display: inline-flex;
-  align-items: center;
 }
 
 .band-add {

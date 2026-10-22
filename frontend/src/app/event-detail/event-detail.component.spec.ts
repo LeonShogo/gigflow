@@ -333,7 +333,7 @@ function loadConcertWithLocations(
     const fixture = setup();
     loadConcert(fixture);
 
-    expect(fixture.nativeElement.textContent).toContain('Noch keine Stücke in der Setlist.');
+    expect(fixture.nativeElement.textContent).toContain('Noch keine Stücke hinterlegt.');
   });
 
   it('should render panels from the stored layout order', () => {
@@ -593,7 +593,7 @@ function loadConcertWithLocations(
     httpMock.expectOne('/api/setlist-entries/5').flush(null, { status: 204, statusText: 'No Content' });
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).toContain('Noch keine Stücke in der Setlist.');
+    expect(fixture.nativeElement.textContent).toContain('Noch keine Stücke hinterlegt.');
   });
 
   it('should move a piece up in the setlist', () => {
@@ -688,18 +688,31 @@ function loadConcertWithLocations(
     expect((titles[2] as HTMLElement).textContent).toContain('Nachtfahrt');
   });
 
-  it('should render a simple view for a rehearsal', () => {
+  it('should render shared detail panels for a rehearsal', () => {
     const fixture = setup();
     fixture.detectChanges();
     httpMock.expectOne('/api/events/1').flush(REHEARSAL);
     fixture.detectChanges();
     httpMock.expectOne('/api/event-participations/event/1').flush([]);
+    httpMock.expectOne('/api/setlists/event/1').flush(EMPTY_SETLIST);
+    httpMock.expectOne('/api/events/1/layout').flush(DEFAULT_LAYOUT);
+    httpMock.expectOne('/api/equipment-requirements/event/1').flush([]);
+    httpMock.expectOne('/api/schedule-items/event/1').flush([]);
+    httpMock.expectOne('/api/event-locations/event/1').flush([]);
+    fixture.detectChanges();
+    httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([]);
     fixture.detectChanges();
 
     const el: HTMLElement = fixture.nativeElement;
     expect(el.querySelector('.type')?.textContent?.trim()).toBe('Probe');
-    expect(el.querySelectorAll('.panel').length).toBe(0);
-    expect(el.textContent).toContain('Dieser Termin ist eine Probe.');
+    expect(el.querySelectorAll('.panel').length).toBe(5);
+    expect(el.querySelector('.panel--rehearsals')).toBeNull();
+    expect(el.textContent).toContain('Probenrepertoire');
+    expect(el.textContent).toContain('Musiker*innen / Zusagen');
+    expect(el.textContent).toContain('Equipment');
+    expect(el.textContent).toContain('Orte & Logistik');
+    expect(el.textContent).toContain('Ablauf / Zeiten');
+    expect(el.textContent).not.toContain('Dieser Termin ist eine Probe.');
   });
 
   it('should show an error message when loading fails', () => {
@@ -1004,7 +1017,7 @@ function loadConcertWithLocations(
     const fixture = setup();
     loadConcert(fixture);
 
-    expect(fixture.nativeElement.textContent).toContain('Noch kein Ablauf für diesen Gig erfasst.');
+    expect(fixture.nativeElement.textContent).toContain('Noch kein Ablauf für diesen Termin erfasst.');
   });
 
   it('should add a new schedule item from a preset', () => {
@@ -1178,7 +1191,7 @@ function loadConcertWithLocations(
     httpMock.expectOne('/api/schedule-items/5').flush(null, { status: 204, statusText: 'No Content' });
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).toContain('Noch kein Ablauf für diesen Gig erfasst.');
+    expect(fixture.nativeElement.textContent).toContain('Noch kein Ablauf für diesen Termin erfasst.');
   });
 
   it('should assign an existing rehearsal to the concert', () => {
@@ -1540,7 +1553,7 @@ function loadConcertWithLocations(
       '.setlist__download-item',
     ) as HTMLButtonElement;
     infoItem.click();
-    for (let i = 0; i < 50 && !savedFilename; i += 1) {
+    for (let i = 0; i < 200 && !savedFilename; i += 1) {
       await new Promise((resolve) => setTimeout(resolve, 10));
       fixture.detectChanges();
     }
@@ -1999,7 +2012,7 @@ function loadConcertWithLocations(
     const fixture = setup();
     loadConcertWithLocations(fixture, []);
 
-    expect(fixture.nativeElement.textContent).toContain('Noch keine Orte für diesen Gig erfasst.');
+    expect(fixture.nativeElement.textContent).toContain('Noch keine Orte für diesen Termin erfasst.');
   });
 
   it('should remove a location after confirmation', () => {
@@ -2032,7 +2045,7 @@ function loadConcertWithLocations(
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('Ort entfernt.');
-    expect(fixture.nativeElement.textContent).toContain('Noch keine Orte für diesen Gig erfasst.');
+    expect(fixture.nativeElement.textContent).toContain('Noch keine Orte für diesen Termin erfasst.');
   });
 
   it('should show a delete action for organizers and delete the event after confirmation', () => {

@@ -22,7 +22,15 @@
   @if (canDelete()) {
     <div class="bands">
       @for (band of bands(); track band.id) {
-        <span class="band-chip band-chip--static">{{ band.name }}</span>
+        <span class="band-chip band-chip--static">
+          {{ band.name }}
+          <button
+            type="button"
+            class="band-chip__remove"
+            (click)="requestBandDelete(band)"
+            [attr.aria-label]="'Band löschen: ' + band.name"
+          >&times;</button>
+        </span>
       } @empty {
         <span class="bands__empty">Noch keine Band angelegt.</span>
       }
@@ -107,21 +115,19 @@
                     </span>
                   }
                   @if (canDelete() && availableBands.length > 0) {
-                    <label class="band-add-wrap" [for]="'band-for-' + musician.id">
-                      <span class="sr-only">Band für {{ musicianName(musician) }} hinzufügen</span>
-                      <select
-                        class="band-add"
-                        [id]="'band-for-' + musician.id"
-                        [value]="''"
-                        [disabled]="membershipSaving()"
-                        (change)="onAssignBand(musician, $any($event.target).value)"
-                      >
-                        <option value="">+ Band</option>
-                        @for (band of availableBands; track band.id) {
-                          <option [value]="band.id">{{ band.name }}</option>
-                        }
-                      </select>
-                    </label>
+                    <select
+                      class="band-add"
+                      [id]="'band-for-' + musician.id"
+                      [value]="''"
+                      [disabled]="membershipSaving()"
+                      (change)="onAssignBand(musician, $any($event.target).value)"
+                      aria-label="Band hinzufügen"
+                    >
+                      <option value="">+ Band</option>
+                      @for (band of availableBands; track band.id) {
+                        <option [value]="band.id">{{ band.name }}</option>
+                      }
+                    </select>
                   }
                 </div>
               }
@@ -169,6 +175,29 @@
     </ul>
   }
 </section>
+
+@if (bandToDelete(); as band) {
+  <app-modal-dialog title="Band löschen" (closed)="cancelBandDelete()">
+    <p class="confirm-dialog__text">
+      „{{ band.name }}“ wirklich löschen? Alle Zuordnungen zu Musiker*innen werden entfernt.
+      Bands mit bestehenden Gigs oder Proben können nicht gelöscht werden.
+    </p>
+    <div class="confirm-dialog__actions">
+      <button
+        type="button"
+        class="row__confirm-btn"
+        (click)="cancelBandDelete()"
+        [disabled]="deletingBand()"
+      >Abbrechen</button>
+      <button
+        type="button"
+        class="row__confirm-btn row__confirm-btn--danger"
+        (click)="confirmBandDelete()"
+        [disabled]="deletingBand()"
+      >{{ deletingBand() ? 'Wird gelöscht …' : 'Band löschen' }}</button>
+    </div>
+  </app-modal-dialog>
+}
 
 @if (confirmingDeleteAll()) {
   <app-modal-dialog title="Alle Musiker*innen löschen" (closed)="cancelDeleteAll()">

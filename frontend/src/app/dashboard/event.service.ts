@@ -63,6 +63,10 @@ export class EventService {
     return this.http.post<Band>('/api/bands', request);
   }
 
+  deleteBand(id: number): Observable<void> {
+    return this.http.delete<void>(`/api/bands/${id}`);
+  }
+
   loadBandMemberships(bandId: number): Observable<BandMembership[]> {
     return this.http.get<BandMembership[]>(`/api/memberships/band/${bandId}`);
   }
@@ -96,4 +100,3 @@ export class EventService {
     return this.http.delete<void>(`/api/events/${id}`);
   }
 }
-

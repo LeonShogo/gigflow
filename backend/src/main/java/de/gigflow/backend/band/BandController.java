@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -54,8 +55,16 @@ public class BandController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteBand(@PathVariable Long id) {
-        bandService.deleteBand(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<?> deleteBand(@PathVariable Long id) {
+        try {
+            bandService.deleteBand(id);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            if (e.getMessage() != null && e.getMessage().startsWith("Band nicht gefunden")) {
+                return ResponseEntity.notFound().build();
+            }
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("message", e.getMessage()));
+        }
     }
 }

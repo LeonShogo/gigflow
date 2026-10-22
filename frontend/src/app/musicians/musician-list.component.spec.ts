@@ -75,6 +75,33 @@ describe('MusicianListComponent', () => {
     expect((fixture.nativeElement.querySelector('.band-form') as HTMLElement)).toBeNull();
   });
 
+  it('should delete an unused band and remove its memberships', () => {
+    const fixture = TestBed.createComponent(MusicianListComponent);
+    fixture.detectChanges();
+    flushLoad([{ id: 42, bandId: 1, musicianId: 1 }]);
+    loginAsOrganizer();
+    fixture.detectChanges();
+
+    const remove = fixture.nativeElement.querySelector(
+      '.band-chip--static .band-chip__remove',
+    ) as HTMLButtonElement;
+    remove.click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('„GigFlow Quartett“ wirklich löschen?');
+    (fixture.nativeElement.querySelector(
+      '.confirm-dialog__actions .row__confirm-btn--danger',
+    ) as HTMLButtonElement).click();
+
+    const request = httpMock.expectOne('/api/bands/1');
+    expect(request.request.method).toBe('DELETE');
+    request.flush(null, { status: 204, statusText: 'No Content' });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.band-chip--static')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.row__identity .band-chip')).toBeNull();
+  });
+
   it('should list musicians with assigned bands beside the name', () => {
     const fixture = TestBed.createComponent(MusicianListComponent);
     fixture.detectChanges();

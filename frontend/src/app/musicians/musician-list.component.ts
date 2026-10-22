@@ -46,6 +46,8 @@ export class MusicianListComponent {
   protected readonly newBandGenre = signal('');
   protected readonly creatingBand = signal(false);
   protected readonly bandError = signal<string | null>(null);
+  protected readonly bandToDelete = signal<Band | null>(null);
+  protected readonly deletingBand = signal(false);
 
   protected readonly confirmingDelete = signal<Record<number, boolean>>({});
   protected readonly deleting = signal<Record<number, boolean>>({});
@@ -189,6 +191,39 @@ export class MusicianListComponent {
       error: (err) => {
         this.creatingBand.set(false);
         this.bandError.set(err?.error?.message ?? 'Band konnte nicht angelegt werden.');
+      },
+    });
+  }
+
+  protected requestBandDelete(band: Band): void {
+    this.dismissDeleteError();
+    this.bandToDelete.set(band);
+  }
+
+  protected cancelBandDelete(): void {
+    if (!this.deletingBand()) {
+      this.bandToDelete.set(null);
+    }
+  }
+
+  protected confirmBandDelete(): void {
+    const band = this.bandToDelete();
+    if (!band || this.deletingBand()) {
+      return;
+    }
+    this.deletingBand.set(true);
+    this.eventService.deleteBand(band.id).subscribe({
+      next: () => {
+        this.bands.update((list) => list.filter((item) => item.id !== band.id));
+        this.memberships.update((list) => list.filter((item) => item.bandId !== band.id));
+        this.deletingBand.set(false);
+        this.bandToDelete.set(null);
+        this.toast.show(`Band „${band.name}“ gelöscht.`);
+      },
+      error: (err) => {
+        this.deletingBand.set(false);
+        this.bandToDelete.set(null);
+        this.showDeleteError(err?.error?.message ?? 'Band konnte nicht gelöscht werden.');
       },
     });
   }

@@ -14,7 +14,7 @@
         [attr.aria-pressed]="includeSetlist()"
         (click)="setSetlist(true)"
         [disabled]="loading()"
-      >Mit Setlist &amp; Noten</button>
+      >Mit {{ repertoireTitle() }} &amp; Noten</button>
       <button
         type="button"
         class="seg"
@@ -33,7 +33,7 @@
   </header>
 
   @if (loading()) {
-    <p class="status">Gig-Sheet wird erstellt …</p>
+    <p class="status">Druckansicht wird erstellt …</p>
   } @else if (error(); as message) {
     <p class="status status--error" role="alert">{{ message }}</p>
   } @else if (event(); as event) {
@@ -120,7 +120,7 @@
         @if (includeSetlist()) {
           @if (entries().length > 0) {
             <section class="block block--setlist">
-              <h2 class="block__title">Setlist</h2>
+              <h2 class="block__title">{{ repertoireTitle() }}</h2>
               <ol class="rows">
                 @for (entry of sortedEntries(); track entry.id; let i = $index) {
                   <li class="row">
@@ -131,7 +131,7 @@
               </ol>
             </section>
           } @else {
-            <p class="status">Keine Setlist hinterlegt.</p>
+            <p class="status">Keine Stücke hinterlegt.</p>
           }
         }
 

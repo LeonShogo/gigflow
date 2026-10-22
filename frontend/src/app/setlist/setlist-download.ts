@@ -1,4 +1,4 @@
-import { formatDate, formatTime, formatTimeOnly, typeLabel } from '../event-format';
+import { formatDate, formatTime, formatTimeOnly, repertoireLabel, typeLabel } from '../event-format';
 import { downloadBlob, slugify } from '../download';
 import { createZip } from '../print/zip';
 import type { PDFDocument } from 'pdf-lib';
@@ -161,7 +161,7 @@ export async function buildInfoDocument(data: SetlistDownloadData): Promise<PDFD
   if (sortedEntries.length > 0) {
     blocks.push(
       headingBlock(
-        'Setlist',
+        repertoireLabel(data.event.type),
         sortedEntries.map((entry, index) => {
           const sheet = entry.sheets.length > 0 ? ' · Noten' : '';
           return `${index + 1}. ${entry.pieceTitle}${sheet}`;

@@ -1,5 +1,6 @@
 package de.gigflow.backend.band;
 
+import de.gigflow.backend.event.EventRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -11,10 +12,15 @@ public class BandService {
 
     private final BandRepository bandRepository;
     private final BandMembershipRepository membershipRepository;
+    private final EventRepository eventRepository;
 
-    public BandService(BandRepository bandRepository, BandMembershipRepository membershipRepository) {
+    public BandService(
+            BandRepository bandRepository,
+            BandMembershipRepository membershipRepository,
+            EventRepository eventRepository) {
         this.bandRepository = bandRepository;
         this.membershipRepository = membershipRepository;
+        this.eventRepository = eventRepository;
     }
 
     public BandResponse createBand(BandRequest request) {
@@ -42,7 +48,13 @@ public class BandService {
 
     @Transactional
     public void deleteBand(Long id) {
+        Band band = bandRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Band nicht gefunden: " + id));
+        if (eventRepository.existsByBandId(id)) {
+            throw new IllegalArgumentException(
+                    "„" + band.getName() + "“ kann nicht gelöscht werden: noch Gigs/Proben zugeordnet.");
+        }
         membershipRepository.deleteAll(membershipRepository.findByBandId(id));
-        bandRepository.deleteById(id);
+        bandRepository.delete(band);
     }
 }

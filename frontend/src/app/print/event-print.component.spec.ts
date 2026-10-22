@@ -17,6 +17,14 @@ const CONCERT: EventItem = {
   bandName: 'The Dockyarders',
 };
 
+const REHEARSAL: EventItem = {
+  id: 1,
+  title: 'Bandprobe',
+  type: 'REHEARSAL',
+  dateTime: '2026-09-10T18:00:00',
+  bandName: 'The Dockyarders',
+};
+
 const EMPTY_SETLIST = { id: 10, eventId: 1 };
 
 const pdfServiceMock = { build: vi.fn() };
@@ -134,6 +142,31 @@ describe('EventPrintComponent', () => {
     expect(el.textContent).toContain('Generalprobe');
   });
 
+  it('should render a rehearsal with repertoire and without linked rehearsals', () => {
+    const fixture = TestBed.createComponent(EventPrintComponent);
+    const el: HTMLElement = fixture.nativeElement;
+
+    fixture.detectChanges();
+    httpMock.expectOne('/api/events/1').flush(REHEARSAL);
+    fixture.detectChanges();
+    httpMock.expectOne('/api/event-participations/event/1').flush([]);
+    httpMock.expectOne('/api/setlists/event/1').flush(EMPTY_SETLIST);
+    httpMock.expectOne('/api/equipment-requirements/event/1').flush([]);
+    httpMock.expectOne('/api/schedule-items/event/1').flush([]);
+    httpMock.expectOne('/api/event-locations/event/1').flush([]);
+    fixture.detectChanges();
+    httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([
+      { id: 1, setlistId: 10, pieceId: 1, pieceTitle: 'Probensong', position: 0, sheets: [] },
+    ]);
+    fixture.detectChanges();
+
+    expect(el.querySelector('.sheet__chip')?.textContent?.trim()).toBe('Probe');
+    expect(el.textContent).toContain('Mit Probenrepertoire & Noten');
+    expect(el.textContent).toContain('Probenrepertoire');
+    expect(el.textContent).toContain('Probensong');
+    expect(el.textContent).not.toContain('Proben zu diesem Gig');
+  });
+
   it('should omit sections without data', () => {
     const fixture = TestBed.createComponent(EventPrintComponent);
     const el: HTMLElement = fixture.nativeElement;
@@ -157,7 +190,7 @@ describe('EventPrintComponent', () => {
     expect(el.textContent).not.toContain('Musiker*innen / Zusagen');
     expect(el.textContent).not.toContain('Equipment');
     expect(el.textContent).not.toContain('Proben zu diesem Gig');
-    expect(el.querySelector('.sheet')?.textContent).toContain('Keine Setlist hinterlegt.');
+    expect(el.querySelector('.sheet')?.textContent).toContain('Keine Stücke hinterlegt.');
   });
 
   it('should treat a missing setlist as empty', () => {
@@ -188,7 +221,7 @@ describe('EventPrintComponent', () => {
 
     expect(el.querySelector('.sheet__title')?.textContent).toBe('Hafenrocker');
     expect(el.textContent).toContain('Musiker*innen / Zusagen');
-    expect(el.querySelector('.sheet')?.textContent).toContain('Keine Setlist hinterlegt.');
+    expect(el.querySelector('.sheet')?.textContent).toContain('Keine Stücke hinterlegt.');
   });
 
   it('should build and download the PDF with the included setlist', async () => {
