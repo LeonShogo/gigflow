@@ -5,6 +5,7 @@ import { provideRouter } from '@angular/router';
 
 import { MusicianListComponent } from './musician-list.component';
 import { AuthService } from '../auth/auth.service';
+import { ToastService } from '../notifications/toast.service';
 import type { Musician } from './musician.model';
 
 const MUSICIANS: Musician[] = [
@@ -75,7 +76,7 @@ describe('MusicianListComponent', () => {
     expect((fixture.nativeElement.querySelector('.band-form') as HTMLElement)).toBeNull();
   });
 
-  it('should delete an unused band and remove its memberships', () => {
+  it('should delete an unused band, remove its memberships and restore both on undo', () => {
     const fixture = TestBed.createComponent(MusicianListComponent);
     fixture.detectChanges();
     flushLoad([{ id: 42, bandId: 1, musicianId: 1 }]);
@@ -100,6 +101,24 @@ describe('MusicianListComponent', () => {
 
     expect(fixture.nativeElement.querySelector('.band-chip--static')).toBeNull();
     expect(fixture.nativeElement.querySelector('.row__identity .band-chip')).toBeNull();
+
+    TestBed.inject(ToastService).runAction();
+
+    const create = httpMock.expectOne('/api/bands');
+    expect(create.request.method).toBe('POST');
+    expect(create.request.body).toEqual({ name: 'GigFlow Quartett' });
+    create.flush({ id: 2, name: 'GigFlow Quartett' });
+
+    const membership = httpMock.expectOne('/api/memberships');
+    expect(membership.request.method).toBe('POST');
+    expect(membership.request.body).toEqual({ bandId: 2, musicianId: 1 });
+    membership.flush({ id: 43, bandId: 2, musicianId: 1 });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.band-chip--static')).toBeTruthy();
+    expect(
+      fixture.nativeElement.querySelector('.row__identity .band-chip')?.textContent,
+    ).toContain('GigFlow Quartett');
   });
 
   it('should list musicians with assigned bands beside the name', () => {
@@ -134,7 +153,7 @@ describe('MusicianListComponent', () => {
     expect(fixture.nativeElement.querySelector('p[role="alert"]')).toBeTruthy();
   });
 
-  it('should delete a musician after confirmation and update the list', () => {
+  it('should delete a musician after confirmation and restore it on undo', () => {
     const fixture = TestBed.createComponent(MusicianListComponent);
     fixture.detectChanges();
     flushLoad();
@@ -164,6 +183,28 @@ describe('MusicianListComponent', () => {
     const remaining = fixture.nativeElement.querySelectorAll('.row__name');
     expect(remaining.length).toBe(1);
     expect((remaining[0] as HTMLElement).textContent).toContain('Jonas Keller');
+
+    TestBed.inject(ToastService).runAction();
+
+    const restore = httpMock.expectOne('/api/musicians');
+    expect(restore.request.method).toBe('POST');
+    expect(restore.request.body).toMatchObject({
+      firstName: 'Anna',
+      lastName: 'Becker',
+      instrument: 'Gesang',
+      email: 'anna@example.org',
+    });
+    restore.flush({
+      id: 3,
+      firstName: 'Anna',
+      lastName: 'Becker',
+      instrument: 'Gesang',
+      email: 'anna@example.org',
+    });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelectorAll('.row__name').length).toBe(2);
+    expect(fixture.nativeElement.textContent).toContain('Anna Becker');
   });
 
   it('should delete all musicians after confirmation', () => {

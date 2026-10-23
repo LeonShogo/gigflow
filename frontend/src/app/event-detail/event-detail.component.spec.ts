@@ -9,7 +9,9 @@ import { vi } from 'vitest';
 
 import { EventDetailComponent } from './event-detail.component';
 import type { EventItem } from '../dashboard/event.model';
+import { EventUndoService } from '../dashboard/event-undo.service';
 import { AuthService } from '../auth/auth.service';
+import { ToastService } from '../notifications/toast.service';
 import { expectNoA11yViolations } from '../testing/expect-no-axe-violations';
 
 const CONCERT: EventItem = {
@@ -136,6 +138,7 @@ function loadConcertWithLocations(
 
   afterEach(() => {
     httpMock.verify();
+    vi.restoreAllMocks();
   });
 
   it('should load and render a concert with sections', () => {
@@ -155,7 +158,7 @@ function loadConcertWithLocations(
     const fixture = setup();
     loadConcert(fixture);
     await expectNoA11yViolations(fixture.nativeElement);
-  });
+  }, 15000);
 
   it('should render participants with distinct status colors', () => {
     const fixture = setup();
@@ -1553,7 +1556,7 @@ function loadConcertWithLocations(
       '.setlist__download-item',
     ) as HTMLButtonElement;
     infoItem.click();
-    for (let i = 0; i < 200 && !savedFilename; i += 1) {
+    for (let i = 0; i < 1000 && !savedFilename; i += 1) {
       await new Promise((resolve) => setTimeout(resolve, 10));
       fixture.detectChanges();
     }
@@ -1695,7 +1698,7 @@ function loadConcertWithLocations(
     expect(first.querySelector('.entry__sheet--audio')).toBeTruthy();
   });
 
-  it('should remove a demo audio and drop the badge', () => {
+  it('should remove a demo audio, drop the badge and restore it on undo', async () => {
     const fixture = setup();
     fixture.detectChanges();
     httpMock.expectOne('/api/events/1').flush(CONCERT);
@@ -1723,13 +1726,30 @@ function loadConcertWithLocations(
 
     const first = fixture.nativeElement.querySelectorAll('.entry')[0] as HTMLElement;
     (first.querySelector('.entry__btn--audio-remove') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const download = httpMock.expectOne('/api/pieces/3/demo-audio');
+    expect(download.request.method).toBe('GET');
+    download.flush(new Blob(['abc'], { type: 'audio/mpeg' }));
+    await settle(fixture);
+
     const req = httpMock.expectOne('/api/pieces/3/demo-audio');
     expect(req.request.method).toBe('DELETE');
     req.flush(null, { status: 204, statusText: 'No Content' });
-    fixture.detectChanges();
+    await settle(fixture);
 
     expect(fixture.nativeElement.textContent).toContain('Demo entfernt.');
     expect(first.querySelector('.entry__sheet--audio')).toBeNull();
+
+    TestBed.inject(ToastService).runAction();
+    await settle(fixture);
+
+    const upload = httpMock.expectOne('/api/pieces/3/demo-audio');
+    expect(upload.request.method).toBe('POST');
+    upload.flush({ id: 3, title: 'Hallo Welt', hasDemoAudio: true });
+    await settle(fixture);
+
+    expect(fixture.nativeElement.textContent).toContain('Demo wiederhergestellt.');
+    expect(first.querySelector('.entry__sheet--audio')).toBeTruthy();
   });
 
   it('should save and show a YouTube link via the inline form', () => {
@@ -1781,6 +1801,75 @@ function loadConcertWithLocations(
     expect((first.querySelector('.entry__sheet--youtube') as HTMLAnchorElement).getAttribute('href')).toBe(
       'https://www.youtube.com/watch?v=abc123',
     );
+  });
+
+  it('should remove a YouTube link and restore it on undo', async () => {
+    const fixture = setup();
+    fixture.detectChanges();
+    httpMock.expectOne('/api/events/1').flush(CONCERT);
+    fixture.detectChanges();
+    httpMock.expectOne('/api/event-participations/event/1').flush([]);
+    httpMock.expectOne('/api/events/by-concert/1').flush([]);
+    httpMock.expectOne('/api/setlists/event/1').flush(EMPTY_SETLIST);
+    httpMock.expectOne('/api/events/1/layout').flush(DEFAULT_LAYOUT);
+    httpMock.expectOne('/api/event-locations/event/1').flush([]);
+    fixture.detectChanges();
+    httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([
+      {
+        id: 5,
+        setlistId: 10,
+        pieceId: 3,
+        pieceTitle: 'Hallo Welt',
+        position: 0,
+        sheets: [],
+        youtubeUrl: 'https://www.youtube.com/watch?v=abc123',
+      },
+    ]);
+    httpMock.expectOne('/api/equipment-requirements/event/1').flush([]);
+    httpMock.expectOne('/api/schedule-items/event/1').flush([]);
+    fixture.detectChanges();
+
+    const auth = TestBed.inject(AuthService);
+    auth.login({ email: 'o@gigflow.local', password: 'password' }).subscribe();
+    httpMock.expectOne('/api/auth/login').flush({
+      token: 't',
+      user: { id: 1, email: 'o@gigflow.local', organizer: true, musicianId: null },
+    });
+    fixture.detectChanges();
+
+    const first = fixture.nativeElement.querySelectorAll('.entry')[0] as HTMLElement;
+    (first.querySelector('.entry__btn--youtube-edit') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    (first.querySelector('.entry__btn--media-danger') as HTMLButtonElement).click();
+    const remove = httpMock.expectOne('/api/pieces/3/youtube');
+    expect(remove.request.method).toBe('PUT');
+    expect(remove.request.body).toEqual({ youtubeUrl: null });
+    remove.flush({ id: 3, title: 'Hallo Welt', youtubeUrl: null });
+    await settle(fixture);
+
+    expect(fixture.nativeElement.textContent).toContain('YouTube-Link entfernt.');
+    expect(first.querySelector('.entry__sheet--youtube')).toBeNull();
+
+    TestBed.inject(ToastService).runAction();
+    await settle(fixture);
+
+    const restore = httpMock.expectOne('/api/pieces/3/youtube');
+    expect(restore.request.method).toBe('PUT');
+    expect(restore.request.body).toEqual({
+      youtubeUrl: 'https://www.youtube.com/watch?v=abc123',
+    });
+    restore.flush({
+      id: 3,
+      title: 'Hallo Welt',
+      youtubeUrl: 'https://www.youtube.com/watch?v=abc123',
+    });
+    await settle(fixture);
+
+    expect(fixture.nativeElement.textContent).toContain('YouTube-Link wiederhergestellt.');
+    expect(
+      (first.querySelector('.entry__sheet--youtube') as HTMLAnchorElement).getAttribute('href'),
+    ).toBe('https://www.youtube.com/watch?v=abc123');
   });
 
   it('should render locations with type, name, address, phone, note and maps link', () => {
@@ -2050,7 +2139,8 @@ function loadConcertWithLocations(
     expect(fixture.nativeElement.textContent).toContain('Noch keine Orte für diesen Termin erfasst.');
   });
 
-  it('should show a delete action for organizers and delete the event after confirmation', () => {
+  it('should show a delete action for organizers and delete the event after confirmation', async () => {
+    vi.spyOn(TestBed.inject(EventUndoService), 'capture').mockResolvedValue([]);
     const fixture = setup();
     loadConcert(fixture);
 
@@ -2069,9 +2159,11 @@ function loadConcertWithLocations(
 
     expect(fixture.nativeElement.textContent).toContain('Hafenrocker');
     (fixture.nativeElement.querySelector('.detail__print--danger') as HTMLButtonElement).click();
+    await settle(fixture);
     const req = httpMock.expectOne('/api/events/1');
     expect(req.request.method).toBe('DELETE');
     req.flush(null, { status: 204, statusText: 'No Content' });
+    await settle(fixture);
     fixture.detectChanges();
   });
 

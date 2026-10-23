@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   ElementRef,
   OnInit,
   inject,
@@ -13,6 +14,7 @@ import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 
 import { downloadBlob } from '../download';
+import { ToastService } from '../notifications/toast.service';
 import { ModalDialogComponent } from '../shared/modal-dialog.component';
 import type { PieceSheet } from './setlist.model';
 import { SetlistService } from './setlist.service';
@@ -26,6 +28,9 @@ import { SetlistService } from './setlist.service';
 })
 export class PieceSheetsDialogComponent implements OnInit {
   private readonly setlistService = inject(SetlistService);
+  private readonly toast = inject(ToastService);
+  private readonly destroyRef = inject(DestroyRef);
+  private destroyed = false;
 
   readonly pieceId = input.required<number>();
   readonly pieceTitle = input.required<string>();
@@ -48,6 +53,12 @@ export class PieceSheetsDialogComponent implements OnInit {
   protected readonly confirmingDeleteId = signal<number | null>(null);
   protected readonly deletingId = signal<number | null>(null);
   protected readonly fileInput = viewChild<ElementRef<HTMLInputElement>>('sheetFiles');
+
+  constructor() {
+    this.destroyRef.onDestroy(() => {
+      this.destroyed = true;
+    });
+  }
 
   ngOnInit(): void {
     this.sheets.set(this.initialSheets());
@@ -157,14 +168,57 @@ export class PieceSheetsDialogComponent implements OnInit {
     this.deletingId.set(sheet.id);
     this.error.set(null);
     try {
+      const blob = await firstValueFrom(this.setlistService.downloadSheet(sheet.id));
       await firstValueFrom(this.setlistService.removeSheet(sheet.id));
       this.updateSheets(this.sheets().filter((item) => item.id !== sheet.id));
       this.confirmingDeleteId.set(null);
       this.feedback.set('Notenblatt entfernt.');
+      this.toast.show('Notenblatt entfernt.', {
+        label: 'Rückgängig',
+        run: () => void this.restoreSheet(sheet, blob),
+      });
     } catch {
       this.error.set('Notenblatt konnte nicht entfernt werden.');
     } finally {
       this.deletingId.set(null);
+    }
+  }
+
+  private async restoreSheet(sheet: PieceSheet, blob: Blob): Promise<void> {
+    try {
+      const file = new File([blob], this.fileName(sheet), {
+        type: 'application/pdf',
+      });
+      const [created] = await firstValueFrom(
+        this.setlistService.uploadSheets(this.pieceId(), [file]),
+      );
+      if (!created) {
+        throw new Error('Notenblatt konnte nicht hochgeladen werden.');
+      }
+
+      let restored = created;
+      if (created.label !== sheet.label) {
+        try {
+          restored = await firstValueFrom(
+            this.setlistService.renameSheet(created.id, sheet.label),
+          );
+        } catch {
+          restored = created;
+        }
+      }
+
+      if (this.destroyed) {
+        this.toast.show('Notenblatt wiederhergestellt.');
+      } else {
+        this.updateSheets([...this.sheets(), restored]);
+        this.feedback.set('Notenblatt wiederhergestellt.');
+      }
+    } catch {
+      if (this.destroyed) {
+        this.toast.show('Notenblatt konnte nicht wiederhergestellt werden.');
+      } else {
+        this.error.set('Notenblatt konnte nicht wiederhergestellt werden.');
+      }
     }
   }
 

@@ -49,29 +49,28 @@
 .cal__export {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  min-height: 2.75rem;
-  font-family: var(--font-mono);
-  font-size: 0.78rem;
-  letter-spacing: 0.04em;
+  justify-content: center;
+  min-height: 2.5rem;
+  padding: 0.5rem 0.85rem;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
   color: var(--accent-ink);
   background: var(--paper-raised);
   border: 1px solid var(--accent);
-  border-radius: var(--radius-pill);
-  padding: 0.35rem 0.9rem;
+  border-radius: var(--radius);
   cursor: pointer;
   transition:
     border-color var(--t-fast) ease,
     color var(--t-fast) ease,
     background-color var(--t-fast) ease,
-    transform var(--t-fast) ease,
     box-shadow var(--t-fast) ease;
 }
 
 .cal__export:hover:not(:disabled) {
   color: var(--paper-raised);
   background: var(--accent);
-  transform: translateY(-1px);
   box-shadow: var(--shadow-sm);
 }
 
@@ -368,7 +367,8 @@
   }
 
   .cal__nav,
-  .cal__today {
+  .cal__today,
+  .cal__export {
     min-height: 2.75rem;
   }
 }
@@ -403,8 +403,7 @@
   }
 
   .cal__export {
-    flex: 1 1 100%;
-    justify-content: center;
+    flex: 0 1 auto;
     min-height: 3rem;
   }
 

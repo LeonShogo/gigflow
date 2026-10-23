@@ -124,14 +124,14 @@ describe('EventPrintComponent', () => {
     fixture.detectChanges();
 
     expect(el.querySelector('.sheet__title')?.textContent).toBe('Hafenrocker');
-    expect(el.querySelector('.sheet__chip')?.textContent?.trim()).toBe('Gig');
+    expect(el.querySelector('.sheet__type')?.textContent?.trim()).toBe('Gig');
     expect(el.textContent).toContain('The Dockyarders');
     expect(el.textContent).toContain('Sa, 12. September 2026');
     expect(el.textContent).toContain('20:00 Uhr');
 
     expect(el.textContent).toContain('Ablauf / Zeiten');
     expect(el.textContent).toContain('Soundcheck');
-    expect(el.textContent).toContain('Orte und Kategorien siehe unten.');
+    expect(el.textContent).toContain('Orte siehe unten.');
     expect(el.textContent).toContain('Orte & Kategorien');
     expect(el.textContent).toContain('Venue / Club');
     expect(el.textContent).toContain('Kulturfabrik');
@@ -162,7 +162,7 @@ describe('EventPrintComponent', () => {
     ]);
     fixture.detectChanges();
 
-    expect(el.querySelector('.sheet__chip')?.textContent?.trim()).toBe('Probe');
+    expect(el.querySelector('.sheet__type')?.textContent?.trim()).toBe('Probe');
     expect(el.textContent).toContain('Mit Probenrepertoire & Noten');
     expect(el.textContent).toContain('Probenrepertoire');
     expect(el.textContent).toContain('Probensong');

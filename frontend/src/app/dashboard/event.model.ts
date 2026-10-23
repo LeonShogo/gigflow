@@ -7,9 +7,10 @@ export interface EventItem {
   /** ISO date/time */
   dateTime: string;
   bandId?: number;
+  bandName?: string;
+  concertId?: number | null;
   /** Reserve for later */
   venue?: string;
-  bandName?: string;
 }
 
 export interface EventRequest {

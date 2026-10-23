@@ -33,6 +33,7 @@ import type {
 } from '../dashboard/event.model';
 import { EventService } from '../dashboard/event.service';
 import type { PanelLayout } from '../dashboard/event.service';
+import { EventUndoService, type EventUndoSnapshot } from '../dashboard/event-undo.service';
 import {
   EventParticipationService,
   type ParticipationRequest,
@@ -129,6 +130,7 @@ export class EventDetailComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly eventService = inject(EventService);
+  private readonly eventUndoService = inject(EventUndoService);
   private readonly participationService = inject(EventParticipationService);
   private readonly musicianService = inject(MusicianService);
   private readonly setlistService = inject(SetlistService);
@@ -1089,25 +1091,44 @@ export class EventDetailComponent {
     this.confirmingDelete.set(false);
   }
 
-  protected confirmDelete(): void {
+  protected async confirmDelete(): Promise<void> {
     const current = this.event();
     if (!current) {
       return;
     }
     this.deleting.set(true);
     this.deleteError.set(null);
-    this.eventService.deleteEvent(current.id).subscribe({
-      next: () => {
-        this.deleting.set(false);
-        this.confirmingDelete.set(false);
-        this.router.navigate(['/']);
-      },
-      error: () => {
-        this.deleting.set(false);
-        this.confirmingDelete.set(false);
-        this.deleteError.set('Termin konnte nicht gelöscht werden.');
-      },
-    });
+    try {
+      const snapshot = await this.eventUndoService.capture(current.id);
+      await firstValueFrom(this.eventService.deleteEvent(current.id));
+      this.deleting.set(false);
+      this.confirmingDelete.set(false);
+      this.toast.show('Termin gelöscht.', {
+        label: 'Rückgängig',
+        run: () => void this.restoreEvent(snapshot, current.id),
+      });
+      this.router.navigate(['/']);
+    } catch {
+      this.deleting.set(false);
+      this.confirmingDelete.set(false);
+      this.deleteError.set('Termin konnte nicht gelöscht werden.');
+    }
+  }
+
+  private async restoreEvent(
+    snapshot: EventUndoSnapshot[],
+    eventId: number,
+  ): Promise<void> {
+    try {
+      const restored = await this.eventUndoService.restore(snapshot);
+      const event = restored.get(eventId);
+      this.toast.show('Termin wiederhergestellt.');
+      if (event) {
+        this.router.navigate(['/events', event.id]);
+      }
+    } catch {
+      this.toast.show('Wiederherstellen fehlgeschlagen.');
+    }
   }
 
   protected exportToCalendar(): void {
@@ -1971,7 +1992,7 @@ export class EventDetailComponent {
     });
   }
 
-  protected removeDemoAudio(entry: SetlistEntry): void {
+  protected async removeDemoAudio(entry: SetlistEntry): Promise<void> {
     const current = this.demoPlaying();
     if (current?.pieceId === entry.pieceId) {
       this.stopDemo();
@@ -1979,20 +2000,47 @@ export class EventDetailComponent {
     this.mediaUploading.update((m) => ({ ...m, [entry.pieceId]: true }));
     this.mediaError.set(null);
     this.mediaFeedback.set(null);
-    this.setlistService.removeDemoAudio(entry.pieceId).subscribe({
-      next: () => {
-        this.mediaUploading.update((m) => ({ ...m, [entry.pieceId]: false }));
-        this.entries.update((list) =>
-          list.map((e) => (e.pieceId === entry.pieceId ? { ...e, hasDemoAudio: false } : e)),
-        );
-        this.mediaFeedback.set('Demo entfernt.');
-        this.toast.show('Demo entfernt.');
-      },
-      error: () => {
-        this.mediaUploading.update((m) => ({ ...m, [entry.pieceId]: false }));
-        this.mediaError.set('Demo konnte nicht entfernt werden.');
-      },
-    });
+    try {
+      const blob = await firstValueFrom(
+        this.setlistService.downloadDemoAudio(entry.pieceId),
+      );
+      await firstValueFrom(this.setlistService.removeDemoAudio(entry.pieceId));
+      this.entries.update((list) =>
+        list.map((e) => (e.pieceId === entry.pieceId ? { ...e, hasDemoAudio: false } : e)),
+      );
+      this.mediaFeedback.set('Demo entfernt.');
+      this.toast.show('Demo entfernt.', {
+        label: 'Rückgängig',
+        run: () => void this.restoreDemoAudio(entry.pieceId, blob),
+      });
+    } catch {
+      this.mediaError.set('Demo konnte nicht entfernt werden.');
+    } finally {
+      this.mediaUploading.update((m) => ({ ...m, [entry.pieceId]: false }));
+    }
+  }
+
+  private async restoreDemoAudio(pieceId: number, blob: Blob): Promise<void> {
+    this.mediaUploading.update((m) => ({ ...m, [pieceId]: true }));
+    this.mediaError.set(null);
+    try {
+      const file = new File([blob], 'demo.mp3', {
+        type: blob.type || 'audio/mpeg',
+      });
+      const piece = await firstValueFrom(
+        this.setlistService.uploadDemoAudio(pieceId, file),
+      );
+      this.entries.update((list) =>
+        list.map((e) =>
+          e.pieceId === pieceId ? { ...e, hasDemoAudio: piece.hasDemoAudio } : e,
+        ),
+      );
+      this.mediaFeedback.set('Demo wiederhergestellt.');
+    } catch {
+      this.mediaError.set('Demo konnte nicht wiederhergestellt werden.');
+    } finally {
+      this.mediaUploading.update((m) => ({ ...m, [pieceId]: false }));
+    }
   }
 
   protected openYoutube(entry: SetlistEntry): void {
@@ -2023,6 +2071,7 @@ export class EventDetailComponent {
 
   protected saveYoutube(entry: SetlistEntry): void {
     const url = (this.youtubeDraft()[entry.pieceId] ?? '').trim() || null;
+    const previousUrl = entry.youtubeUrl ?? null;
     this.mediaUploading.update((m) => ({ ...m, [entry.pieceId]: true }));
     this.mediaError.set(null);
     this.mediaFeedback.set(null);
@@ -2034,10 +2083,36 @@ export class EventDetailComponent {
         );
         this.cancelYoutubeEdit(entry);
         this.mediaFeedback.set(url ? 'YouTube-Link gespeichert.' : 'YouTube-Link entfernt.');
+        if (!piece.youtubeUrl && previousUrl) {
+          this.toast.show('YouTube-Link entfernt.', {
+            label: 'Rückgängig',
+            run: () => this.restoreYoutube(entry.pieceId, previousUrl),
+          });
+        }
       },
       error: () => {
         this.mediaUploading.update((m) => ({ ...m, [entry.pieceId]: false }));
         this.mediaError.set('YouTube-Link konnte nicht gespeichert werden.');
+      },
+    });
+  }
+
+  private restoreYoutube(pieceId: number, url: string): void {
+    this.mediaUploading.update((m) => ({ ...m, [pieceId]: true }));
+    this.mediaError.set(null);
+    this.setlistService.setYoutubeUrl(pieceId, url).subscribe({
+      next: (piece) => {
+        this.mediaUploading.update((m) => ({ ...m, [pieceId]: false }));
+        this.entries.update((list) =>
+          list.map((e) =>
+            e.pieceId === pieceId ? { ...e, youtubeUrl: piece.youtubeUrl ?? null } : e,
+          ),
+        );
+        this.mediaFeedback.set('YouTube-Link wiederhergestellt.');
+      },
+      error: () => {
+        this.mediaUploading.update((m) => ({ ...m, [pieceId]: false }));
+        this.mediaError.set('YouTube-Link konnte nicht wiederhergestellt werden.');
       },
     });
   }

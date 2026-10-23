@@ -39,19 +39,15 @@
   } @else if (event(); as event) {
     <article class="sheet">
       <header class="sheet__head">
-        <p class="sheet__type">
-          <span class="sheet__chip">{{ typeLabel(event.type) }}</span>
-          @if (event.bandName) {
-            <span class="sheet__band">{{ event.bandName }}</span>
-          }
-        </p>
+        <p class="sheet__type">{{ typeLabel(event.type) }}</p>
         <h1 class="sheet__title">{{ event.title }}</h1>
         <p class="sheet__date">
-          <time [attr.datetime]="event.dateTime">{{ formatDate(event.dateTime) }}</time>
-          <time class="sheet__time" [attr.datetime]="event.dateTime">
-            {{ formatTime(event.dateTime) }} Uhr
-          </time>
+          <time [attr.datetime]="event.dateTime">{{ formatDate(event.dateTime) }}</time>,
+          <time [attr.datetime]="event.dateTime">{{ formatTime(event.dateTime) }} Uhr</time>
         </p>
+        @if (event.bandName) {
+          <p class="sheet__band">{{ event.bandName }}</p>
+        }
       </header>
 
       <div class="sheet__grid">
@@ -67,7 +63,7 @@
               }
             </ol>
             @if (locations().length > 0) {
-              <p class="block__note">Orte und Kategorien siehe unten.</p>
+              <p class="block__note">Orte siehe unten.</p>
             }
           </section>
         }
@@ -107,13 +103,13 @@
                   <span class="row__main">
                     {{ participation.musician?.firstName }} {{ participation.musician?.lastName }}
                     @if (participation.musician?.instrument) {
-                      <span class="row__meta">({{ participation.musician?.instrument }})</span>
+                      <span class="row__meta"> – {{ participation.musician?.instrument }}</span>
                     }
+                    <span
+                      class="row__status"
+                      [class.row__status--yes]="participation.status === 'ACCEPTED'"
+                    >: {{ statusLabel(participation.status) }}</span>
                   </span>
-                  <span
-                    class="row__status"
-                    [class.row__status--yes]="participation.status === 'ACCEPTED'"
-                  >{{ statusLabel(participation.status) }}</span>
                 </li>
               }
             </ul>
@@ -122,7 +118,7 @@
 
         @if (includeSetlist()) {
           @if (entries().length > 0) {
-            <section class="block block--setlist">
+            <section class="block">
               <h2 class="block__title">{{ repertoireTitle() }}</h2>
               <ol class="rows">
                 @for (entry of sortedEntries(); track entry.id; let i = $index) {
@@ -151,10 +147,10 @@
                     }
                   </span>
                   <span class="row__aside">
-                    <span class="row__chip">Vor Ort: {{ stateLabel(requirement.availableOnSite) }}</span>
-                    <span class="row__chip">Mitbringen: {{ stateLabel(requirement.needsToBeBrought) }}</span>
+                    <span>Vor Ort: {{ stateLabel(requirement.availableOnSite) }}</span>
+                    <span>Mitbringen: {{ stateLabel(requirement.needsToBeBrought) }}</span>
                     @if (requirement.responsibleMusician) {
-                      <span class="row__chip">
+                      <span>
                         {{ requirement.responsibleMusician.firstName }} {{ requirement.responsibleMusician.lastName }}
                       </span>
                     }

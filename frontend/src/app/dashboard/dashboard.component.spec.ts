@@ -2,9 +2,12 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
+import { vi } from 'vitest';
 
 import { DashboardComponent } from './dashboard.component';
+import { EventUndoService, type EventUndoSnapshot } from './event-undo.service';
 import { AuthService } from '../auth/auth.service';
+import { ToastService } from '../notifications/toast.service';
 import type { EventItem } from './event.model';
 
 const MOCK_EVENTS: EventItem[] = [
@@ -27,6 +30,26 @@ const MOCK_EVENTS: EventItem[] = [
     dateTime: '2026-10-03T19:00:00',
   },
 ];
+
+function toSnapshot(event: EventItem): EventUndoSnapshot {
+  return {
+    eventId: event.id,
+    request: {
+      title: event.title,
+      dateTime: event.dateTime,
+      type: event.type,
+      bandId: 1,
+      concertId: event.concertId ?? null,
+    },
+    layout: null,
+    hasSetlist: false,
+    participations: [],
+    entries: [],
+    scheduleItems: [],
+    locations: [],
+    requirements: [],
+  };
+}
 
 function clickFilter(fixture: ComponentFixture<DashboardComponent>, label: string): void {
   const el: HTMLElement = fixture.nativeElement;
@@ -56,7 +79,13 @@ describe('DashboardComponent', () => {
 
   afterEach(() => {
     httpMock.verify();
+    vi.restoreAllMocks();
   });
+
+  async function settle(): Promise<void> {
+    await Promise.resolve();
+    await Promise.resolve();
+  }
 
   it('should load and sort all events by date ascending', () => {
     const fixture = TestBed.createComponent(DashboardComponent);
@@ -108,7 +137,19 @@ describe('DashboardComponent', () => {
     expect(fixture.nativeElement.querySelector('p[role="alert"]')).toBeTruthy();
   });
 
-  it('should delete an event after confirmation and update the list', () => {
+  it('should delete an event with its linked rehearsal and restore both on undo', async () => {
+    const concert = MOCK_EVENTS[0];
+    const rehearsal = MOCK_EVENTS[1];
+    const snapshots = [toSnapshot(concert), toSnapshot(rehearsal)];
+    const undo = TestBed.inject(EventUndoService);
+    vi.spyOn(undo, 'capture').mockResolvedValue(snapshots);
+    vi.spyOn(undo, 'restore').mockResolvedValue(
+      new Map<number, EventItem>([
+        [1, { ...concert, id: 10 }],
+        [2, { ...rehearsal, id: 11 }],
+      ]),
+    );
+
     const fixture = TestBed.createComponent(DashboardComponent);
     fixture.detectChanges();
     httpMock.expectOne('/api/events').flush(MOCK_EVENTS);
@@ -122,23 +163,37 @@ describe('DashboardComponent', () => {
     });
     fixture.detectChanges();
 
-    const items = fixture.nativeElement.querySelectorAll('.events__item');
-    const firstDelete = items[0].querySelector('.event__delete') as HTMLButtonElement;
-    expect(firstDelete).toBeTruthy();
-    firstDelete.click();
-    fixture.detectChanges();
-    expect(items[0].textContent).toContain('Donnerstagsprobe');
+    const items = Array.from(
+      fixture.nativeElement.querySelectorAll('.events__item'),
+    ) as HTMLElement[];
+    const concertItem = items.find((item) => item.textContent?.includes('Hafenrocker'));
+    expect(concertItem).toBeTruthy();
 
-    (items[0].querySelector('.event__confirm-btn--danger') as HTMLButtonElement).click();
-    const req = httpMock.expectOne('/api/events/2');
+    (concertItem!.querySelector('.event__delete') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(concertItem!.textContent).toContain('Hafenrocker');
+
+    (concertItem!.querySelector('.event__confirm-btn--danger') as HTMLButtonElement).click();
+    await settle();
+    const req = httpMock.expectOne('/api/events/1');
     expect(req.request.method).toBe('DELETE');
     req.flush(null, { status: 204, statusText: 'No Content' });
+    await settle();
     fixture.detectChanges();
 
-    const titles = Array.from(
+    let titles = Array.from(
       fixture.nativeElement.querySelectorAll('.event__title'),
     ).map((node) => (node as HTMLElement).textContent);
-    expect(titles).toEqual(['Hafenrocker', 'Lagerfeuer-Open-Air']);
+    expect(titles).toEqual(['Lagerfeuer-Open-Air']);
+
+    TestBed.inject(ToastService).runAction();
+    await settle();
+    fixture.detectChanges();
+
+    titles = Array.from(
+      fixture.nativeElement.querySelectorAll('.event__title'),
+    ).map((node) => (node as HTMLElement).textContent);
+    expect(titles).toEqual(['Donnerstagsprobe', 'Hafenrocker', 'Lagerfeuer-Open-Air']);
   });
 
   it('should delete all events after confirmation', () => {

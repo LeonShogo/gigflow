@@ -211,6 +211,7 @@ export class MusicianListComponent {
     if (!band || this.deletingBand()) {
       return;
     }
+    const memberships = this.memberships().filter((item) => item.bandId === band.id);
     this.deletingBand.set(true);
     this.eventService.deleteBand(band.id).subscribe({
       next: () => {
@@ -218,7 +219,10 @@ export class MusicianListComponent {
         this.memberships.update((list) => list.filter((item) => item.bandId !== band.id));
         this.deletingBand.set(false);
         this.bandToDelete.set(null);
-        this.toast.show(`Band „${band.name}“ gelöscht.`);
+        this.toast.show(`Band „${band.name}“ gelöscht.`, {
+          label: 'Rückgängig',
+          run: () => this.restoreBand(band, memberships),
+        });
       },
       error: (err) => {
         this.deletingBand.set(false);
@@ -226,6 +230,38 @@ export class MusicianListComponent {
         this.showDeleteError(err?.error?.message ?? 'Band konnte nicht gelöscht werden.');
       },
     });
+  }
+
+  private restoreBand(band: Band, memberships: BandMembership[]): void {
+    this.eventService
+      .createBand({ name: band.name, genre: band.genre })
+      .subscribe({
+        next: (restored) => {
+          this.bands.update((list) => [...list, restored]);
+          if (memberships.length === 0) {
+            return;
+          }
+          forkJoin(
+            memberships.map((membership) =>
+              this.eventService.addBandMembership({
+                bandId: restored.id,
+                musicianId: membership.musicianId,
+              }),
+            ),
+          ).subscribe({
+            next: (restoredMemberships) =>
+              this.memberships.update((list) => [...list, ...restoredMemberships]),
+            error: () =>
+              this.showDeleteError(
+                'Band wiederhergestellt, Zuordnungen konnten aber nicht wiederhergestellt werden.',
+              ),
+          });
+        },
+        error: (err) =>
+          this.showDeleteError(
+            err?.error?.message ?? 'Band konnte nicht wiederhergestellt werden.',
+          ),
+      });
   }
 
   protected requestDeleteAll(): void {
@@ -299,7 +335,10 @@ export class MusicianListComponent {
         this.deleting.update((m) => ({ ...m, [musician.id]: false }));
         this.confirmingDelete.update((m) => ({ ...m, [musician.id]: false }));
         this.musicians.update((list) => list.filter((m) => m.id !== musician.id));
-        this.toast.show('Musiker*in gelöscht.');
+        this.toast.show('Musiker*in gelöscht.', {
+          label: 'Rückgängig',
+          run: () => this.restoreMusician(musician),
+        });
       },
       error: (err) => {
         this.deleting.update((m) => ({ ...m, [musician.id]: false }));
@@ -309,5 +348,22 @@ export class MusicianListComponent {
         );
       },
     });
+  }
+
+  private restoreMusician(musician: Musician): void {
+    this.musicianService
+      .createMusician({
+        firstName: musician.firstName,
+        lastName: musician.lastName,
+        instrument: musician.instrument ?? null,
+        email: musician.email ?? null,
+        emailPublic: musician.emailPublic ?? false,
+      })
+      .subscribe({
+        next: (restored) =>
+          this.musicians.update((list) => [...list, restored]),
+        error: () =>
+          this.showDeleteError('Musiker*in konnte nicht wiederhergestellt werden.'),
+      });
   }
 }

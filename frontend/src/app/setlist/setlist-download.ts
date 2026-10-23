@@ -42,7 +42,7 @@ const MARGIN = 48;
 const LINE_HEIGHT = 16;
 /** Distance from heading baseline to the divider line, and from there to the content. */
 const DIVIDER_OFFSET = 10;
-const DIVIDER_GAP = 11;
+const DIVIDER_GAP = 12;
 const HEADING_SIZE = 13;
 const TITLE_SIZE = 20;
 const FONT_SIZE = 11;
@@ -142,7 +142,7 @@ export async function buildInfoDocument(data: SetlistDownloadData): Promise<PDFD
 
   // Header block (type / title / date / band).
   const header: TextRun[] = [
-    { ...title(typeLabel(data.event.type).toUpperCase(), 11, accent), spaceAfter: 8 },
+    { ...title(typeLabel(data.event.type).toUpperCase(), 11, accent), spaceAfter: 9 },
     title(data.event.title, TITLE_SIZE),
     body(`${formatDate(data.event.dateTime)}, ${formatTime(data.event.dateTime)} Uhr`),
   ];
@@ -188,7 +188,7 @@ export async function buildInfoDocument(data: SetlistDownloadData): Promise<PDFD
       headingBlock(
         'Ablauf / Zeiten',
         schedule.map((item) => `${formatTimeOnly(item.time)} Uhr · ${item.label}`),
-        data.locations.length > 0 ? 'Orte und Kategorien siehe unten.' : undefined,
+        data.locations.length > 0 ? 'Orte siehe unten.' : undefined,
       ),
     );
   }
@@ -230,6 +230,7 @@ export async function buildInfoDocument(data: SetlistDownloadData): Promise<PDFD
           if (extras.length > 0) {
             entries.push(...wrap({ text: extras.join(' · '), size: FONT_SIZE, bold: false, color: soft }));
           }
+          entries[entries.length - 1] = { ...entries[entries.length - 1], spaceAfter: 5 };
           return entries;
         }),
       ],
@@ -245,7 +246,7 @@ export async function buildInfoDocument(data: SetlistDownloadData): Promise<PDFD
           : run.size + 5 + (run.spaceAfter ?? 0)),
       0,
     );
-    const gapBefore = block.spaced ? 12 : 0;
+    const gapBefore = block.spaced ? 14 : 0;
     const available = page.getHeight() - MARGIN * 2;
 
     // Keep the block together when it fits on a fresh page; otherwise flow it.

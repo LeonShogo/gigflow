@@ -4,6 +4,7 @@ export interface Musician {
   lastName: string;
   instrument?: string;
   email?: string;
+  emailPublic?: boolean;
 }
 
 export interface MusicianRequest {
@@ -11,4 +12,5 @@ export interface MusicianRequest {
   lastName: string;
   instrument?: string | null;
   email?: string | null;
+  emailPublic?: boolean;
 }

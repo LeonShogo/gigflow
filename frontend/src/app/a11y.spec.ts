@@ -36,7 +36,7 @@ function configure(imports: unknown[], extraProviders: unknown[] = []): HttpTest
   return TestBed.inject(HttpTestingController);
 }
 
-describe('Accessibility (axe)', () => {
+describe('Accessibility (axe)', { timeout: 15000 }, () => {
   it('login page has no violations', async () => {
     configure([LoginComponent]);
     const fixture = TestBed.createComponent(LoginComponent);

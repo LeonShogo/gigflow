@@ -7,9 +7,11 @@ import {
 } from '@angular/core';
 
 import { RouterLink } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 
 import type { EventItem, EventType } from './event.model';
 import { EventService } from './event.service';
+import { EventUndoService, type EventUndoSnapshot } from './event-undo.service';
 import { AuthService } from '../auth/auth.service';
 import { ToastService } from '../notifications/toast.service';
 import { formatDate, formatTime, typeLabel, dateContext } from '../event-format';
@@ -25,6 +27,7 @@ type Filter = 'ALL' | EventType;
 })
 export class DashboardComponent {
   private readonly eventService = inject(EventService);
+  private readonly eventUndoService = inject(EventUndoService);
   private readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
 
@@ -84,22 +87,44 @@ export class DashboardComponent {
     this.confirmingDelete.update((m) => ({ ...m, [event.id]: false }));
   }
 
-  protected confirmDelete(event: EventItem): void {
+  protected async confirmDelete(event: EventItem): Promise<void> {
     this.deleting.update((m) => ({ ...m, [event.id]: true }));
     this.deleteError.set(null);
-    this.eventService.deleteEvent(event.id).subscribe({
-      next: () => {
-        this.deleting.update((m) => ({ ...m, [event.id]: false }));
-        this.confirmingDelete.update((m) => ({ ...m, [event.id]: false }));
-        this.events.update((list) => list.filter((e) => e.id !== event.id));
-        this.toast.show('Termin gelöscht.');
-      },
-      error: () => {
-        this.deleting.update((m) => ({ ...m, [event.id]: false }));
-        this.confirmingDelete.update((m) => ({ ...m, [event.id]: false }));
-        this.deleteError.set('Termin konnte nicht gelöscht werden.');
-      },
-    });
+    try {
+      const snapshot = await this.eventUndoService.capture(event.id);
+      await firstValueFrom(this.eventService.deleteEvent(event.id));
+      const deletedIds = new Set(snapshot.map((item) => item.eventId));
+      this.deleting.update((m) => ({ ...m, [event.id]: false }));
+      this.confirmingDelete.update((m) => ({ ...m, [event.id]: false }));
+      this.events.update((list) => list.filter((e) => !deletedIds.has(e.id)));
+      this.toast.show('Termin gelöscht.', {
+        label: 'Rückgängig',
+        run: () => void this.restoreEvent(snapshot),
+      });
+    } catch {
+      this.deleting.update((m) => ({ ...m, [event.id]: false }));
+      this.confirmingDelete.update((m) => ({ ...m, [event.id]: false }));
+      this.deleteError.set('Termin konnte nicht gelöscht werden.');
+    }
+  }
+
+  private async restoreEvent(snapshot: EventUndoSnapshot[]): Promise<void> {
+    try {
+      const restored = await this.eventUndoService.restore(snapshot);
+      const restoredEvents = [...restored.values()];
+      if (restoredEvents.length > 0) {
+        this.events.update((list) =>
+          [...list, ...restoredEvents].sort(
+            (a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime(),
+          ),
+        );
+      }
+      this.toast.show(
+        restoredEvents.length > 1 ? 'Termine wiederhergestellt.' : 'Termin wiederhergestellt.',
+      );
+    } catch {
+      this.deleteError.set('Termin konnte nicht wiederhergestellt werden.');
+    }
   }
 
   protected requestDeleteAll(): void {

@@ -4,6 +4,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { vi } from 'vitest';
 
 import { PieceSheetsDialogComponent } from './piece-sheets-dialog.component';
+import { ToastService } from '../notifications/toast.service';
 import type { PieceSheet } from './setlist.model';
 
 const GUITAR: PieceSheet = {
@@ -130,7 +131,7 @@ describe('PieceSheetsDialogComponent', () => {
     expect(changed.at(-1)?.[0].label).toBe('Gitarre 1');
   });
 
-  it('should delete a sheet after confirmation', async () => {
+  it('should delete a sheet after confirmation and restore it on undo', async () => {
     const changed: PieceSheet[][] = [];
     fixture.componentInstance.sheetsChanged.subscribe((sheets) => changed.push(sheets));
     await flushLoad([GUITAR]);
@@ -142,6 +143,11 @@ describe('PieceSheetsDialogComponent', () => {
     button('Löschen').click();
     fixture.detectChanges();
 
+    const download = httpMock.expectOne('/api/piece-sheets/101');
+    expect(download.request.method).toBe('GET');
+    download.flush(new Blob(['%PDF-1.4'], { type: 'application/pdf' }));
+    await settle();
+
     const req = httpMock.expectOne('/api/piece-sheets/101');
     expect(req.request.method).toBe('DELETE');
     req.flush(null);
@@ -149,6 +155,17 @@ describe('PieceSheetsDialogComponent', () => {
 
     expect(root().querySelector('.sheet-empty')).toBeTruthy();
     expect(changed.at(-1)).toEqual([]);
+
+    TestBed.inject(ToastService).runAction();
+    await settle();
+
+    const upload = httpMock.expectOne('/api/pieces/3/sheets');
+    expect(upload.request.method).toBe('POST');
+    upload.flush([GUITAR]);
+    await settle();
+
+    expect(root().querySelector('.sheet__label')?.textContent?.trim()).toBe('Gitarre');
+    expect(changed.at(-1)).toEqual([GUITAR]);
   });
 
   it('should emit the selected sheet for the viewer', async () => {
