@@ -156,14 +156,18 @@
 }
 
 .shell__link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.5rem 1rem;
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--ink-soft);
   text-decoration: none;
+  background: var(--paper-raised);
   border: 1px solid var(--line-strong);
   border-radius: var(--radius);
-  padding: 0.5rem 1rem;
-  background: var(--paper-raised);
   cursor: pointer;
   transition:
     background-color var(--t-fast) ease,
@@ -185,6 +189,11 @@
 
   .shell__auth {
     flex: 1 1 auto;
+    padding-right: clamp(0.25rem, 4vw, 1.5rem);
+  }
+
+  .shell__theme {
+    margin-right: 0;
   }
 
   .shell__link {

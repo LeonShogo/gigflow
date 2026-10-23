@@ -89,7 +89,7 @@
 .cal__export-options {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: 0.65rem;
 }
 
 .cal__export-option {
@@ -98,13 +98,13 @@
   align-items: flex-start;
   gap: 0.15rem;
   width: 100%;
-  padding: var(--space-2) var(--space-3);
+  padding: 0.85rem 1rem;
   font: inherit;
   text-align: left;
   color: var(--ink);
   background: var(--paper-inset);
   border: 1px solid var(--line);
-  border-radius: var(--ctl-radius);
+  border-radius: var(--radius);
   cursor: pointer;
   transition:
     background-color var(--t-fast) ease,
@@ -140,9 +140,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 2.75rem;
-  min-height: 2.75rem;
-  font-size: 1.3rem;
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+  font-size: 1.2rem;
   line-height: 1;
   color: var(--accent-ink);
   background: var(--paper-raised);
@@ -164,13 +164,19 @@
 }
 
 .cal__today {
-  font-size: 0.92rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.5rem;
+  padding: 0 0.95rem;
+  font-size: 0.85rem;
   font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
   color: #fff;
   background: var(--accent);
   border: 1px solid transparent;
   border-radius: var(--radius);
-  padding: 0.55rem 1.1rem;
   cursor: pointer;
   box-shadow: var(--shadow-sm);
   transition:
@@ -393,18 +399,18 @@
   }
 
   .cal__nav {
-    min-width: 3rem;
+    min-width: 2.75rem;
+    min-height: 2.75rem;
   }
 
   .cal__today {
     flex: 1 1 auto;
-    text-align: center;
-    min-height: 3rem;
+    min-height: 2.75rem;
   }
 
   .cal__export {
     flex: 0 1 auto;
-    min-height: 3rem;
+    min-height: 2.75rem;
   }
 
   .cal__legend {
