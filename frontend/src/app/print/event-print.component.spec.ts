@@ -131,7 +131,9 @@ describe('EventPrintComponent', () => {
 
     expect(el.textContent).toContain('Ablauf / Zeiten');
     expect(el.textContent).toContain('Soundcheck');
-    expect(el.textContent).toContain('Orte & Logistik');
+    expect(el.textContent).toContain('Orte und Kategorien siehe unten.');
+    expect(el.textContent).toContain('Orte & Kategorien');
+    expect(el.textContent).toContain('Venue / Club');
     expect(el.textContent).toContain('Kulturfabrik');
     expect(el.textContent).toContain('Musiker*innen / Zusagen');
     expect(el.textContent).toContain('1 von 2 bestätigt');
@@ -186,7 +188,7 @@ describe('EventPrintComponent', () => {
 
     expect(el.querySelector('.sheet__title')?.textContent).toBe('Hafenrocker');
     expect(el.textContent).not.toContain('Ablauf / Zeiten');
-    expect(el.textContent).not.toContain('Orte & Logistik');
+    expect(el.textContent).not.toContain('Orte & Kategorien');
     expect(el.textContent).not.toContain('Musiker*innen / Zusagen');
     expect(el.textContent).not.toContain('Equipment');
     expect(el.textContent).not.toContain('Proben zu diesem Gig');

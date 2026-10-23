@@ -187,6 +187,12 @@
   margin-bottom: var(--space-1);
 }
 
+.block__note {
+  margin-top: var(--space-1);
+  font-size: 0.8rem;
+  color: var(--ink-faint);
+}
+
 .rows {
   list-style: none;
   margin: 0;

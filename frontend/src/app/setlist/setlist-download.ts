@@ -6,7 +6,8 @@ import type { EventItem, EventParticipation, ParticipationStatus } from '../dash
 import type { SetlistEntry } from './setlist.model';
 import type { EquipmentRequirement, RequirementState } from '../equipment/equipment.model';
 import type { ScheduleItem } from '../schedule/schedule.model';
-import type { EventLocation } from '../location/location.model';
+import type { EventLocation, LocationType } from '../location/location.model';
+import { LOCATION_TYPES } from '../location/location.model';
 
 export interface SetlistDownloadData {
   event: EventItem;
@@ -39,8 +40,9 @@ const STATE_LABELS: Record<RequirementState, string> = {
 const A4: [number, number] = [595.28, 841.89];
 const MARGIN = 48;
 const LINE_HEIGHT = 16;
-/** Extra vertical room reserved for a section divider (offset above + below). */
-const DIVIDER_SPACE = 25;
+/** Distance from heading baseline to the divider line, and from there to the content. */
+const DIVIDER_OFFSET = 10;
+const DIVIDER_GAP = 11;
 const HEADING_SIZE = 13;
 const TITLE_SIZE = 20;
 const FONT_SIZE = 11;
@@ -54,6 +56,8 @@ interface TextRun {
   color: Rgb;
   /** carry the following block on the same page if there is room */
   keepWithNext?: boolean;
+  /** extra vertical space after this line */
+  spaceAfter?: number;
 }
 
 /** A logical section (heading + entries) that should not be split awkwardly. */
@@ -116,7 +120,14 @@ export async function buildInfoDocument(data: SetlistDownloadData): Promise<PDFD
     return out.map((text) => ({ ...run, text }));
   };
 
-  const headingBlock = (heading: string, entries: string[]): Block => ({
+  const note = (text: string): TextRun => ({
+    text,
+    size: FONT_SIZE,
+    bold: false,
+    color: soft,
+  });
+
+  const headingBlock = (heading: string, entries: string[], noteText?: string): Block => ({
     spaced: true,
     divider: true,
     lines: [
@@ -125,12 +136,13 @@ export async function buildInfoDocument(data: SetlistDownloadData): Promise<PDFD
         ? [{ ...wrap(body(entries[0]))[0], keepWithNext: true }]
         : []),
       ...entries.slice(1).flatMap((entry) => wrap(body(entry))),
+      ...(noteText ? wrap(note(noteText)) : []),
     ],
   });
 
   // Header block (type / title / date / band).
   const header: TextRun[] = [
-    title(typeLabel(data.event.type).toUpperCase(), 11, accent),
+    { ...title(typeLabel(data.event.type).toUpperCase(), 11, accent), spaceAfter: 8 },
     title(data.event.title, TITLE_SIZE),
     body(`${formatDate(data.event.dateTime)}, ${formatTime(data.event.dateTime)} Uhr`),
   ];
@@ -174,8 +186,9 @@ export async function buildInfoDocument(data: SetlistDownloadData): Promise<PDFD
   if (schedule.length > 0) {
     blocks.push(
       headingBlock(
-        'Ablauf',
+        'Ablauf / Zeiten',
         schedule.map((item) => `${formatTimeOnly(item.time)} Uhr · ${item.label}`),
+        data.locations.length > 0 ? 'Orte und Kategorien siehe unten.' : undefined,
       ),
     );
   }
@@ -200,10 +213,19 @@ export async function buildInfoDocument(data: SetlistDownloadData): Promise<PDFD
       spaced: true,
       divider: true,
       lines: [
-        { text: 'Orte', size: HEADING_SIZE, bold: true, color: ink, keepWithNext: true },
+        {
+          text: 'Orte & Kategorien',
+          size: HEADING_SIZE,
+          bold: true,
+          color: ink,
+          keepWithNext: true,
+        },
         ...data.locations.flatMap((loc) => {
           const address = loc.address ? `, ${loc.address}` : '';
-          const entries: TextRun[] = [{ ...body(`${loc.name}${address}`), bold: true }];
+          const category = locationTypeLabel(loc.type);
+          const entries: TextRun[] = [
+            ...wrap({ ...body(`${category}: ${loc.name}${address}`), bold: true }),
+          ];
           const extras = [loc.note, loc.phone].filter((v): v is string => Boolean(v && v.trim()));
           if (extras.length > 0) {
             entries.push(...wrap({ text: extras.join(' · '), size: FONT_SIZE, bold: false, color: soft }));
@@ -215,8 +237,14 @@ export async function buildInfoDocument(data: SetlistDownloadData): Promise<PDFD
   }
 
   for (const block of blocks) {
-    const height =
-      block.lines.reduce((sum, run) => sum + run.size + 5, 0) + (block.divider ? DIVIDER_SPACE : 0);
+    const height = block.lines.reduce(
+      (sum, run, index) =>
+        sum +
+        (block.divider && index === 0
+          ? DIVIDER_OFFSET + DIVIDER_GAP
+          : run.size + 5 + (run.spaceAfter ?? 0)),
+      0,
+    );
     const gapBefore = block.spaced ? 12 : 0;
     const available = page.getHeight() - MARGIN * 2;
 
@@ -230,12 +258,21 @@ export async function buildInfoDocument(data: SetlistDownloadData): Promise<PDFD
     }
 
     for (const [index, run] of block.lines.entries()) {
+      const lineAdvance =
+        block.divider && index === 0
+          ? DIVIDER_OFFSET + DIVIDER_GAP
+          : run.size + 5 + (run.spaceAfter ?? 0);
+
       // Never leave a heading alone at the bottom of a page.
-      if (run.keepWithNext && y - (run.size + 5) - LINE_HEIGHT < MARGIN && y < page.getHeight() - MARGIN) {
+      if (
+        run.keepWithNext &&
+        y - lineAdvance - LINE_HEIGHT < MARGIN &&
+        y < page.getHeight() - MARGIN
+      ) {
         page = doc.addPage(A4);
         y = page.getHeight() - MARGIN;
       }
-      ensure(y - (run.size + 5) < MARGIN);
+      ensure(y - lineAdvance < MARGIN);
       page.drawText(sanitize(run.text), {
         x: MARGIN,
         y,
@@ -243,16 +280,18 @@ export async function buildInfoDocument(data: SetlistDownloadData): Promise<PDFD
         font: run.bold ? bold : font,
         color: rgb(...run.color),
       });
-      y -= run.size + 5;
+
       if (block.divider && index === 0) {
-        y -= 9;
+        y -= DIVIDER_OFFSET;
         page.drawLine({
           start: { x: MARGIN, y },
           end: { x: MARGIN + contentWidth, y },
           thickness: 0.75,
           color: rgb(0.82, 0.84, 0.88),
         });
-        y -= 14;
+        y -= DIVIDER_GAP;
+      } else {
+        y -= run.size + 5 + (run.spaceAfter ?? 0);
       }
     }
   }
@@ -309,6 +348,10 @@ async function loadLogo(doc: PDFDocument) {
   } catch {
     return null;
   }
+}
+
+function locationTypeLabel(type: LocationType): string {
+  return LOCATION_TYPES.find((option) => option.value === type)?.label ?? type;
 }
 
 function statusRank(status: ParticipationStatus): number {
