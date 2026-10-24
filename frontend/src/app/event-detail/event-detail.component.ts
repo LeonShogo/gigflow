@@ -10,6 +10,7 @@ import {
 import { FormsModule } from '@angular/forms';
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { DomSanitizer, type SafeResourceUrl } from '@angular/platform-browser';
 import { catchError, filter, firstValueFrom, forkJoin, map, of, switchMap, tap, throwError } from 'rxjs';
 
 import { SheetViewerComponent } from './sheet-viewer.component';
@@ -41,6 +42,7 @@ import {
 import type { Musician } from '../musicians/musician.model';
 import { MusicianService } from '../musicians/musician.service';
 import type { PieceDemoAudio, PieceLink, PieceSheet, SetlistEntry } from '../setlist/setlist.model';
+import { youtubeEmbedUrl } from '../setlist/youtube-player';
 import { SetlistService } from '../setlist/setlist.service';
 import type {
   Equipment,
@@ -143,6 +145,7 @@ export class EventDetailComponent {
   private readonly locationService = inject(LocationService);
   private readonly toast = inject(ToastService);
   private readonly language = inject(LanguageService);
+  private readonly sanitizer = inject(DomSanitizer);
   protected readonly auth = inject(AuthService);
 
   protected readonly loading = signal(true);
@@ -251,11 +254,20 @@ export class EventDetailComponent {
   protected readonly mediaFeedback = signal<string | null>(null);
   protected readonly mediaError = signal<string | null>(null);
   protected readonly demoPlaying = signal<{
+    entryId: number;
     pieceId: number;
     audioId: number;
     title: string;
     label: string;
     url: string;
+  } | null>(null);
+  protected readonly youtubePlaying = signal<{
+    entryId: number;
+    pieceId: number;
+    linkId: number;
+    title: string;
+    label: string;
+    url: SafeResourceUrl;
   } | null>(null);
   protected readonly mediaEditing = signal<Record<number, boolean>>({});
   protected readonly linkDrafts = signal<Record<number, { label: string; url: string }>>({});
@@ -1811,6 +1823,12 @@ export class EventDetailComponent {
   }
 
   protected removeEntry(entry: SetlistEntry): void {
+    if (this.demoPlaying()?.entryId === entry.id) {
+      this.stopDemo();
+    }
+    if (this.youtubePlaying()?.entryId === entry.id) {
+      this.stopYoutubePlayer();
+    }
     this.setlistService.removeEntry(entry.id).subscribe({
       next: () => {
         this.entries.update((list) => list.filter((e) => e.id !== entry.id));
@@ -1962,12 +1980,14 @@ export class EventDetailComponent {
       return;
     }
     this.stopDemo();
+    this.stopYoutubePlayer();
     this.mediaError.set(null);
     this.mediaFeedback.set(null);
     this.setlistService.downloadDemoAudioById(entry.pieceId, audio.id).subscribe({
       next: (blob) => {
         const url = URL.createObjectURL(blob);
         this.demoPlaying.set({
+          entryId: entry.id,
           pieceId: entry.pieceId,
           audioId: audio.id,
           title: entry.pieceTitle,
@@ -1985,6 +2005,35 @@ export class EventDetailComponent {
       URL.revokeObjectURL(current.url);
       this.demoPlaying.set(null);
     }
+  }
+
+  protected isYoutubeLink(link: PieceLink): boolean {
+    return youtubeEmbedUrl(link.url) !== null;
+  }
+
+  protected toggleYoutubePlayer(entry: SetlistEntry, link: PieceLink): void {
+    const current = this.youtubePlaying();
+    if (current?.linkId === link.id) {
+      this.stopYoutubePlayer();
+      return;
+    }
+    const embedUrl = youtubeEmbedUrl(link.url);
+    if (!embedUrl) {
+      return;
+    }
+    this.stopDemo();
+    this.youtubePlaying.set({
+      entryId: entry.id,
+      pieceId: entry.pieceId,
+      linkId: link.id,
+      title: entry.pieceTitle,
+      label: link.label,
+      url: this.sanitizer.bypassSecurityTrustResourceUrl(embedUrl),
+    });
+  }
+
+  protected stopYoutubePlayer(): void {
+    this.youtubePlaying.set(null);
   }
 
   protected selectDemoAudio(entry: SetlistEntry): void {
@@ -2148,6 +2197,9 @@ export class EventDetailComponent {
     this.mediaUploading.update((m) => ({ ...m, [entry.pieceId]: true }));
     this.mediaError.set(null);
     try {
+      if (this.youtubePlaying()?.linkId === link.id) {
+        this.stopYoutubePlayer();
+      }
       await firstValueFrom(this.setlistService.removePieceLink(entry.pieceId, link.id));
       const links = (entry.links ?? []).filter((item) => item.id !== link.id);
       this.entries.update((list) =>

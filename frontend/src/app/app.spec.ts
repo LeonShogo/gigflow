@@ -61,10 +61,14 @@ describe('App', () => {
   it('switches and persists the app language', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
-    const select = fixture.nativeElement.querySelector('.shell__language') as HTMLSelectElement;
-
-    select.value = 'fr';
-    select.dispatchEvent(new Event('change'));
+    const trigger = fixture.nativeElement.querySelector('.shell__language-trigger') as HTMLButtonElement;
+    trigger.click();
+    fixture.detectChanges();
+    const options = Array.from(
+      fixture.nativeElement.querySelectorAll('.shell__language-option'),
+    ) as HTMLButtonElement[];
+    const option = options.find((button) => button.textContent?.includes('Français')) as HTMLButtonElement;
+    option.click();
     fixture.detectChanges();
 
     expect(localStorage.getItem('gigflow-language')).toBe('fr');

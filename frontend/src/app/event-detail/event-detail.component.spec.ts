@@ -1612,7 +1612,7 @@ function loadConcertWithLocations(
       sheets: [],
       demoAudios: [{ id: 20, pieceId: 3, label: 'Live', originalName: 'live.mp3', sortOrder: 0 }],
       links: [
-        { id: 30, pieceId: 3, label: 'YouTube', url: 'https://youtu.be/abc123', sortOrder: 0 },
+        { id: 30, pieceId: 3, label: 'YouTube', url: 'https://youtu.be/abcdefghijk', sortOrder: 0 },
         { id: 31, pieceId: 3, label: 'Bandcamp', url: 'https://bandcamp.com/track/demo', sortOrder: 1 },
       ],
     }]);
@@ -1628,6 +1628,7 @@ function loadConcertWithLocations(
     const first = fixture.nativeElement.querySelector('.entry') as HTMLElement;
     expect(first.querySelector('.entry__sheet--audio')?.textContent).toContain('Demo (1)');
     expect(first.querySelectorAll('.entry__sheet--youtube')).toHaveLength(2);
+    expect(first.querySelectorAll('.entry__youtube-play')).toHaveLength(1);
     (first.querySelector('.entry__btn--audio') as HTMLButtonElement).click();
     const request = httpMock.expectOne('/api/pieces/3/demo-audios/20');
     expect(request.request.responseType).toBe('blob');
@@ -1640,6 +1641,18 @@ function loadConcertWithLocations(
     (first.querySelector('.entry__btn--audio') as HTMLButtonElement).click();
     fixture.detectChanges();
     expect(first.querySelector('.entry__player')).toBeNull();
+
+    const youtubePlay = first.querySelector('.entry__youtube-play') as HTMLButtonElement;
+    youtubePlay.click();
+    fixture.detectChanges();
+    const iframe = first.querySelector('.entry__youtube-player iframe') as HTMLIFrameElement;
+    expect(iframe.getAttribute('src')).toBe(
+      'https://www.youtube-nocookie.com/embed/abcdefghijk?autoplay=1&rel=0',
+    );
+    expect(iframe.title).toContain('YouTube');
+    youtubePlay.click();
+    fixture.detectChanges();
+    expect(first.querySelector('.entry__youtube-player')).toBeNull();
   });
 
   it('should upload multiple demo MP3s for one tune', () => {

@@ -89,7 +89,7 @@
   min-width: 2.75rem;
   min-height: 2.75rem;
   padding: 0.45rem 0.7rem;
-  margin-right: var(--space-3);
+  margin-right: 0;
   line-height: 1;
   color: var(--ink-soft);
   background: var(--paper-inset);
@@ -132,15 +132,74 @@
   font-weight: 600;
 }
 
-.shell__language {
-  min-height: 2.75rem;
-  max-width: 8.5rem;
-  padding: 0 0.55rem;
-  color: var(--ink-soft);
+.shell__language-menu {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.shell__language-trigger {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
   background: var(--paper-raised);
   border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  font-size: 1.15rem;
+  cursor: pointer;
+  transition: background-color var(--t-fast) ease, border-color var(--t-fast) ease;
+}
+
+.shell__language-trigger:hover,
+.shell__language-trigger[aria-expanded="true"] {
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+}
+
+.shell__language-list {
+  position: absolute;
+  top: calc(100% + 0.45rem);
+  right: 0;
+  z-index: 110;
+  display: grid;
+  gap: 0.2rem;
+  width: max-content;
+  min-width: 11rem;
+  padding: 0.35rem;
+  background: var(--paper-raised);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+.shell__language-option {
+  display: grid;
+  grid-template-columns: 1.4rem 1fr;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  color: var(--ink-soft);
+  background: transparent;
+  border: 1px solid transparent;
   border-radius: var(--radius);
-  font: 600 0.78rem var(--font-body);
+  font: inherit;
+  font-size: 0.84rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.shell__language-option:hover,
+.shell__language-option--active {
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+}
+
+.shell__language-option--active {
+  font-weight: 600;
 }
 
 .shell__user {
@@ -203,10 +262,6 @@
     padding-right: clamp(0.25rem, 4vw, 1.5rem);
   }
 
-  .shell__theme {
-    margin-right: 0;
-  }
-
   .shell__link {
     margin-left: auto;
   }
@@ -234,7 +289,4 @@
     display: none;
   }
 
-  .shell__language {
-    width: 6rem;
-  }
 }

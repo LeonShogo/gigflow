@@ -296,173 +296,176 @@
                         @for (entry of entries(); track entry.id; let i = $index) {
                           <li class="entry" cdkDrag [cdkDragStartDelay]="dragStartDelay">
                             <span class="entry__pos">{{ i + 1 }}</span>
-                            <span class="entry__title">
-                              {{ entry.pieceTitle }}
-                              @if (entry.sheets.length > 0) {
-                                <span
-                                  class="entry__sheet"
-                                  [attr.aria-label]="entry.sheets.length + ' Noten hinterlegt'"
-                                >{{ 'Noten' | t }} ({{ entry.sheets.length }})</span>
+                            <div class="entry__content">
+                              <div class="entry__heading">
+                                <h3 class="entry__title">{{ entry.pieceTitle }}</h3>
+                                <div class="entry__badges">
+                                  @if (entry.sheets.length > 0) {
+                                    <span class="entry__badge entry__sheet" [attr.aria-label]="entry.sheets.length + ' Noten hinterlegt'">{{ 'Noten' | t }} ({{ entry.sheets.length }})</span>
+                                  }
+                                  @if (demoAudios(entry).length > 0) {
+                                    <span class="entry__badge entry__badge--audio entry__sheet--audio">{{ 'Demo' | t }} ({{ demoAudios(entry).length }})</span>
+                                  }
+                                  @if (pieceLinks(entry).length > 0) {
+                                    <span class="entry__badge entry__badge--link">{{ 'Link' | t }} · {{ pieceLinks(entry).length }}</span>
+                                  }
+                                </div>
+                              </div>
+
+                              @if (pieceLinks(entry).length > 0) {
+                                <div class="entry__links">
+                                  @for (link of pieceLinks(entry); track link.id) {
+                                    <span class="entry__link-item">
+                                      <a
+                                        class="entry__link entry__sheet--youtube"
+                                        [href]="link.url"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                      >{{ link.label }}</a>
+                                      @if (canUploadSheets()) {
+                                        <button
+                                          type="button"
+                                          class="entry__btn entry__btn--media-danger entry__link-remove"
+                                          (click)="removePieceLink(entry, link)"
+                                          [disabled]="mediaUploading()[entry.pieceId]"
+                                          [attr.aria-label]="'Link entfernen: {{label}}' | t: { label: link.label }"
+                                        >&times;</button>
+                                      }
+                                    </span>
+                                  }
+                                </div>
                               }
-                              @if (demoAudios(entry).length > 0) {
-                                <span class="entry__sheet entry__sheet--audio">{{ 'Demo' | t }} ({{ demoAudios(entry).length }})</span>
+
+                              @if (entry.notes) {
+                                <p class="entry__notes">{{ entry.notes }}</p>
                               }
-                              @for (link of pieceLinks(entry); track link.id) {
-                                <a
-                                  class="entry__sheet entry__sheet--youtube"
-                                  [href]="link.url"
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                >{{ link.label }}</a>
-                              }
-                            </span>
-                            <span class="entry__actions">
-                              @if (entry.sheets.length > 0) {
-                                <button
-                                  type="button"
-                                  class="entry__btn entry__btn--pdf"
-                                  (click)="openSheetDialog(entry)"
-                                  [attr.aria-label]="canUploadSheets() ? 'Noten verwalten' : 'Noten anzeigen'"
-                                >{{ 'Noten' | t }}</button>
-                              } @else if (canUploadSheets()) {
-                                <button
-                                  type="button"
-                                  class="entry__btn entry__btn--pdf"
-                                  (click)="openSheetDialog(entry)"
-                                  [attr.aria-label]="'Noten hochladen' | t"
-                                >{{ 'PDF laden' | t }}</button>
-                              }
-                              <button
-                                type="button"
-                                class="entry__btn"
-                                (click)="moveEntry(i, -1)"
-                                [disabled]="i === 0"
-                                [attr.aria-label]="'Nach oben' | t"
-                              >&uarr;</button>
-                              <button
-                                type="button"
-                                class="entry__btn"
-                                (click)="moveEntry(i, 1)"
-                                [disabled]="i === entries().length - 1"
-                                [attr.aria-label]="'Nach unten' | t"
-                              >&darr;</button>
-                              @for (audio of demoAudios(entry); track audio.id) {
-                                <button
-                                  type="button"
-                                  class="entry__btn entry__btn--audio"
-                                  (click)="toggleDemo(entry, audio)"
-                                  [disabled]="mediaUploading()[entry.pieceId]"
-                                  [attr.aria-pressed]="demoPlaying()?.audioId === audio.id"
-                                  [attr.aria-label]="demoPlaying()?.audioId === audio.id ? 'Demo stoppen: ' + audio.label : 'Demo abspielen: ' + audio.label"
-                                >{{ demoPlaying()?.audioId === audio.id ? '■' : '▶' }} {{ demoPlaying()?.audioId === audio.id ? ('Stop' | t) : audio.label }}</button>
+
+                              <div class="entry__actions">
+                                <div class="entry__action-group entry__action-group--playback">
+                                  @if (entry.sheets.length > 0) {
+                                    <button
+                                      type="button"
+                                      class="entry__btn entry__btn--pdf"
+                                      (click)="openSheetDialog(entry)"
+                                      [attr.aria-label]="(canUploadSheets() ? 'Noten verwalten' : 'Noten anzeigen') | t"
+                                    >{{ 'Noten' | t }}</button>
+                                  }
+                                  @for (audio of demoAudios(entry); track audio.id) {
+                                    <button
+                                      type="button"
+                                      class="entry__btn entry__btn--audio"
+                                      (click)="toggleDemo(entry, audio)"
+                                      [disabled]="mediaUploading()[entry.pieceId]"
+                                      [attr.aria-pressed]="demoPlaying()?.audioId === audio.id"
+                                      [attr.aria-label]="(demoPlaying()?.audioId === audio.id ? 'Demo stoppen: ' + audio.label : 'Demo abspielen: ' + audio.label) | t"
+                                    >{{ demoPlaying()?.audioId === audio.id ? '■' : '▶' }} {{ demoPlaying()?.audioId === audio.id ? ('Stop' | t) : audio.label }}</button>
+                                    @if (canUploadSheets()) {
+                                      <button
+                                        type="button"
+                                        class="entry__btn entry__btn--audio-remove"
+                                        (click)="removeDemoAudio(entry, audio)"
+                                        [disabled]="mediaUploading()[entry.pieceId]"
+                                        [attr.aria-label]="'Demo entfernen: ' + audio.label"
+                                      >&times;</button>
+                                    }
+                                  }
+                                  @for (link of pieceLinks(entry); track link.id) {
+                                    @if (isYoutubeLink(link)) {
+                                  <button
+                                    type="button"
+                                        class="entry__btn entry__btn--youtube entry__youtube-play"
+                                        [attr.aria-pressed]="youtubePlaying()?.linkId === link.id"
+                                        [attr.aria-label]="(youtubePlaying()?.linkId === link.id ? 'YouTube-Player schließen' : 'YouTube abspielen') | t"
+                                        (click)="toggleYoutubePlayer(entry, link)"
+                                      >{{ youtubePlaying()?.linkId === link.id ? '■' : '▶' }} {{ link.label }}</button>
+                                    }
+                                  }
+                                </div>
+
                                 @if (canUploadSheets()) {
-                                  <button
-                                    type="button"
-                                    class="entry__btn entry__btn--audio-remove"
-                                    (click)="removeDemoAudio(entry, audio)"
-                                    [disabled]="mediaUploading()[entry.pieceId]"
-                                    [attr.aria-label]="'Demo entfernen: ' + audio.label"
-                                  >&times;</button>
+                                  <div class="entry__action-group entry__action-group--manage">
+                                    @if (entry.sheets.length === 0) {
+                                      <button
+                                        type="button"
+                                        class="entry__btn entry__btn--pdf"
+                                        (click)="openSheetDialog(entry)"
+                                        [attr.aria-label]="'Noten hochladen' | t"
+                                      >{{ 'PDF laden' | t }}</button>
+                                    }
+                                    <button
+                                      type="button"
+                                      class="entry__btn entry__btn--audio"
+                                      (click)="selectDemoAudio(entry)"
+                                      [disabled]="mediaUploading()[entry.pieceId]"
+                                      [attr.aria-label]="'Demo-Audio hochladen' | t"
+                                    >+ {{ 'Demo' | t }}</button>
+                                    <button
+                                      type="button"
+                                      class="entry__btn entry__btn--youtube"
+                                      (click)="editPieceMedia(entry)"
+                                      [attr.aria-label]="'Link hinzufügen' | t"
+                                    >+ {{ 'Link' | t }}</button>
+                                    <button
+                                      type="button"
+                                      class="entry__btn"
+                                      (click)="editPieceNotes(entry)"
+                                      [attr.aria-label]="'Tune-Notiz bearbeiten' | t"
+                                    >{{ 'Notiz' | t }}</button>
+                                  </div>
                                 }
-                              }
-                              @if (canUploadSheets()) {
-                                <button
-                                  type="button"
-                                  class="entry__btn entry__btn--audio"
-                                  (click)="selectDemoAudio(entry)"
-                                  [attr.aria-label]="'Demo-Audio hochladen' | t"
-                                >+ {{ 'Demo' | t }}</button>
-                              }
-                              @if (canUploadSheets()) {
-                                @for (link of pieceLinks(entry); track link.id) {
-                                  <button
-                                    type="button"
-                                    class="entry__btn entry__btn--media-danger"
-                                    (click)="removePieceLink(entry, link)"
-                                    [disabled]="mediaUploading()[entry.pieceId]"
-                                  [attr.aria-label]="'Link entfernen: {{label}}' | t: { label: link.label }"
-                                  >&times;</button>
-                                }
-                                <button
-                                  type="button"
-                                  class="entry__btn entry__btn--youtube"
-                                  (click)="editPieceMedia(entry)"
-                                  [attr.aria-label]="'Link hinzufügen' | t"
-                                >+ {{ 'Link' | t }}</button>
-                                <button
-                                  type="button"
-                                  class="entry__btn"
-                                  (click)="editPieceNotes(entry)"
-                                  [attr.aria-label]="'Tune-Notiz bearbeiten' | t"
-                                >{{ 'Notiz' | t }}</button>
-                              }
-                              <button
-                                type="button"
-                                class="entry__btn entry__btn--danger"
-                                (click)="removeEntry(entry)"
-                                [attr.aria-label]="'Stück entfernen' | t"
-                              >&times;</button>
-                            </span>
-                            @if (entry.notes) {
-                              <p class="entry__notes">{{ entry.notes }}</p>
-                            }
-                            @if (demoPlaying()?.pieceId === entry.pieceId) {
-                              <div class="entry__player" role="status">
-                                <span class="entry__playing-label">▶ {{ demoPlaying()?.title }} · {{ demoPlaying()?.label }}</span>
-                                <audio controls autoplay [src]="demoPlaying()?.url ?? null" [attr.aria-label]="'Demo-Wiedergabe' | t" (ended)="stopDemo()"></audio>
-                                <button
-                                  type="button"
-                                  class="entry__btn"
-                                  (click)="stopDemo()"
-                                  [attr.aria-label]="'Wiedergabe beenden' | t"
-                                >■ {{ 'Stop' | t }}</button>
+
+                                <div class="entry__action-group entry__action-group--order">
+                                  <button type="button" class="entry__btn" (click)="moveEntry(i, -1)" [disabled]="i === 0" [attr.aria-label]="'Nach oben' | t">&uarr;</button>
+                                  <button type="button" class="entry__btn" (click)="moveEntry(i, 1)" [disabled]="i === entries().length - 1" [attr.aria-label]="'Nach unten' | t">&darr;</button>
+                                  <button type="button" class="entry__btn entry__btn--danger" (click)="removeEntry(entry)" [attr.aria-label]="'Stück entfernen' | t">&times;</button>
+                                </div>
                               </div>
-                            }
-                            @if (canUploadSheets() && mediaEditing()[entry.pieceId]) {
-                              <form class="entry__link-form" (submit)="$event.preventDefault(); savePieceLink(entry)">
-                                <label class="sr-only" [for]="'link-label-' + entry.id">{{ 'Link-Titel' | t }}</label>
-                                <input
-                                  class="setlist__input"
-                                  [id]="'link-label-' + entry.id"
-                                  type="text"
-                                  maxlength="120"
-                                  [placeholder]="'Titel, z. B. Live-Version' | t"
-                                  [value]="linkDrafts()[entry.pieceId]?.label ?? ''"
-                                  (input)="onLinkDraftInput(entry, 'label', $event)"
-                                />
-                                <label class="sr-only" [for]="'link-url-' + entry.id">{{ 'Link-Adresse' | t }}</label>
-                                <input
-                                  class="setlist__input"
-                                  [id]="'link-url-' + entry.id"
-                                  type="url"
-                                placeholder="https://…"
-                                  [value]="linkDrafts()[entry.pieceId]?.url ?? ''"
-                                  (input)="onLinkDraftInput(entry, 'url', $event)"
-                                />
-                                <button type="submit" class="setlist__submit" [disabled]="mediaUploading()[entry.pieceId]">{{ 'Hinzufügen' | t }}</button>
-                                <button
-                                  type="button"
-                                  class="entry__btn"
-                                  (click)="cancelPieceMediaEdit(entry)"
-                                >{{ 'Abbrechen' | t }}</button>
-                              </form>
-                            }
-                            @if (canUploadSheets() && notesEditing()[entry.pieceId]) {
-                              <div class="entry__notes-form">
-                                <label class="sr-only" [for]="'piece-notes-' + entry.id">{{ 'Notizen zum Tune' | t }}</label>
-                                <textarea
-                                  class="setlist__input entry__notes-input"
-                                  [id]="'piece-notes-' + entry.id"
-                                  rows="2"
-                                  maxlength="10000"
-                                  [placeholder]="'Notizen zu diesem Tune' | t"
-                                  [value]="notesDrafts()[entry.pieceId]"
-                                  (input)="onPieceNotesInput(entry, $event)"
-                                ></textarea>
-                                <button type="button" class="setlist__submit" (click)="savePieceNotes(entry)" [disabled]="mediaUploading()[entry.pieceId]">{{ 'Speichern' | t }}</button>
-                                <button type="button" class="entry__btn" (click)="cancelPieceNotes(entry)">{{ 'Abbrechen' | t }}</button>
-                              </div>
-                            }
+
+                              @if (demoPlaying()?.entryId === entry.id) {
+                                <div class="entry__player" role="status">
+                                  <span class="entry__playing-label">▶ {{ demoPlaying()?.title }} · {{ demoPlaying()?.label }}</span>
+                                  <audio controls autoplay [src]="demoPlaying()?.url ?? null" [attr.aria-label]="'Demo-Wiedergabe' | t" (ended)="stopDemo()"></audio>
+                                  <button type="button" class="entry__btn" (click)="stopDemo()" [attr.aria-label]="'Wiedergabe beenden' | t">■ {{ 'Stop' | t }}</button>
+                                </div>
+                              }
+                              @if (youtubePlaying()?.entryId === entry.id) {
+                                <div class="entry__youtube-player" role="group" [attr.aria-label]="'YouTube-Player' | t">
+                                  <span class="entry__playing-label">▶ {{ youtubePlaying()?.title }} · {{ youtubePlaying()?.label }}</span>
+                                  <iframe
+                                    [src]="youtubePlaying()?.url ?? null"
+                                    [title]="'YouTube-Player: {{label}}' | t: { label: youtubePlaying()?.label ?? '' }"
+                                    allow="autoplay; encrypted-media; picture-in-picture; web-share"
+                                    referrerpolicy="strict-origin-when-cross-origin"
+                                    allowfullscreen
+                                  ></iframe>
+                                  <button type="button" class="entry__btn" (click)="stopYoutubePlayer()">■ {{ 'Stop' | t }}</button>
+                                </div>
+                              }
+
+                              @if (canUploadSheets() && mediaEditing()[entry.pieceId]) {
+                                <form class="entry__link-form" (submit)="$event.preventDefault(); savePieceLink(entry)">
+                                  <label class="sr-only" [for]="'link-label-' + entry.id">{{ 'Link-Titel' | t }}</label>
+                                  <input class="setlist__input" [id]="'link-label-' + entry.id" type="text" maxlength="120"
+                                    [placeholder]="'Titel, z. B. Live-Version' | t" [value]="linkDrafts()[entry.pieceId]?.label ?? ''"
+                                    (input)="onLinkDraftInput(entry, 'label', $event)" />
+                                  <label class="sr-only" [for]="'link-url-' + entry.id">{{ 'Link-Adresse' | t }}</label>
+                                  <input class="setlist__input" [id]="'link-url-' + entry.id" type="url" placeholder="https://…"
+                                    [value]="linkDrafts()[entry.pieceId]?.url ?? ''" (input)="onLinkDraftInput(entry, 'url', $event)" />
+                                  <button type="submit" class="setlist__submit" [disabled]="mediaUploading()[entry.pieceId]">{{ 'Hinzufügen' | t }}</button>
+                                  <button type="button" class="entry__btn" (click)="cancelPieceMediaEdit(entry)">{{ 'Abbrechen' | t }}</button>
+                                </form>
+                              }
+                              @if (canUploadSheets() && notesEditing()[entry.pieceId]) {
+                                <div class="entry__notes-form">
+                                  <label class="sr-only" [for]="'piece-notes-' + entry.id">{{ 'Notizen zum Tune' | t }}</label>
+                                  <textarea class="setlist__input entry__notes-input" [id]="'piece-notes-' + entry.id" rows="2" maxlength="10000"
+                                    [placeholder]="'Notizen zu diesem Tune' | t" [value]="notesDrafts()[entry.pieceId]"
+                                    (input)="onPieceNotesInput(entry, $event)"></textarea>
+                                  <button type="button" class="setlist__submit" (click)="savePieceNotes(entry)" [disabled]="mediaUploading()[entry.pieceId]">{{ 'Speichern' | t }}</button>
+                                  <button type="button" class="entry__btn" (click)="cancelPieceNotes(entry)">{{ 'Abbrechen' | t }}</button>
+                                </div>
+                              }
+                            </div>
                           </li>
                         }
                       </ol>

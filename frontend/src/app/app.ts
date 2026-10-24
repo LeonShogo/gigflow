@@ -10,6 +10,10 @@ import { TranslatePipe } from './language/translate.pipe';
 @Component({
   selector: 'app-root',
   imports: [RouterOutlet, RouterLink, RouterLinkActive, NgOptimizedImage, ToastComponent, TranslatePipe],
+  host: {
+    '(document:click)': 'onDocumentClick($event)',
+    '(document:keydown.escape)': 'closeLanguageMenu()',
+  },
   templateUrl: './app.html',
   styleUrl: './app.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -28,6 +32,7 @@ export class App {
   protected readonly isDarkMode = signal(this.readInitialTheme());
   protected readonly language = this.languageService.language;
   protected readonly languages = this.languageService.options;
+  protected readonly languageMenuOpen = signal(false);
 
   constructor() {
     this.applyTheme(this.isDarkMode());
@@ -56,8 +61,29 @@ export class App {
     void this.router.navigate(['/login']);
   }
 
-  protected changeLanguage(event: Event): void {
-    this.languageService.setLanguage((event.target as HTMLSelectElement).value as AppLanguage);
+  protected selectedLanguageFlag(): string {
+    return this.languages.find((option) => option.code === this.language())?.flag ?? '🇩🇪';
+  }
+
+  protected toggleLanguageMenu(): void {
+    this.languageMenuOpen.update((open) => !open);
+  }
+
+  protected selectLanguage(language: AppLanguage): void {
+    this.languageService.setLanguage(language);
+    this.languageMenuOpen.set(false);
+  }
+
+  protected onDocumentClick(event: MouseEvent): void {
+    const menu = this.document.querySelector('.shell__language-menu');
+    if (menu?.contains(event.target as Node)) {
+      return;
+    }
+    this.closeLanguageMenu();
+  }
+
+  protected closeLanguageMenu(): void {
+    this.languageMenuOpen.set(false);
   }
 
   private readInitialTheme(): boolean {

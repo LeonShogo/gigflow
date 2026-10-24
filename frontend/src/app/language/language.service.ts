@@ -4,13 +4,13 @@ import { Injectable, inject, signal } from '@angular/core';
 export const LANGUAGES = ['de', 'en-US', 'fr', 'es', 'ja', 'zh-CN'] as const;
 export type AppLanguage = (typeof LANGUAGES)[number];
 
-export const LANGUAGE_OPTIONS: { code: AppLanguage; label: string }[] = [
-  { code: 'de', label: 'Deutsch' },
-  { code: 'en-US', label: 'English (US)' },
-  { code: 'fr', label: 'Français' },
-  { code: 'es', label: 'Español' },
-  { code: 'ja', label: '日本語' },
-  { code: 'zh-CN', label: '简体中文' },
+export const LANGUAGE_OPTIONS: { code: AppLanguage; label: string; flag: string }[] = [
+  { code: 'de', label: 'Deutsch', flag: '🇩🇪' },
+  { code: 'en-US', label: 'English (US)', flag: '🇺🇸' },
+  { code: 'fr', label: 'Français', flag: '🇫🇷' },
+  { code: 'es', label: 'Español', flag: '🇪🇸' },
+  { code: 'ja', label: '日本語', flag: '🇯🇵' },
+  { code: 'zh-CN', label: '简体中文', flag: '🇨🇳' },
 ];
 
 const TRANSLATIONS: Partial<Record<AppLanguage, Record<string, string>>> = {
@@ -114,6 +114,7 @@ const TRANSLATIONS: Partial<Record<AppLanguage, Record<string, string>>> = {
     'PDF herunterladen': 'Download PDF', 'Venue / Club': 'Venue / club', 'Hotel': 'Hotel',
     'Restaurant / Catering': 'Restaurant / catering', 'Probenraum': 'Rehearsal space', 'Treffpunkt': 'Meeting point',
     'Demo': 'Demo', 'Link': 'Link', 'Stop': 'Stop', 'Uhr': '', 'mitbringen': 'bring', 'PDFs': 'PDFs',
+    'YouTube abspielen': 'Play YouTube', 'YouTube-Player schließen': 'Close YouTube player', 'YouTube-Player': 'YouTube player', 'YouTube-Player: {{label}}': 'YouTube player: {{label}}',
     'Infoblatt beilegen': 'Include info sheet', 'Wie oben ({{part}})': 'Same as above ({{part}})', 'Packe ZIP …': 'Creating ZIP…',
     'ZIP herunterladen': 'Download ZIP', 'PDFs hinzufügen': 'Add PDFs', 'Lade hoch …': 'Uploading…',
     'Mehrfachauswahl möglich · max. 10 MB pro Datei': 'Multiple selection · max. 10 MB per file',
@@ -216,6 +217,7 @@ const TRANSLATIONS: Partial<Record<AppLanguage, Record<string, string>>> = {
     'Eigener Eintrag': 'Entrée personnalisée', 'Noch kein Ablauf für diesen Termin erfasst.': 'Aucun planning ajouté à cet événement.',
     'Mit {{repertoire}} & Noten': 'Avec {{repertoire}} et partitions', 'PDF wird erstellt …': 'Création du PDF…', 'PDF herunterladen': 'Télécharger le PDF',
     'Demo': 'Démo', 'Link': 'Lien', 'Stop': 'Arrêter', 'Uhr': 'h', 'mitbringen': 'à apporter', 'PDFs': 'PDF',
+    'YouTube abspielen': 'Lire YouTube', 'YouTube-Player schließen': 'Fermer le lecteur YouTube', 'YouTube-Player': 'Lecteur YouTube', 'YouTube-Player: {{label}}': 'Lecteur YouTube : {{label}}',
     'Infoblatt beilegen': 'Joindre la fiche d’information', 'Wie oben ({{part}})': 'Comme ci-dessus ({{part}})', 'Packe ZIP …': 'Création du ZIP…',
     'ZIP herunterladen': 'Télécharger le ZIP', 'PDFs hinzufügen': 'Ajouter des PDF', 'Lade hoch …': 'Téléversement…',
     'Mehrfachauswahl möglich · max. 10 MB pro Datei': 'Sélection multiple · 10 Mo maximum par fichier',
@@ -313,6 +315,7 @@ const TRANSLATIONS: Partial<Record<AppLanguage, Record<string, string>>> = {
     'Eigener Eintrag': 'Actividad personalizada', 'Noch kein Ablauf für diesen Termin erfasst.': 'Aún no hay programa para este evento.',
     'Mit {{repertoire}} & Noten': 'Con {{repertoire}} y partituras', 'PDF wird erstellt …': 'Creando PDF…', 'PDF herunterladen': 'Descargar PDF',
     'Demo': 'Demo', 'Link': 'Enlace', 'Stop': 'Detener', 'Uhr': 'h', 'mitbringen': 'traer', 'PDFs': 'PDF',
+    'YouTube abspielen': 'Reproducir YouTube', 'YouTube-Player schließen': 'Cerrar reproductor de YouTube', 'YouTube-Player': 'Reproductor de YouTube', 'YouTube-Player: {{label}}': 'Reproductor de YouTube: {{label}}',
     'Infoblatt beilegen': 'Incluir hoja informativa', 'Wie oben ({{part}})': 'Igual que arriba ({{part}})', 'Packe ZIP …': 'Creando ZIP…',
     'ZIP herunterladen': 'Descargar ZIP', 'PDFs hinzufügen': 'Añadir PDFs', 'Lade hoch …': 'Subiendo…',
     'Mehrfachauswahl möglich · max. 10 MB pro Datei': 'Selección múltiple · máximo 10 MB por archivo',
@@ -406,6 +409,7 @@ const TRANSLATIONS: Partial<Record<AppLanguage, Record<string, string>>> = {
     'Zeitpunkt hinzufügen': '時刻を追加', 'Ablauf wird geladen …': 'スケジュールを読み込み中…', 'Ablaufart': '項目の種類', 'Ablaufart wählen': '項目を選択',
     'Eigener Eintrag': '自由入力', 'Noch kein Ablauf für diesen Termin erfasst.': 'スケジュールはまだありません。', 'Mit {{repertoire}} & Noten': '{{repertoire}}と楽譜を含む',
     'PDF wird erstellt …': 'PDFを作成中…', 'PDF herunterladen': 'PDFをダウンロード', 'Demo': 'デモ', 'Link': 'リンク', 'Stop': '停止', 'Uhr': '時', 'mitbringen': '持参', 'PDFs': 'PDF',
+    'YouTube abspielen': 'YouTubeを再生', 'YouTube-Player schließen': 'YouTubeプレーヤーを閉じる', 'YouTube-Player': 'YouTubeプレーヤー', 'YouTube-Player: {{label}}': 'YouTubeプレーヤー：{{label}}',
     'Infoblatt beilegen': '情報シートを含める', 'Wie oben ({{part}})': '上と同じ（{{part}}）', 'Packe ZIP …': 'ZIPを作成中…', 'ZIP herunterladen': 'ZIPをダウンロード',
     'PDFs hinzufügen': 'PDFを追加', 'Lade hoch …': 'アップロード中…', 'Mehrfachauswahl möglich · max. 10 MB pro Datei': '複数選択可 · 1ファイル最大10 MB',
     'Noch keine Noten hinterlegt. Lade die erste Stimme hoch.': '楽譜はまだありません。最初のパートをアップロードしてください。', 'Noch keine Noten hinterlegt.': '楽譜はまだありません。',
@@ -484,6 +488,7 @@ const TRANSLATIONS: Partial<Record<AppLanguage, Record<string, string>>> = {
     'Zeitpunkt hinzufügen': '添加时间', 'Ablauf wird geladen …': '正在加载流程…', 'Ablaufart': '流程类型', 'Ablaufart wählen': '选择流程类型', 'Eigener Eintrag': '自定义项目',
     'Noch kein Ablauf für diesen Termin erfasst.': '此活动尚未添加流程。', 'Mit {{repertoire}} & Noten': '包含 {{repertoire}} 和乐谱', 'PDF wird erstellt …': '正在生成 PDF…',
     'PDF herunterladen': '下载 PDF', 'Demo': '演示', 'Link': '链接', 'Stop': '停止', 'Uhr': '时', 'mitbringen': '携带', 'PDFs': 'PDF',
+    'YouTube abspielen': '播放 YouTube', 'YouTube-Player schließen': '关闭 YouTube 播放器', 'YouTube-Player': 'YouTube 播放器', 'YouTube-Player: {{label}}': 'YouTube 播放器：{{label}}',
     'Infoblatt beilegen': '附加信息表', 'Wie oben ({{part}})': '同上（{{part}}）', 'Packe ZIP …': '正在打包 ZIP…', 'ZIP herunterladen': '下载 ZIP',
     'PDFs hinzufügen': '添加 PDF', 'Lade hoch …': '正在上传…', 'Mehrfachauswahl möglich · max. 10 MB pro Datei': '可多选 · 每个文件最大 10 MB',
     'Noch keine Noten hinterlegt. Lade die erste Stimme hoch.': '尚无乐谱。请上传第一个声部。', 'Noch keine Noten hinterlegt.': '尚无乐谱。',

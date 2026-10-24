@@ -54,18 +54,33 @@
       </span>
       <span class="shell__theme-label">{{ (isDarkMode() ? 'Hell' : 'Dunkel') | t }}</span>
     </button>
-    <label class="sr-only" for="app-language">{{ 'Sprache wählen' | t }}</label>
-    <select
-      id="app-language"
-      class="shell__language"
-      [value]="language()"
-      (change)="changeLanguage($event)"
-      [attr.aria-label]="'Sprache wählen' | t"
-    >
-      @for (option of languages; track option.code) {
-        <option [value]="option.code">{{ option.label }}</option>
+    <div class="shell__language-menu">
+      <button
+        type="button"
+        class="shell__language-trigger"
+        [attr.aria-label]="'Sprache wählen' | t"
+        aria-haspopup="listbox"
+        [attr.aria-expanded]="languageMenuOpen()"
+        (click)="toggleLanguageMenu()"
+      ><span aria-hidden="true">{{ selectedLanguageFlag() }}</span></button>
+      @if (languageMenuOpen()) {
+        <div class="shell__language-list" role="listbox" [attr.aria-label]="'Sprache wählen' | t">
+          @for (option of languages; track option.code) {
+            <button
+              type="button"
+              class="shell__language-option"
+              role="option"
+              [class.shell__language-option--active]="language() === option.code"
+              [attr.aria-selected]="language() === option.code"
+              (click)="selectLanguage(option.code)"
+            >
+              <span aria-hidden="true">{{ option.flag }}</span>
+              <span>{{ option.label }}</span>
+            </button>
+          }
+        </div>
       }
-    </select>
+    </div>
     @if (isAuthenticated()) {
       <span class="shell__user">
         @if (isOrganizer()) {
