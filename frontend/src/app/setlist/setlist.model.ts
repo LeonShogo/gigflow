@@ -10,6 +10,22 @@ export interface PieceSheet {
   originalName: string;
 }
 
+export interface PieceDemoAudio {
+  id: number;
+  pieceId: number;
+  label: string;
+  originalName: string;
+  sortOrder: number;
+}
+
+export interface PieceLink {
+  id: number;
+  pieceId: number;
+  label: string;
+  url: string;
+  sortOrder: number;
+}
+
 export interface SetlistEntry {
   id: number;
   setlistId: number;
@@ -17,6 +33,9 @@ export interface SetlistEntry {
   pieceTitle: string;
   position: number;
   sheets: PieceSheet[];
+  notes?: string | null;
+  demoAudios?: PieceDemoAudio[];
+  links?: PieceLink[];
   hasDemoAudio?: boolean;
   youtubeUrl?: string | null;
 }
@@ -24,6 +43,9 @@ export interface SetlistEntry {
 export interface Piece {
   id: number;
   title: string;
+  notes?: string | null;
+  demoAudios?: PieceDemoAudio[];
+  links?: PieceLink[];
   hasDemoAudio?: boolean;
   youtubeUrl?: string | null;
 }

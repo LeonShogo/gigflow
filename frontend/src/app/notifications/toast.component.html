@@ -1,15 +1,15 @@
 @if (toast(); as current) {
   <div class="toast" role="status">
-    <span class="toast__text">{{ current.message }}</span>
+    <span class="toast__text">{{ current.message | t }}</span>
     @if (current.action; as action) {
       <button type="button" class="toast__action" (click)="runAction()">
-        {{ action.label }}
+        {{ action.label | t }}
       </button>
     }
     <button
       type="button"
       class="toast__close"
-      aria-label="Hinweis schließen"
+      [attr.aria-label]="'Hinweis schließen' | t"
       (click)="dismiss()"
     >&times;</button>
   </div>

@@ -1,7 +1,7 @@
 <section class="calendar">
   <header class="cal__head">
     <div>
-      <p class="cal__kicker">Tourplan</p>
+      <p class="cal__kicker">{{ 'Tourplan' | t }}</p>
       <h1 class="cal__heading">{{ monthLabel() }}</h1>
     </div>
 
@@ -11,40 +11,40 @@
         class="cal__export"
         (click)="openExportDialog()"
         [disabled]="events().length === 0"
-        aria-label="Termine als Kalenderdatei exportieren"
-      >&#8681;&nbsp;Exportieren</button>
+        [attr.aria-label]="'Termine als Kalenderdatei exportieren' | t"
+      >&#8681;&nbsp;{{ 'Exportieren' | t }}</button>
       <div class="cal__nav-group">
         <button
           type="button"
           class="cal__nav"
           (click)="prevMonth()"
-          aria-label="Vorheriger Monat"
+          [attr.aria-label]="'Vorheriger Monat' | t"
         >&#8249;</button>
-        <button type="button" class="cal__today" (click)="goToday()">Heute</button>
+        <button type="button" class="cal__today" (click)="goToday()">{{ 'Heute' | t }}</button>
         <button
           type="button"
           class="cal__nav"
           (click)="nextMonth()"
-          aria-label="Nächster Monat"
+          [attr.aria-label]="'Nächster Monat' | t"
         >&#8250;</button>
       </div>
     </div>
   </header>
 
-  <div class="cal__legend" role="list" aria-label="Legende">
-    <span class="cal__legend-item cal__legend-item--concert" role="listitem">Gig</span>
-    <span class="cal__legend-item cal__legend-item--rehearsal" role="listitem">Probe</span>
+  <div class="cal__legend" role="list" [attr.aria-label]="'Legende' | t">
+    <span class="cal__legend-item cal__legend-item--concert" role="listitem">{{ 'Gig' | t }}</span>
+    <span class="cal__legend-item cal__legend-item--rehearsal" role="listitem">{{ 'Probe' | t }}</span>
   </div>
 
   @if (loading()) {
-    <p class="cal__status">Kalender wird geladen …</p>
+    <p class="cal__status">{{ 'Kalender wird geladen …' | t }}</p>
   } @else if (error()) {
-    <p class="cal__status cal__status--error">{{ error() }}</p>
+    <p class="cal__status cal__status--error">{{ error() | t }}</p>
   } @else {
     <div class="cal__scroll">
-      <div class="cal__weeks" role="grid" aria-label="Monatsansicht">
+      <div class="cal__weeks" role="grid" [attr.aria-label]="'Monatsansicht' | t">
         <div class="cal__weekdays" role="row">
-          @for (day of weekdays; track day) {
+          @for (day of weekdays(); track day) {
             <div class="cal__weekday" role="columnheader">{{ day }}</div>
           }
         </div>
@@ -85,8 +85,8 @@
   }
 
   @if (exportDialogOpen()) {
-    <app-modal-dialog title="Kalender exportieren" (closed)="closeExportDialog()">
-      <p class="cal__export-intro">Welche Termine sollen in der Kalenderdatei enthalten sein?</p>
+    <app-modal-dialog [title]="'Kalender exportieren' | t" (closed)="closeExportDialog()">
+      <p class="cal__export-intro">{{ 'Welche Termine sollen in der Kalenderdatei enthalten sein?' | t }}</p>
       <div class="cal__export-options">
         <button
           type="button"
@@ -94,13 +94,13 @@
           (click)="exportMonth()"
           [disabled]="monthEvents().length === 0"
         >
-          <span class="cal__export-option-label">Aktueller Monat</span>
+          <span class="cal__export-option-label">{{ 'Aktueller Monat' | t }}</span>
           <span class="cal__export-option-meta">
             {{ monthLabel() }} · {{ eventCount(monthEvents().length) }}
           </span>
         </button>
         <button type="button" class="cal__export-option" (click)="exportAll()">
-          <span class="cal__export-option-label">Alle Termine</span>
+          <span class="cal__export-option-label">{{ 'Alle Termine' | t }}</span>
           <span class="cal__export-option-meta">{{ eventCount(events().length) }}</span>
         </button>
       </div>

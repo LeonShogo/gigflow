@@ -108,6 +108,111 @@ public class PieceController {
         }
     }
 
+    @GetMapping("/{id}/demo-audios")
+    public ResponseEntity<List<PieceDemoAudioResponse>> getDemoAudios(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(pieceService.findDemoAudios(id));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PostMapping("/{id}/demo-audios")
+    public ResponseEntity<?> uploadDemoAudios(
+            @PathVariable Long id,
+            @RequestParam("files") List<MultipartFile> files) {
+        try {
+            return ResponseEntity.status(HttpStatus.CREATED).body(pieceService.addDemoAudios(id, files));
+        } catch (IllegalArgumentException e) {
+            if (e.getMessage() != null && e.getMessage().startsWith("Stück nicht gefunden")) {
+                return ResponseEntity.notFound().build();
+            }
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/{id}/demo-audios/{audioId}")
+    public ResponseEntity<Resource> downloadDemoAudio(
+            @PathVariable Long id,
+            @PathVariable Long audioId) {
+        Optional<PieceService.DemoAudioFile> demoAudio = pieceService.loadDemoAudio(id, audioId);
+        if (demoAudio.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        PieceService.DemoAudioFile file = demoAudio.get();
+        String encodedName = URLEncoder.encode(file.originalName(), StandardCharsets.UTF_8)
+                .replace("+", "%20");
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType("audio/mpeg"));
+        headers.set(HttpHeaders.CONTENT_DISPOSITION, "inline; filename*=UTF-8''" + encodedName);
+        return ResponseEntity.ok()
+                .headers(headers)
+                .contentLength(file.path().toFile().length())
+                .body(new FileSystemResource(file.path()));
+    }
+
+    @DeleteMapping("/{id}/demo-audios/{audioId}")
+    public ResponseEntity<Void> deleteDemoAudio(
+            @PathVariable Long id,
+            @PathVariable Long audioId) {
+        try {
+            pieceService.deleteDemoAudio(id, audioId);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @GetMapping("/{id}/links")
+    public ResponseEntity<List<PieceLinkResponse>> getLinks(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(pieceService.findLinks(id));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PostMapping("/{id}/links")
+    public ResponseEntity<?> createLink(
+            @PathVariable Long id,
+            @Valid @RequestBody PieceLinkRequest request) {
+        try {
+            return ResponseEntity.status(HttpStatus.CREATED).body(pieceService.addLink(id, request));
+        } catch (IllegalArgumentException e) {
+            if (e.getMessage() != null && e.getMessage().startsWith("Stück nicht gefunden")) {
+                return ResponseEntity.notFound().build();
+            }
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/{id}/links/{linkId}")
+    public ResponseEntity<?> updateLink(
+            @PathVariable Long id,
+            @PathVariable Long linkId,
+            @Valid @RequestBody PieceLinkRequest request) {
+        try {
+            return ResponseEntity.ok(pieceService.updateLink(id, linkId, request));
+        } catch (IllegalArgumentException e) {
+            if (e.getMessage() != null && e.getMessage().startsWith("Link nicht gefunden")) {
+                return ResponseEntity.notFound().build();
+            }
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/{id}/links/{linkId}")
+    public ResponseEntity<Void> deleteLink(@PathVariable Long id, @PathVariable Long linkId) {
+        try {
+            pieceService.deleteLink(id, linkId);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
     @GetMapping("/{id}/demo-audio")
     public ResponseEntity<Resource> downloadDemoAudio(@PathVariable Long id) {
         Optional<PieceService.DemoAudioFile> demoAudio = pieceService.loadDemoAudio(id);

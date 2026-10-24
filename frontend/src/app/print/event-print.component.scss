@@ -231,6 +231,14 @@
   color: var(--ink-soft);
 }
 
+.row__tune-notes {
+  display: block;
+  margin-top: 0.1rem;
+  font-size: 0.88em;
+  color: var(--ink-soft);
+  white-space: pre-wrap;
+}
+
 .row__aside {
   display: flex;
   flex-wrap: wrap;

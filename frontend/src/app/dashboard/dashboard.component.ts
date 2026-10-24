@@ -15,12 +15,14 @@ import { EventUndoService, type EventUndoSnapshot } from './event-undo.service';
 import { AuthService } from '../auth/auth.service';
 import { ToastService } from '../notifications/toast.service';
 import { formatDate, formatTime, typeLabel, dateContext } from '../event-format';
+import { TranslatePipe } from '../language/translate.pipe';
+import { LanguageService } from '../language/language.service';
 
 type Filter = 'ALL' | EventType;
 
 @Component({
   selector: 'app-dashboard',
-  imports: [RouterLink],
+  imports: [RouterLink, TranslatePipe],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -30,6 +32,7 @@ export class DashboardComponent {
   private readonly eventUndoService = inject(EventUndoService);
   private readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
+  private readonly language = inject(LanguageService);
 
   protected readonly filter = signal<Filter>('ALL');
   protected readonly events = signal<EventItem[]>([]);
@@ -159,11 +162,14 @@ export class DashboardComponent {
     });
   }
 
-  protected typeLabel = typeLabel;
+  protected typeLabel = (type: EventType): string => this.language.translate(typeLabel(type));
 
-  protected formatDate = formatDate;
+  protected formatDate = (dateTime: string): string => formatDate(dateTime, this.language.locale());
 
-  protected formatTime = formatTime;
+  protected formatTime = (dateTime: string): string => formatTime(dateTime, this.language.locale());
 
-  protected dateContext = dateContext;
+  protected dateContext = (dateTime: string): string | null => {
+    const context = dateContext(dateTime);
+    return context ? this.language.translate(context) : null;
+  };
 }

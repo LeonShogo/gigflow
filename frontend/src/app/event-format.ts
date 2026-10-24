@@ -29,23 +29,38 @@ export function repertoireLabel(type: EventType): string {
   return type === 'REHEARSAL' ? 'Probenrepertoire' : 'Setlist';
 }
 
-export function formatDate(dateTime: string): string {
+export function formatDate(dateTime: string, locale = 'de'): string {
   const parsed = new Date(dateTime);
+  if (locale !== 'de') {
+    return new Intl.DateTimeFormat(locale, {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    }).format(parsed);
+  }
   const day = DAYS[parsed.getDay()];
   return `${day}, ${parsed.getDate()}. ${MONTHS[parsed.getMonth()]} ${parsed.getFullYear()}`;
 }
 
-export function formatTime(dateTime: string): string {
+export function formatTime(dateTime: string, locale = 'de'): string {
   const parsed = new Date(dateTime);
+  if (locale !== 'de') {
+    return new Intl.DateTimeFormat(locale, { hour: 'numeric', minute: '2-digit' }).format(parsed);
+  }
   const hours = String(parsed.getHours()).padStart(2, '0');
   const minutes = String(parsed.getMinutes()).padStart(2, '0');
   return `${hours}:${minutes}`;
 }
 
-export function formatTimeOnly(time: string): string {
+export function formatTimeOnly(time: string, locale = 'de'): string {
   const match = /^(\d{1,2}):(\d{2})/.exec(time);
   if (!match) {
     return time;
+  }
+  if (locale !== 'de') {
+    const date = new Date(2000, 0, 1, Number(match[1]), Number(match[2]));
+    return new Intl.DateTimeFormat(locale, { hour: 'numeric', minute: '2-digit' }).format(date);
   }
   const hours = String(Number(match[1])).padStart(2, '0');
   return `${hours}:${match[2]}`;

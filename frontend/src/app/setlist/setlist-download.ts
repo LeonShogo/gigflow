@@ -8,8 +8,10 @@ import type { EquipmentRequirement, RequirementState } from '../equipment/equipm
 import type { ScheduleItem } from '../schedule/schedule.model';
 import type { EventLocation, LocationType } from '../location/location.model';
 import { LOCATION_TYPES } from '../location/location.model';
+import { translateStatic, type AppLanguage } from '../language/language.service';
 
 export interface SetlistDownloadData {
+  language?: AppLanguage;
   event: EventItem;
   participations: EventParticipation[];
   entries: SetlistEntry[];
@@ -88,6 +90,9 @@ export async function buildInfoDocument(data: SetlistDownloadData): Promise<PDFD
   const ink: Rgb = [0.1, 0.1, 0.12];
   const soft: Rgb = [0.32, 0.34, 0.38];
   const accent: Rgb = [0.12, 0.42, 0.78];
+  const language = data.language ?? 'de';
+  const translate = (text: string): string => translateStatic(language, text);
+  const timeSuffix = translate('Uhr');
 
   let page = doc.addPage(A4);
   let y = page.getHeight() - MARGIN;
@@ -131,7 +136,7 @@ export async function buildInfoDocument(data: SetlistDownloadData): Promise<PDFD
     spaced: true,
     divider: true,
     lines: [
-      { text: heading, size: HEADING_SIZE, bold: true, color: ink, keepWithNext: true },
+      { text: translate(heading), size: HEADING_SIZE, bold: true, color: ink, keepWithNext: true },
       ...(entries.length > 0
         ? [{ ...wrap(body(entries[0]))[0], keepWithNext: true }]
         : []),
@@ -142,9 +147,9 @@ export async function buildInfoDocument(data: SetlistDownloadData): Promise<PDFD
 
   // Header block (type / title / date / band).
   const header: TextRun[] = [
-    { ...title(typeLabel(data.event.type).toUpperCase(), 11, accent), spaceAfter: 9 },
+    { ...title(translate(typeLabel(data.event.type)).toUpperCase(), 11, accent), spaceAfter: 9 },
     title(data.event.title, TITLE_SIZE),
-    body(`${formatDate(data.event.dateTime)}, ${formatTime(data.event.dateTime)} Uhr`),
+    body(`${formatDate(data.event.dateTime, language)}, ${formatTime(data.event.dateTime, language)} ${timeSuffix}`.trim()),
   ];
   if (data.event.bandName) {
     header.push(body(data.event.bandName));
@@ -163,7 +168,7 @@ export async function buildInfoDocument(data: SetlistDownloadData): Promise<PDFD
             ? `${p.musician.firstName} ${p.musician.lastName}`
             : `#${p.musicianId}`;
           const instrument = p.musician?.instrument ? ` – ${p.musician.instrument}` : '';
-          return `${name}${instrument}: ${STATUS_LABELS[p.status]}`;
+          return `${name}${instrument}: ${translate(STATUS_LABELS[p.status])}`;
         }),
       ),
     );
@@ -174,9 +179,10 @@ export async function buildInfoDocument(data: SetlistDownloadData): Promise<PDFD
     blocks.push(
       headingBlock(
         repertoireLabel(data.event.type),
-        sortedEntries.map((entry, index) => {
-          const sheet = entry.sheets.length > 0 ? ' · Noten' : '';
-          return `${index + 1}. ${entry.pieceTitle}${sheet}`;
+          sortedEntries.map((entry, index) => {
+          const sheet = entry.sheets.length > 0 ? ` · ${translate('Noten')}` : '';
+            const notes = entry.notes?.trim() ? ` — ${translate('Notiz')}: ${entry.notes.trim()}` : '';
+            return `${index + 1}. ${entry.pieceTitle}${sheet}${notes}`;
         }),
       ),
     );
@@ -187,8 +193,8 @@ export async function buildInfoDocument(data: SetlistDownloadData): Promise<PDFD
     blocks.push(
       headingBlock(
         'Ablauf / Zeiten',
-        schedule.map((item) => `${formatTimeOnly(item.time)} Uhr · ${item.label}`),
-        data.locations.length > 0 ? 'Orte siehe unten.' : undefined,
+        schedule.map((item) => `${formatTimeOnly(item.time, language)} ${timeSuffix} · ${translate(item.label)}`.trim()),
+        data.locations.length > 0 ? translate('Orte siehe unten.') : undefined,
       ),
     );
   }
@@ -201,8 +207,8 @@ export async function buildInfoDocument(data: SetlistDownloadData): Promise<PDFD
           const responsible = req.responsibleMusician
             ? ` · ${req.responsibleMusician.firstName} ${req.responsibleMusician.lastName}`
             : '';
-          const brought = STATE_LABELS[req.needsToBeBrought] === 'Ja' ? ' · mitbringen' : '';
-          return `${req.equipmentName}: vor Ort ${STATE_LABELS[req.availableOnSite]} / mitbringen ${STATE_LABELS[req.needsToBeBrought]}${brought}${responsible}`;
+          const brought = STATE_LABELS[req.needsToBeBrought] === 'Ja' ? ` · ${translate('mitbringen')}` : '';
+          return `${req.equipmentName}: ${translate('Vor Ort:')} ${translate(STATE_LABELS[req.availableOnSite])} / ${translate('Mitbringen:')} ${translate(STATE_LABELS[req.needsToBeBrought])}${brought}${responsible}`;
         }),
       ),
     );
@@ -214,7 +220,7 @@ export async function buildInfoDocument(data: SetlistDownloadData): Promise<PDFD
       divider: true,
       lines: [
         {
-          text: 'Orte & Kategorien',
+          text: translate('Orte & Kategorien'),
           size: HEADING_SIZE,
           bold: true,
           color: ink,
@@ -222,7 +228,7 @@ export async function buildInfoDocument(data: SetlistDownloadData): Promise<PDFD
         },
         ...data.locations.flatMap((loc) => {
           const address = loc.address ? `, ${loc.address}` : '';
-          const category = locationTypeLabel(loc.type);
+          const category = translate(locationTypeLabel(loc.type));
           const entries: TextRun[] = [
             ...wrap({ ...body(`${category}: ${loc.name}${address}`), bold: true }),
           ];

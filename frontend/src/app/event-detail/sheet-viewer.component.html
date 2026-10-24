@@ -1,14 +1,14 @@
-<div class="viewer-overlay" role="dialog" aria-modal="true" aria-label="Notenansicht">
+<div class="viewer-overlay" role="dialog" aria-modal="true" [attr.aria-label]="'Notenansicht' | t">
   <div class="viewer-overlay__bar">
-    <span class="viewer-overlay__title">{{ title() || 'Noten' }}</span>
+    <span class="viewer-overlay__title">{{ title() || ('Noten' | t) }}</span>
     <div class="viewer-overlay__controls">
-      <div class="viewer-overlay__group" role="group" aria-label="Seitennavigation">
+      <div class="viewer-overlay__group" role="group" [attr.aria-label]="'Seitennavigation' | t">
         <button
           type="button"
           class="viewer-overlay__btn viewer-overlay__btn--page"
           (click)="previousPage()"
           [disabled]="!ready() || pageIndex() === 0"
-          aria-label="Vorherige Seite"
+          [attr.aria-label]="'Vorherige Seite' | t"
         >
           &#8249;
         </button>
@@ -22,7 +22,7 @@
           class="viewer-overlay__btn viewer-overlay__btn--page"
           (click)="nextPage()"
           [disabled]="!ready() || pageIndex() >= pageCount - 1"
-          aria-label="Nächste Seite"
+          [attr.aria-label]="'Nächste Seite' | t"
         >
           &#8250;
         </button>
@@ -33,19 +33,19 @@
           [disabled]="!ready() || pageCount < 2"
           [attr.aria-expanded]="thumbnailsOpen()"
           aria-controls="viewer-thumbnails"
-          aria-label="Seitenübersicht"
+          [attr.aria-label]="'Seitenübersicht' | t"
         >
           &#9638;
         </button>
       </div>
 
-      <div class="viewer-overlay__group" role="group" aria-label="Zoom">
+      <div class="viewer-overlay__group" role="group" [attr.aria-label]="'Zoom' | t">
         <button
           type="button"
           class="viewer-overlay__btn"
           (click)="zoomOut()"
           [disabled]="!ready() || !canZoomOut()"
-          aria-label="Verkleinern"
+          [attr.aria-label]="'Verkleinern' | t"
         >
           &minus;
         </button>
@@ -54,7 +54,7 @@
           class="viewer-overlay__btn viewer-overlay__btn--zoom"
           (click)="fitToViewport()"
           [disabled]="!ready()"
-          aria-label="An Bildschirm anpassen"
+          [attr.aria-label]="'An Bildschirm anpassen' | t"
         >
           {{ zoomLabel() }}
         </button>
@@ -63,7 +63,7 @@
           class="viewer-overlay__btn"
           (click)="zoomIn()"
           [disabled]="!ready() || !canZoomIn()"
-          aria-label="Vergrößern"
+          [attr.aria-label]="'Vergrößern' | t"
         >
           +
         </button>
@@ -73,16 +73,16 @@
       type="button"
       class="viewer-overlay__btn viewer-overlay__close"
       (click)="closeRequested.emit()"
-      aria-label="Noten schließen"
+      [attr.aria-label]="'Noten schließen' | t"
     >
       &times;
     </button>
   </div>
 
   @if (error(); as message) {
-    <p class="viewer-overlay__error" role="alert">{{ message }}</p>
+    <p class="viewer-overlay__error" role="alert">{{ message | t }}</p>
   } @else if (!ready()) {
-    <p class="viewer-overlay__note">Noten werden geladen …</p>
+    <p class="viewer-overlay__note">{{ 'Noten werden geladen …' | t }}</p>
   } @else {
     <div
       #canvasContainer
@@ -93,7 +93,7 @@
         #canvas
         class="viewer-overlay__canvas"
         role="img"
-        [attr.aria-label]="title() || 'Noten'"
+        [attr.aria-label]="title() || ('Noten' | t)"
       ></canvas>
 
       @if (swipeFeedback(); as direction) {
@@ -107,12 +107,12 @@
           id="viewer-thumbnails"
           class="viewer-overlay__thumbs"
           role="group"
-          aria-label="Seitenübersicht"
+          [attr.aria-label]="'Seitenübersicht' | t"
         >
           @if (thumbnailsLoading()) {
-            <p class="viewer-overlay__note">Vorschauen werden erzeugt …</p>
+            <p class="viewer-overlay__note">{{ 'Vorschauen werden erzeugt …' | t }}</p>
           } @else if (thumbnails().length === 0) {
-            <p class="viewer-overlay__note">Keine Vorschau verfügbar.</p>
+            <p class="viewer-overlay__note">{{ 'Keine Vorschau verfügbar.' | t }}</p>
           } @else {
             <div class="viewer-overlay__thumbs-grid">
               @for (preview of thumbnails(); track $index) {
@@ -121,7 +121,7 @@
                   class="viewer-overlay__thumb"
                   [class.viewer-overlay__thumb--active]="$index === pageIndex()"
                   [attr.aria-current]="$index === pageIndex() ? 'page' : null"
-                  [attr.aria-label]="'Seite ' + ($index + 1) + ' öffnen'"
+                  [attr.aria-label]="'Seite {{page}} öffnen' | t: { page: $index + 1 }"
                   (click)="goToPage($index)"
                 >
                   <img [src]="preview" alt="" />
@@ -134,13 +134,13 @@
       }
     </div>
     <p class="viewer-overlay__hint viewer-overlay__hint--touch">
-      Wischen zum Blättern &middot; Tippen am linken oder rechten Rand blättert ebenfalls &middot;
-      <kbd>+</kbd><kbd>&minus;</kbd> zoomen
+      {{ 'Wischen zum Blättern · Tippen am linken oder rechten Rand blättert ebenfalls ·' | t }}
+      <kbd>+</kbd><kbd>&minus;</kbd> {{ 'zoomen' | t }}
     </p>
     <p class="viewer-overlay__hint viewer-overlay__hint--pointer">
-      Seite {{ currentPage }}/{{ pageCount }} &middot; Trackpad: Scrollen zum Navigieren,
-      <kbd>Strg+Scrollen</kbd> zum Zoomen &middot; Tastatur: <kbd>&larr;</kbd
-      ><kbd>&rarr;</kbd> Blättern, <kbd>&uarr;</kbd><kbd>&darr;</kbd> Scrollen
+      {{ 'Seite {{current}}/{{total}} · Trackpad: Scrollen zum Navigieren,' | t: { current: currentPage, total: pageCount } }}
+      <kbd>Ctrl+Scroll</kbd> {{ 'zum Zoomen · Tastatur:' | t }} <kbd>&larr;</kbd
+      ><kbd>&rarr;</kbd> {{ 'Blättern,' | t }} <kbd>&uarr;</kbd><kbd>&darr;</kbd> {{ 'Scrollen' | t }}
     </p>
   }
 </div>

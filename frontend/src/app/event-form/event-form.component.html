@@ -1,27 +1,27 @@
 <section class="form-page">
-  <a class="back" routerLink="/">&larr; Alle Events</a>
+  <a class="back" routerLink="/">&larr; {{ 'Alle Events' | t }}</a>
 
   <header class="head">
-    <p class="eyebrow">Neuer Termin</p>
-    <h1 class="title">Event erstellen</h1>
+    <p class="eyebrow">{{ 'Neuer Termin' | t }}</p>
+    <h1 class="title">{{ 'Event erstellen' | t }}</h1>
   </header>
 
   @if (choicesError(); as message) {
-    <p class="error" role="alert">{{ message }}</p>
+    <p class="error" role="alert">{{ message | t }}</p>
   }
 
   <form class="form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
     <label class="field">
-      <span class="field__label">Titel</span>
+      <span class="field__label">{{ 'Titel' | t }}</span>
       <input class="field__input" type="text" formControlName="title" />
       @if (form.controls.title.touched && form.controls.title.hasError('required')) {
-        <span class="field__hint">Bitte einen Titel angeben.</span>
+        <span class="field__hint">{{ 'Bitte einen Titel angeben.' | t }}</span>
       }
     </label>
 
     @if (bands().length > 0) {
       <label class="field">
-        <span class="field__label">Band</span>
+        <span class="field__label">{{ 'Band' | t }}</span>
         <select class="field__input" formControlName="bandId">
           @for (band of bands(); track band.id) {
             <option [ngValue]="band.id">{{ band.name }}</option>
@@ -30,48 +30,48 @@
       </label>
     } @else {
       <p class="hint-link">
-        Es ist noch keine Band vorhanden.
-        <a routerLink="/musicians">Band unter „Musiker*innen“ anlegen</a>.
+        {{ 'Es ist noch keine Band vorhanden.' | t }}
+        <a routerLink="/musicians">{{ 'Band unter „Musiker*innen“ anlegen' | t }}</a>.
       </p>
     }
 
     <fieldset class="field">
-      <legend class="field__label">Art</legend>
+      <legend class="field__label">{{ 'Art' | t }}</legend>
       <div class="segmented">
         <label class="segmented__option">
           <input type="radio" formControlName="type" value="CONCERT" />
-          <span>Gig</span>
+          <span>{{ 'Gig' | t }}</span>
         </label>
         <label class="segmented__option">
           <input type="radio" formControlName="type" value="REHEARSAL" />
-          <span>Probe</span>
+          <span>{{ 'Probe' | t }}</span>
         </label>
       </div>
     </fieldset>
 
     <label class="field">
-      <span class="field__label">Datum</span>
+      <span class="field__label">{{ 'Datum' | t }}</span>
       <input class="field__input" type="date" formControlName="date" />
       @if (form.controls.date.touched && form.controls.date.hasError('required')) {
-        <span class="field__hint">Bitte ein Datum angeben.</span>
+        <span class="field__hint">{{ 'Bitte ein Datum angeben.' | t }}</span>
       }
     </label>
 
     <label class="field">
-      <span class="field__label">Uhrzeit</span>
+      <span class="field__label">{{ 'Uhrzeit' | t }}</span>
       <input class="field__input" type="time" formControlName="time" />
       @if (form.controls.time.touched && form.controls.time.hasError('required')) {
-        <span class="field__hint">Bitte eine Uhrzeit angeben.</span>
+        <span class="field__hint">{{ 'Bitte eine Uhrzeit angeben.' | t }}</span>
       } @else if (form.controls.time.touched && form.controls.time.hasError('pattern')) {
-        <span class="field__hint">Uhrzeit im Format HH:MM.</span>
+        <span class="field__hint">{{ 'Uhrzeit im Format HH:MM.' | t }}</span>
       }
     </label>
 
     @if (isRehearsal()) {
       <label class="field">
-        <span class="field__label">Zugehöriger Gig (optional)</span>
+        <span class="field__label">{{ 'Zugehöriger Gig (optional)' | t }}</span>
         <select class="field__input" formControlName="concert">
-          <option [ngValue]="null">— kein Gig —</option>
+          <option [ngValue]="null">{{ '— kein Gig —' | t }}</option>
           @for (concert of concerts(); track concert.id) {
             <option [ngValue]="concert.id">{{ concert.title }}</option>
           }
@@ -80,12 +80,12 @@
     }
 
     @if (submitError(); as message) {
-      <p class="error" role="alert">{{ message }}</p>
+      <p class="error" role="alert">{{ message | t }}</p>
     }
 
     <div class="actions">
       <button class="submit" type="submit" [disabled]="saving()">
-        {{ saving() ? 'Wird gespeichert …' : 'Event anlegen' }}
+        {{ (saving() ? 'Wird gespeichert …' : 'Event anlegen') | t }}
       </button>
     </div>
   </form>

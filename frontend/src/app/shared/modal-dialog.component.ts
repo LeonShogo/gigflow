@@ -1,11 +1,14 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 
+import { TranslatePipe } from '../language/translate.pipe';
+
 /**
  * Shared modal shell: backdrop, titled panel, Escape/backdrop close.
  * Content is projected into the scrollable body.
  */
 @Component({
   selector: 'app-modal-dialog',
+  imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="dialog" tabindex="-1" (document:keydown.escape)="onEscape()">
@@ -13,7 +16,7 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
         type="button"
         class="dialog__backdrop"
         tabindex="-1"
-        aria-label="Dialog schließen"
+        [attr.aria-label]="'Dialog schließen' | t"
         (click)="closed.emit()"
       ></button>
       <div
@@ -21,11 +24,11 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
         [class.dialog__panel--wide]="wide()"
         role="dialog"
         aria-modal="true"
-        [attr.aria-label]="title()"
+        [attr.aria-label]="title() | t"
       >
         <header class="dialog__head">
-          <h2 class="dialog__title">{{ title() }}</h2>
-          <button type="button" class="dialog__close" aria-label="Dialog schließen" (click)="closed.emit()">
+          <h2 class="dialog__title">{{ title() | t }}</h2>
+          <button type="button" class="dialog__close" [attr.aria-label]="'Dialog schließen' | t" (click)="closed.emit()">
             &times;
           </button>
         </header>

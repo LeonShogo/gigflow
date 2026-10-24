@@ -40,7 +40,7 @@ import {
 } from '../dashboard/event-participation.service';
 import type { Musician } from '../musicians/musician.model';
 import { MusicianService } from '../musicians/musician.service';
-import type { PieceSheet, SetlistEntry } from '../setlist/setlist.model';
+import type { PieceDemoAudio, PieceLink, PieceSheet, SetlistEntry } from '../setlist/setlist.model';
 import { SetlistService } from '../setlist/setlist.service';
 import type {
   Equipment,
@@ -60,6 +60,8 @@ import { LocationService } from '../location/location.service';
 import { AuthService } from '../auth/auth.service';
 import { ToastService } from '../notifications/toast.service';
 import { buildIcs, downloadIcs, eventFilename, eventToIcal } from '../ical';
+import { TranslatePipe } from '../language/translate.pipe';
+import { LanguageService } from '../language/language.service';
 
 interface PanelMeta {
   title: string;
@@ -121,6 +123,7 @@ const SCHEDULE_PRESETS = [
     ModalDialogComponent,
     PieceSheetsDialogComponent,
     SetlistDownloadDialogComponent,
+    TranslatePipe,
   ],
   templateUrl: './event-detail.component.html',
   styleUrl: './event-detail.component.scss',
@@ -139,6 +142,7 @@ export class EventDetailComponent {
   private readonly scheduleService = inject(ScheduleService);
   private readonly locationService = inject(LocationService);
   private readonly toast = inject(ToastService);
+  private readonly language = inject(LanguageService);
   protected readonly auth = inject(AuthService);
 
   protected readonly loading = signal(true);
@@ -246,9 +250,17 @@ export class EventDetailComponent {
   protected readonly mediaUploading = signal<Record<number, boolean>>({});
   protected readonly mediaFeedback = signal<string | null>(null);
   protected readonly mediaError = signal<string | null>(null);
-  protected readonly demoPlaying = signal<{ pieceId: number; title: string; url: string } | null>(null);
-  protected readonly youtubeEditing = signal<Record<number, boolean>>({});
-  protected readonly youtubeDraft = signal<Record<number, string>>({});
+  protected readonly demoPlaying = signal<{
+    pieceId: number;
+    audioId: number;
+    title: string;
+    label: string;
+    url: string;
+  } | null>(null);
+  protected readonly mediaEditing = signal<Record<number, boolean>>({});
+  protected readonly linkDrafts = signal<Record<number, { label: string; url: string }>>({});
+  protected readonly notesEditing = signal<Record<number, boolean>>({});
+  protected readonly notesDrafts = signal<Record<number, string>>({});
   protected pendingAudioPieceId = signal<number | null>(null);
   @ViewChild('audioInput') protected readonly audioInputRef?: ElementRef<HTMLInputElement>;
 
@@ -408,7 +420,7 @@ export class EventDetailComponent {
   }
 
   protected statusLabel(status: ParticipationStatus): string {
-    return STATUS_LABELS[status];
+    return this.language.translate(STATUS_LABELS[status]);
   }
 
   protected statusClass(status: ParticipationStatus): string {
@@ -706,22 +718,24 @@ export class EventDetailComponent {
   }
 
   protected panelTitle(key: string): string {
-    return PANEL_META[key]?.title ?? key;
+    return this.language.translate(PANEL_META[key]?.title ?? key);
   }
 
   protected panelDescription(key: string): string | undefined {
     if (this.event()?.type === 'REHEARSAL') {
       if (key === 'setlist') {
-        return 'Stücke & Noten für die Probe';
+        return this.language.translate('Stücke & Noten für die Probe');
       }
       if (key === 'schedule') {
-        return 'Ankommen, Aufbau, Probe, Abbau';
+        return this.language.translate('Ankommen, Aufbau, Probe, Abbau');
       }
     }
-    return PANEL_META[key]?.description;
+    const description = PANEL_META[key]?.description;
+    return description ? this.language.translate(description) : description;
   }
 
-  protected repertoireLabel = repertoireLabel;
+  protected repertoireLabel = (type: EventItem['type']): string =>
+    this.language.translate(repertoireLabel(type));
 
   protected isCollapsed(key: string): boolean {
     return this.panelCollapsed()[key] === true;
@@ -856,12 +870,12 @@ export class EventDetailComponent {
 
   protected stateLabel(state: RequirementState): string {
     if (state === 'YES') {
-      return 'Ja';
+      return this.language.translate('Ja');
     }
     if (state === 'NO') {
-      return 'Nein';
+      return this.language.translate('Nein');
     }
-    return 'Offen';
+    return this.language.translate('Offen');
   }
 
   protected stateMark(state: RequirementState): string {
@@ -1065,7 +1079,7 @@ export class EventDetailComponent {
   }
 
   protected locationTypeLabel(type: LocationType): string {
-    return LOCATION_TYPES.find((t) => t.value === type)?.label ?? type;
+    return this.language.translate(LOCATION_TYPES.find((t) => t.value === type)?.label ?? type);
   }
 
   protected mapsLink(location: EventLocation): string {
@@ -1924,6 +1938,7 @@ export class EventDetailComponent {
     }
     return {
       event,
+      language: this.language.language(),
       participations: this.participations(),
       entries: this.entries(),
       requirements: this.requirements(),
@@ -1932,19 +1947,33 @@ export class EventDetailComponent {
     };
   }
 
-  protected toggleDemo(entry: SetlistEntry): void {
+  protected demoAudios(entry: SetlistEntry): PieceDemoAudio[] {
+    return entry.demoAudios ?? [];
+  }
+
+  protected pieceLinks(entry: SetlistEntry): PieceLink[] {
+    return entry.links ?? [];
+  }
+
+  protected toggleDemo(entry: SetlistEntry, audio: PieceDemoAudio): void {
     const current = this.demoPlaying();
-    if (current?.pieceId === entry.pieceId) {
+    if (current?.audioId === audio.id) {
       this.stopDemo();
       return;
     }
     this.stopDemo();
     this.mediaError.set(null);
     this.mediaFeedback.set(null);
-    this.setlistService.downloadDemoAudio(entry.pieceId).subscribe({
+    this.setlistService.downloadDemoAudioById(entry.pieceId, audio.id).subscribe({
       next: (blob) => {
         const url = URL.createObjectURL(blob);
-        this.demoPlaying.set({ pieceId: entry.pieceId, title: entry.pieceTitle, url });
+        this.demoPlaying.set({
+          pieceId: entry.pieceId,
+          audioId: audio.id,
+          title: entry.pieceTitle,
+          label: audio.label,
+          url,
+        });
       },
       error: () => this.mediaError.set('Demo konnte nicht geladen werden.'),
     });
@@ -1967,23 +1996,25 @@ export class EventDetailComponent {
 
   protected onAudioFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
+    const files = Array.from(input.files ?? []);
     const pieceId = this.pendingAudioPieceId();
     input.value = '';
     this.pendingAudioPieceId.set(null);
-    if (!pieceId || !file) {
+    if (!pieceId || files.length === 0) {
       return;
     }
     this.mediaUploading.update((m) => ({ ...m, [pieceId]: true }));
     this.mediaError.set(null);
     this.mediaFeedback.set(null);
-    this.setlistService.uploadDemoAudio(pieceId, file).subscribe({
-      next: (piece) => {
+    this.setlistService.uploadDemoAudios(pieceId, files).subscribe({
+      next: (audios) => {
         this.mediaUploading.update((m) => ({ ...m, [pieceId]: false }));
         this.entries.update((list) =>
-          list.map((e) => (e.pieceId === pieceId ? { ...e, hasDemoAudio: piece.hasDemoAudio } : e)),
+          list.map((e) => e.pieceId === pieceId
+            ? { ...e, demoAudios: [...(e.demoAudios ?? []), ...audios], hasDemoAudio: true }
+            : e),
         );
-        this.mediaFeedback.set('Demo hochgeladen.');
+        this.mediaFeedback.set(audios.length === 1 ? 'Demo hochgeladen.' : `${audios.length} Demos hochgeladen.`);
       },
       error: () => {
         this.mediaUploading.update((m) => ({ ...m, [pieceId]: false }));
@@ -1992,9 +2023,9 @@ export class EventDetailComponent {
     });
   }
 
-  protected async removeDemoAudio(entry: SetlistEntry): Promise<void> {
+  protected async removeDemoAudio(entry: SetlistEntry, audio: PieceDemoAudio): Promise<void> {
     const current = this.demoPlaying();
-    if (current?.pieceId === entry.pieceId) {
+    if (current?.audioId === audio.id) {
       this.stopDemo();
     }
     this.mediaUploading.update((m) => ({ ...m, [entry.pieceId]: true }));
@@ -2002,16 +2033,19 @@ export class EventDetailComponent {
     this.mediaFeedback.set(null);
     try {
       const blob = await firstValueFrom(
-        this.setlistService.downloadDemoAudio(entry.pieceId),
+        this.setlistService.downloadDemoAudioById(entry.pieceId, audio.id),
       );
-      await firstValueFrom(this.setlistService.removeDemoAudio(entry.pieceId));
+      await firstValueFrom(this.setlistService.removeDemoAudioById(entry.pieceId, audio.id));
+      const restoredAudios = (entry.demoAudios ?? []).filter((item) => item.id !== audio.id);
       this.entries.update((list) =>
-        list.map((e) => (e.pieceId === entry.pieceId ? { ...e, hasDemoAudio: false } : e)),
+        list.map((e) => e.pieceId === entry.pieceId
+          ? { ...e, demoAudios: restoredAudios, hasDemoAudio: restoredAudios.length > 0 }
+          : e),
       );
       this.mediaFeedback.set('Demo entfernt.');
-      this.toast.show('Demo entfernt.', {
+      this.toast.show(`Demo „${audio.label}“ entfernt.`, {
         label: 'Rückgängig',
-        run: () => void this.restoreDemoAudio(entry.pieceId, blob),
+        run: () => void this.restoreDemoAudio(entry, audio, blob),
       });
     } catch {
       this.mediaError.set('Demo konnte nicht entfernt werden.');
@@ -2020,19 +2054,26 @@ export class EventDetailComponent {
     }
   }
 
-  private async restoreDemoAudio(pieceId: number, blob: Blob): Promise<void> {
+  private async restoreDemoAudio(
+    entry: SetlistEntry,
+    audio: PieceDemoAudio,
+    blob: Blob,
+  ): Promise<void> {
+    const pieceId = entry.pieceId;
     this.mediaUploading.update((m) => ({ ...m, [pieceId]: true }));
     this.mediaError.set(null);
     try {
-      const file = new File([blob], 'demo.mp3', {
+      const file = new File([blob], audio.originalName, {
         type: blob.type || 'audio/mpeg',
       });
-      const piece = await firstValueFrom(
-        this.setlistService.uploadDemoAudio(pieceId, file),
+      const [restored] = await firstValueFrom(
+        this.setlistService.uploadDemoAudios(pieceId, [file]),
       );
       this.entries.update((list) =>
         list.map((e) =>
-          e.pieceId === pieceId ? { ...e, hasDemoAudio: piece.hasDemoAudio } : e,
+          e.pieceId === pieceId
+            ? { ...e, demoAudios: [...(e.demoAudios ?? []), restored], hasDemoAudio: true }
+            : e,
         ),
       );
       this.mediaFeedback.set('Demo wiederhergestellt.');
@@ -2043,83 +2084,149 @@ export class EventDetailComponent {
     }
   }
 
-  protected openYoutube(entry: SetlistEntry): void {
-    if (entry.youtubeUrl) {
-      window.open(entry.youtubeUrl, '_blank', 'noopener,noreferrer');
-    }
+  protected openPieceLink(link: PieceLink): void {
+    window.open(link.url, '_blank', 'noopener,noreferrer');
   }
 
-  protected editYoutube(entry: SetlistEntry): void {
-    this.youtubeDraft.update((d) => ({ ...d, [entry.pieceId]: entry.youtubeUrl ?? '' }));
-    this.youtubeEditing.update((e) => ({ ...e, [entry.pieceId]: true }));
+  protected editPieceMedia(entry: SetlistEntry): void {
+    this.linkDrafts.update((drafts) => ({
+      ...drafts,
+      [entry.pieceId]: { label: '', url: '' },
+    }));
+    this.mediaEditing.update((editing) => ({ ...editing, [entry.pieceId]: true }));
     this.mediaError.set(null);
     this.mediaFeedback.set(null);
   }
 
-  protected onYoutubeDraftInput(entry: SetlistEntry, event: Event): void {
-    this.youtubeDraft.update((d) => ({ ...d, [entry.pieceId]: (event.target as HTMLInputElement).value }));
+  protected onLinkDraftInput(entry: SetlistEntry, field: 'label' | 'url', event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    this.linkDrafts.update((drafts) => ({
+      ...drafts,
+      [entry.pieceId]: { ...(drafts[entry.pieceId] ?? { label: '', url: '' }), [field]: value },
+    }));
   }
 
-  protected cancelYoutubeEdit(entry: SetlistEntry): void {
-    const nextDraft = { ...this.youtubeDraft() };
-    delete nextDraft[entry.pieceId];
-    this.youtubeDraft.set(nextDraft);
-    const nextEditing = { ...this.youtubeEditing() };
+  protected cancelPieceMediaEdit(entry: SetlistEntry): void {
+    const nextDrafts = { ...this.linkDrafts() };
+    delete nextDrafts[entry.pieceId];
+    this.linkDrafts.set(nextDrafts);
+    const nextEditing = { ...this.mediaEditing() };
     delete nextEditing[entry.pieceId];
-    this.youtubeEditing.set(nextEditing);
+    this.mediaEditing.set(nextEditing);
   }
 
-  protected saveYoutube(entry: SetlistEntry): void {
-    const url = (this.youtubeDraft()[entry.pieceId] ?? '').trim() || null;
-    const previousUrl = entry.youtubeUrl ?? null;
+  protected savePieceLink(entry: SetlistEntry): void {
+    const draft = this.linkDrafts()[entry.pieceId] ?? { label: '', url: '' };
+    const label = draft.label.trim();
+    const url = draft.url.trim();
+    if (!label || !url) {
+      this.mediaError.set('Link-Titel und Adresse werden benötigt.');
+      return;
+    }
     this.mediaUploading.update((m) => ({ ...m, [entry.pieceId]: true }));
     this.mediaError.set(null);
     this.mediaFeedback.set(null);
-    this.setlistService.setYoutubeUrl(entry.pieceId, url).subscribe({
-      next: (piece) => {
+    this.setlistService.addPieceLink(entry.pieceId, { label, url }).subscribe({
+      next: (link) => {
         this.mediaUploading.update((m) => ({ ...m, [entry.pieceId]: false }));
         this.entries.update((list) =>
-          list.map((e) => (e.pieceId === entry.pieceId ? { ...e, youtubeUrl: piece.youtubeUrl ?? null } : e)),
+          list.map((e) => e.pieceId === entry.pieceId
+            ? { ...e, links: [...(e.links ?? []), link] }
+            : e),
         );
-        this.cancelYoutubeEdit(entry);
-        this.mediaFeedback.set(url ? 'YouTube-Link gespeichert.' : 'YouTube-Link entfernt.');
-        if (!piece.youtubeUrl && previousUrl) {
-          this.toast.show('YouTube-Link entfernt.', {
-            label: 'Rückgängig',
-            run: () => this.restoreYoutube(entry.pieceId, previousUrl),
-          });
-        }
+        this.cancelPieceMediaEdit(entry);
+        this.mediaFeedback.set('Link gespeichert.');
       },
       error: () => {
         this.mediaUploading.update((m) => ({ ...m, [entry.pieceId]: false }));
-        this.mediaError.set('YouTube-Link konnte nicht gespeichert werden.');
+        this.mediaError.set('Link konnte nicht gespeichert werden.');
       },
     });
   }
 
-  private restoreYoutube(pieceId: number, url: string): void {
-    this.mediaUploading.update((m) => ({ ...m, [pieceId]: true }));
+  protected async removePieceLink(entry: SetlistEntry, link: PieceLink): Promise<void> {
+    this.mediaUploading.update((m) => ({ ...m, [entry.pieceId]: true }));
     this.mediaError.set(null);
-    this.setlistService.setYoutubeUrl(pieceId, url).subscribe({
-      next: (piece) => {
-        this.mediaUploading.update((m) => ({ ...m, [pieceId]: false }));
-        this.entries.update((list) =>
-          list.map((e) =>
-            e.pieceId === pieceId ? { ...e, youtubeUrl: piece.youtubeUrl ?? null } : e,
-          ),
-        );
-        this.mediaFeedback.set('YouTube-Link wiederhergestellt.');
-      },
-      error: () => {
-        this.mediaUploading.update((m) => ({ ...m, [pieceId]: false }));
-        this.mediaError.set('YouTube-Link konnte nicht wiederhergestellt werden.');
-      },
-    });
+    try {
+      await firstValueFrom(this.setlistService.removePieceLink(entry.pieceId, link.id));
+      const links = (entry.links ?? []).filter((item) => item.id !== link.id);
+      this.entries.update((list) =>
+        list.map((item) => item.pieceId === entry.pieceId ? { ...item, links } : item),
+      );
+      this.toast.show(`Link „${link.label}“ entfernt.`, {
+        label: 'Rückgängig',
+        run: () => void this.restorePieceLink(entry, link),
+      });
+    } catch {
+      this.mediaError.set('Link konnte nicht entfernt werden.');
+    } finally {
+      this.mediaUploading.update((m) => ({ ...m, [entry.pieceId]: false }));
+    }
   }
 
-  protected removeYoutube(entry: SetlistEntry): void {
-    this.youtubeDraft.update((d) => ({ ...d, [entry.pieceId]: '' }));
-    this.saveYoutube(entry);
+  private async restorePieceLink(entry: SetlistEntry, link: PieceLink): Promise<void> {
+    this.mediaUploading.update((m) => ({ ...m, [entry.pieceId]: true }));
+    this.mediaError.set(null);
+    try {
+      const restored = await firstValueFrom(
+        this.setlistService.addPieceLink(entry.pieceId, { label: link.label, url: link.url }),
+      );
+      this.entries.update((list) =>
+        list.map((item) => item.pieceId === entry.pieceId
+          ? { ...item, links: [...(item.links ?? []), restored] }
+          : item),
+      );
+      this.mediaFeedback.set('Link wiederhergestellt.');
+    } catch {
+      this.mediaError.set('Link konnte nicht wiederhergestellt werden.');
+    } finally {
+      this.mediaUploading.update((m) => ({ ...m, [entry.pieceId]: false }));
+    }
+  }
+
+  protected editPieceNotes(entry: SetlistEntry): void {
+    this.notesDrafts.update((drafts) => ({ ...drafts, [entry.pieceId]: entry.notes ?? '' }));
+    this.notesEditing.update((editing) => ({ ...editing, [entry.pieceId]: true }));
+    this.mediaError.set(null);
+    this.mediaFeedback.set(null);
+  }
+
+  protected onPieceNotesInput(entry: SetlistEntry, event: Event): void {
+    this.notesDrafts.update((drafts) => ({
+      ...drafts,
+      [entry.pieceId]: (event.target as HTMLTextAreaElement).value,
+    }));
+  }
+
+  protected cancelPieceNotes(entry: SetlistEntry): void {
+    const drafts = { ...this.notesDrafts() };
+    delete drafts[entry.pieceId];
+    this.notesDrafts.set(drafts);
+    const editing = { ...this.notesEditing() };
+    delete editing[entry.pieceId];
+    this.notesEditing.set(editing);
+  }
+
+  protected savePieceNotes(entry: SetlistEntry): void {
+    const notes = (this.notesDrafts()[entry.pieceId] ?? '').trim() || null;
+    this.mediaUploading.update((m) => ({ ...m, [entry.pieceId]: true }));
+    this.mediaError.set(null);
+    this.setlistService.updatePieceNotes(entry.pieceId, entry.pieceTitle, notes).subscribe({
+      next: (piece) => {
+        this.mediaUploading.update((m) => ({ ...m, [entry.pieceId]: false }));
+        this.entries.update((list) =>
+          list.map((item) => item.pieceId === entry.pieceId
+            ? { ...item, notes: piece.notes ?? null }
+            : item),
+        );
+        this.cancelPieceNotes(entry);
+        this.mediaFeedback.set('Notiz gespeichert.');
+      },
+      error: () => {
+        this.mediaUploading.update((m) => ({ ...m, [entry.pieceId]: false }));
+        this.mediaError.set('Notiz konnte nicht gespeichert werden.');
+      },
+    });
   }
 
   protected moveEntry(index: number, delta: -1 | 1): void {
@@ -2175,11 +2282,11 @@ export class EventDetailComponent {
     });
   }
 
-  protected typeLabel = typeLabel;
+  protected typeLabel = (type: EventItem['type']): string => this.language.translate(typeLabel(type));
 
-  protected formatDate = formatDate;
+  protected formatDate = (dateTime: string): string => formatDate(dateTime, this.language.locale());
 
-  protected formatTime = formatTime;
+  protected formatTime = (dateTime: string): string => formatTime(dateTime, this.language.locale());
 
-  protected formatTimeOnly = formatTimeOnly;
+  protected formatTimeOnly = (time: string): string => formatTimeOnly(time, this.language.locale());
 }

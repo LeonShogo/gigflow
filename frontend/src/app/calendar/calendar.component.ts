@@ -12,6 +12,8 @@ import { EventService } from '../dashboard/event.service';
 import { formatTime } from '../event-format';
 import { buildIcs, downloadIcs, eventToIcal } from '../ical';
 import { ModalDialogComponent } from '../shared/modal-dialog.component';
+import { TranslatePipe } from '../language/translate.pipe';
+import { LanguageService } from '../language/language.service';
 
 export interface CalendarDay {
   date: Date;
@@ -20,23 +22,6 @@ export interface CalendarDay {
   isToday: boolean;
   events: EventItem[];
 }
-
-const WEEKDAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
-
-const MONTHS = [
-  'Januar',
-  'Februar',
-  'März',
-  'April',
-  'Mai',
-  'Juni',
-  'Juli',
-  'August',
-  'September',
-  'Oktober',
-  'November',
-  'Dezember',
-];
 
 const GRID_DAYS = 42;
 
@@ -64,13 +49,14 @@ function localKey(date: Date): string {
 
 @Component({
   selector: 'app-calendar',
-  imports: [RouterLink, ModalDialogComponent],
+  imports: [RouterLink, ModalDialogComponent, TranslatePipe],
   templateUrl: './calendar.component.html',
   styleUrl: './calendar.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CalendarComponent {
   private readonly eventService = inject(EventService);
+  private readonly language = inject(LanguageService);
 
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
@@ -78,11 +64,18 @@ export class CalendarComponent {
   protected readonly cursor = signal<Date>(startOfMonth(new Date()));
   protected readonly exportDialogOpen = signal(false);
 
-  protected readonly weekdays = WEEKDAYS;
+  protected readonly weekdays = computed(() => {
+    const locale = this.language.locale();
+    const monday = new Date(2024, 0, 1);
+    return Array.from({ length: 7 }, (_, index) => {
+      const day = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + index);
+      return new Intl.DateTimeFormat(locale, { weekday: 'short' }).format(day);
+    });
+  });
 
   protected readonly monthLabel = computed(() => {
     const anchor = this.cursor();
-    return `${MONTHS[anchor.getMonth()]} ${anchor.getFullYear()}`;
+    return new Intl.DateTimeFormat(this.language.locale(), { month: 'long', year: 'numeric' }).format(anchor);
   });
 
   protected readonly monthEvents = computed(() => {
@@ -141,7 +134,7 @@ export class CalendarComponent {
       },
       error: () => {
         this.loading.set(false);
-        this.error.set('Events konnten nicht geladen werden.');
+        this.error.set(this.language.translate('Events konnten nicht geladen werden.'));
       },
     });
   }
@@ -177,10 +170,8 @@ export class CalendarComponent {
   }
 
   protected eventCount(count: number): string {
-    if (count === 0) {
-      return 'Keine Termine';
-    }
-    return count === 1 ? '1 Termin' : `${count} Termine`;
+    const key = count === 0 ? 'Keine Termine' : count === 1 ? '1 Termin' : '{{count}} Termine';
+    return this.language.translate(key, { count });
   }
 
   private exportEvents(events: EventItem[], suffix: string): void {
@@ -194,5 +185,5 @@ export class CalendarComponent {
     this.exportDialogOpen.set(false);
   }
 
-  protected formatTime = formatTime;
+  protected formatTime = (dateTime: string): string => formatTime(dateTime, this.language.locale());
 }

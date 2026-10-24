@@ -2,7 +2,14 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { catchError, Observable, switchMap, throwError } from 'rxjs';
 
-import type { Piece, PieceSheet, Setlist, SetlistEntry } from './setlist.model';
+import type {
+  Piece,
+  PieceDemoAudio,
+  PieceLink,
+  PieceSheet,
+  Setlist,
+  SetlistEntry,
+} from './setlist.model';
 
 @Injectable({ providedIn: 'root' })
 export class SetlistService {
@@ -80,21 +87,44 @@ export class SetlistService {
     return this.http.delete<void>(`/api/piece-sheets/${sheetId}`);
   }
 
-  uploadDemoAudio(pieceId: number, file: File): Observable<Piece> {
+  uploadDemoAudios(pieceId: number, files: File[]): Observable<PieceDemoAudio[]> {
     const formData = new FormData();
-    formData.append('file', file, file.name);
-    return this.http.post<Piece>(`/api/pieces/${pieceId}/demo-audio`, formData);
+    for (const file of files) {
+      formData.append('files', file, file.name);
+    }
+    return this.http.post<PieceDemoAudio[]>(`/api/pieces/${pieceId}/demo-audios`, formData);
   }
 
-  downloadDemoAudio(pieceId: number): Observable<Blob> {
-    return this.http.get(`/api/pieces/${pieceId}/demo-audio`, { responseType: 'blob' });
+  loadDemoAudios(pieceId: number): Observable<PieceDemoAudio[]> {
+    return this.http.get<PieceDemoAudio[]>(`/api/pieces/${pieceId}/demo-audios`);
   }
 
-  removeDemoAudio(pieceId: number): Observable<void> {
-    return this.http.delete<void>(`/api/pieces/${pieceId}/demo-audio`);
+  downloadDemoAudioById(pieceId: number, audioId: number): Observable<Blob> {
+    return this.http.get(`/api/pieces/${pieceId}/demo-audios/${audioId}`, { responseType: 'blob' });
   }
 
-  setYoutubeUrl(pieceId: number, youtubeUrl: string | null): Observable<Piece> {
-    return this.http.put<Piece>(`/api/pieces/${pieceId}/youtube`, { youtubeUrl });
+  removeDemoAudioById(pieceId: number, audioId: number): Observable<void> {
+    return this.http.delete<void>(`/api/pieces/${pieceId}/demo-audios/${audioId}`);
   }
+
+  addPieceLink(pieceId: number, request: { label: string; url: string }): Observable<PieceLink> {
+    return this.http.post<PieceLink>(`/api/pieces/${pieceId}/links`, request);
+  }
+
+  updatePieceLink(
+    pieceId: number,
+    linkId: number,
+    request: { label: string; url: string },
+  ): Observable<PieceLink> {
+    return this.http.put<PieceLink>(`/api/pieces/${pieceId}/links/${linkId}`, request);
+  }
+
+  removePieceLink(pieceId: number, linkId: number): Observable<void> {
+    return this.http.delete<void>(`/api/pieces/${pieceId}/links/${linkId}`);
+  }
+
+  updatePieceNotes(pieceId: number, title: string, notes: string | null): Observable<Piece> {
+    return this.http.put<Piece>(`/api/pieces/${pieceId}`, { title, notes });
+  }
+
 }

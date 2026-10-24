@@ -28,43 +28,60 @@ public class PieceService {
 
     private final PieceRepository pieceRepository;
     private final PieceSheetRepository sheetRepository;
+    private final PieceDemoAudioRepository demoAudioRepository;
+    private final PieceLinkRepository linkRepository;
     private final Path uploadDir;
 
     public PieceService(
             PieceRepository pieceRepository,
             PieceSheetRepository sheetRepository,
+            PieceDemoAudioRepository demoAudioRepository,
+            PieceLinkRepository linkRepository,
             @Value("${app.sheet-pdf-dir:./uploads/sheet-music}") String uploadDir) {
         this.pieceRepository = pieceRepository;
         this.sheetRepository = sheetRepository;
+        this.demoAudioRepository = demoAudioRepository;
+        this.linkRepository = linkRepository;
         this.uploadDir = Path.of(uploadDir).toAbsolutePath().normalize();
     }
 
     public PieceResponse createPiece(PieceRequest request) {
         Piece piece = new Piece();
         piece.setTitle(request.getTitle());
-        piece.setYoutubeUrl(normalizeOptional(request.getYoutubeUrl()));
-        return PieceResponse.from(pieceRepository.save(piece));
+        piece.setNotes(normalizeOptional(request.getNotes()));
+        Piece saved = pieceRepository.save(piece);
+        if (normalizeOptional(request.getYoutubeUrl()) != null) {
+            setYoutubeUrl(saved.getId(), request.getYoutubeUrl());
+        }
+        return toResponse(saved);
     }
 
     public Optional<PieceResponse> findPieceById(Long id) {
-        return pieceRepository.findById(id).map(PieceResponse::from);
+        return pieceRepository.findById(id).map(this::toResponse);
     }
 
     public List<PieceResponse> findAllPieces() {
-        return pieceRepository.findAll().stream().map(PieceResponse::from).toList();
+        return pieceRepository.findAll().stream().map(this::toResponse).toList();
     }
 
     public PieceResponse updatePiece(Long id, PieceRequest request) {
         Piece existing = pieceRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Stück nicht gefunden: " + id));
         existing.setTitle(request.getTitle());
-        existing.setYoutubeUrl(normalizeOptional(request.getYoutubeUrl()));
-        return PieceResponse.from(pieceRepository.save(existing));
+        existing.setNotes(normalizeOptional(request.getNotes()));
+        Piece saved = pieceRepository.save(existing);
+        if (normalizeOptional(request.getYoutubeUrl()) != null) {
+            setYoutubeUrl(id, request.getYoutubeUrl());
+        }
+        return toResponse(saved);
     }
 
     public void deletePiece(Long id) {
         pieceRepository.findById(id).ifPresent(piece -> {
-            deleteStoredAudio(piece);
+            List<PieceDemoAudio> audios = demoAudioRepository.findByPieceIdOrderBySortOrderAscIdAsc(id);
+            audios.forEach(audio -> deleteStoredFile(audio.getStoredPath()));
+            demoAudioRepository.deleteAll(audios);
+            linkRepository.deleteAll(linkRepository.findByPieceIdOrderBySortOrderAscIdAsc(id));
             List<PieceSheet> sheets = sheetRepository.findByPieceIdOrderBySortOrderAscIdAsc(id);
             sheets.forEach(sheet -> deleteStoredFile(sheet.getStoredPath()));
             sheetRepository.deleteAll(sheets);
@@ -147,64 +164,154 @@ public class PieceService {
         });
     }
 
-    public PieceResponse saveDemoAudio(Long id, MultipartFile file) {
-        Piece piece = pieceRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Stück nicht gefunden: " + id));
-        validateMp3(file);
+    public List<PieceDemoAudioResponse> findDemoAudios(Long pieceId) {
+        requirePiece(pieceId);
+        return demoAudioRepository.findByPieceIdOrderBySortOrderAscIdAsc(pieceId).stream()
+                .map(PieceDemoAudioResponse::from)
+                .toList();
+    }
+
+    public List<PieceDemoAudioResponse> addDemoAudios(Long pieceId, List<MultipartFile> files) {
+        requirePiece(pieceId);
+        if (files == null || files.isEmpty()) {
+            throw new IllegalArgumentException("Keine Datei hochgeladen");
+        }
+        files.forEach(this::validateMp3);
+        List<PieceDemoAudio> existing = demoAudioRepository.findByPieceIdOrderBySortOrderAscIdAsc(pieceId);
+        int nextOrder = existing.stream().mapToInt(PieceDemoAudio::getSortOrder).max().orElse(-1) + 1;
+        List<PieceDemoAudio> created = new ArrayList<>();
+        List<Path> written = new ArrayList<>();
         try {
             Files.createDirectories(uploadDir);
-            String storedName = "piece-" + id + "-" + UUID.randomUUID() + ".mp3";
-            file.transferTo(uploadDir.resolve(storedName));
-            deleteStoredAudio(piece);
-            piece.setDemoAudioPath(storedName);
-            piece.setDemoAudioOriginalName(sanitizeAudioName(file.getOriginalFilename()));
-            return PieceResponse.from(pieceRepository.save(piece));
+            for (MultipartFile file : files) {
+                String originalName = sanitizeAudioName(file.getOriginalFilename());
+                String storedName = "piece-" + pieceId + "-" + UUID.randomUUID() + ".mp3";
+                Path target = uploadDir.resolve(storedName);
+                file.transferTo(target);
+                written.add(target);
+
+                PieceDemoAudio audio = new PieceDemoAudio();
+                audio.setPieceId(pieceId);
+                audio.setLabel(labelFromAudioName(originalName));
+                audio.setStoredPath(storedName);
+                audio.setOriginalName(originalName);
+                audio.setSortOrder(nextOrder++);
+                created.add(audio);
+            }
+            return demoAudioRepository.saveAll(created).stream().map(PieceDemoAudioResponse::from).toList();
         } catch (IOException e) {
+            written.forEach(this::deleteFileQuietly);
             throw new IllegalStateException("Audio konnte nicht gespeichert werden", e);
+        } catch (RuntimeException e) {
+            written.forEach(this::deleteFileQuietly);
+            throw e;
         }
     }
 
-    public Optional<DemoAudioFile> loadDemoAudio(Long id) {
-        return pieceRepository.findById(id).flatMap(piece -> {
-            if (piece.getDemoAudioPath() == null) {
-                return Optional.empty();
-            }
-            Path path = resolveStoredPath(piece.getDemoAudioPath());
+    public PieceResponse saveDemoAudio(Long id, MultipartFile file) {
+        addDemoAudios(id, List.of(file));
+        return findPieceById(id).orElseThrow(() -> new IllegalArgumentException("Stück nicht gefunden: " + id));
+    }
+
+    public Optional<DemoAudioFile> loadDemoAudioById(Long audioId) {
+        return demoAudioRepository.findById(audioId).flatMap(audio -> {
+            Path path = resolveStoredPath(audio.getStoredPath());
             if (!Files.isRegularFile(path)) {
                 return Optional.empty();
             }
-            return Optional.of(new DemoAudioFile(path, piece.getDemoAudioOriginalName()));
+            return Optional.of(new DemoAudioFile(path, audio.getOriginalName()));
         });
     }
 
-    public void removeDemoAudio(Long id) {
-        Piece piece = pieceRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Stück nicht gefunden: " + id));
-        if (deleteStoredAudio(piece)) {
-            piece.setDemoAudioPath(null);
-            piece.setDemoAudioOriginalName(null);
-            pieceRepository.save(piece);
-        }
+    public Optional<DemoAudioFile> loadDemoAudio(Long pieceId, Long audioId) {
+        return demoAudioRepository.findById(audioId)
+                .filter(audio -> audio.getPieceId().equals(pieceId))
+                .flatMap(audio -> loadDemoAudioById(audioId));
+    }
+
+    public Optional<DemoAudioFile> loadFirstDemoAudio(Long pieceId) {
+        return demoAudioRepository.findByPieceIdOrderBySortOrderAscIdAsc(pieceId).stream()
+                .findFirst()
+                .flatMap(audio -> loadDemoAudioById(audio.getId()));
+    }
+
+    public Optional<DemoAudioFile> loadDemoAudio(Long pieceId) {
+        return loadFirstDemoAudio(pieceId);
+    }
+
+    public void deleteDemoAudio(Long pieceId, Long audioId) {
+        PieceDemoAudio audio = demoAudioRepository.findById(audioId)
+                .filter(item -> item.getPieceId().equals(pieceId))
+                .orElseThrow(() -> new IllegalArgumentException("Demo-Audio nicht gefunden: " + audioId));
+        deleteStoredFile(audio.getStoredPath());
+        demoAudioRepository.delete(audio);
+    }
+
+    public void removeDemoAudio(Long pieceId) {
+        demoAudioRepository.findByPieceIdOrderBySortOrderAscIdAsc(pieceId).stream()
+                .findFirst()
+                .ifPresent(audio -> deleteDemoAudio(pieceId, audio.getId()));
+    }
+
+    public List<PieceLinkResponse> findLinks(Long pieceId) {
+        requirePiece(pieceId);
+        return linkRepository.findByPieceIdOrderBySortOrderAscIdAsc(pieceId).stream()
+                .map(PieceLinkResponse::from)
+                .toList();
+    }
+
+    public PieceLinkResponse addLink(Long pieceId, PieceLinkRequest request) {
+        requirePiece(pieceId);
+        validateLink(request.getLabel(), request.getUrl());
+        List<PieceLink> existing = linkRepository.findByPieceIdOrderBySortOrderAscIdAsc(pieceId);
+        PieceLink link = new PieceLink();
+        link.setPieceId(pieceId);
+        link.setLabel(request.getLabel().trim());
+        link.setUrl(request.getUrl().trim());
+        link.setSortOrder(existing.stream().mapToInt(PieceLink::getSortOrder).max().orElse(-1) + 1);
+        return PieceLinkResponse.from(linkRepository.save(link));
+    }
+
+    public PieceLinkResponse updateLink(Long pieceId, Long linkId, PieceLinkRequest request) {
+        PieceLink link = linkRepository.findById(linkId)
+                .filter(item -> item.getPieceId().equals(pieceId))
+                .orElseThrow(() -> new IllegalArgumentException("Link nicht gefunden: " + linkId));
+        validateLink(request.getLabel(), request.getUrl());
+        link.setLabel(request.getLabel().trim());
+        link.setUrl(request.getUrl().trim());
+        return PieceLinkResponse.from(linkRepository.save(link));
+    }
+
+    public void deleteLink(Long pieceId, Long linkId) {
+        PieceLink link = linkRepository.findById(linkId)
+                .filter(item -> item.getPieceId().equals(pieceId))
+                .orElseThrow(() -> new IllegalArgumentException("Link nicht gefunden: " + linkId));
+        linkRepository.delete(link);
     }
 
     public PieceResponse setYoutubeUrl(Long id, String youtubeUrl) {
-        Piece piece = pieceRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Stück nicht gefunden: " + id));
+        requirePiece(id);
         String normalized = normalizeOptional(youtubeUrl);
         validateYoutubeUrl(normalized);
-        piece.setYoutubeUrl(normalized);
-        return PieceResponse.from(pieceRepository.save(piece));
-    }
-
-    private boolean deleteStoredAudio(Piece piece) {
-        if (piece.getDemoAudioPath() == null) {
-            return false;
+        List<PieceLink> links = linkRepository.findByPieceIdOrderBySortOrderAscIdAsc(id);
+        PieceLink legacyLink = links.stream()
+                .filter(link -> "YouTube".equalsIgnoreCase(link.getLabel()))
+                .findFirst()
+                .orElse(null);
+        if (normalized == null) {
+            if (legacyLink != null) {
+                linkRepository.delete(legacyLink);
+            }
+        } else if (legacyLink != null) {
+            legacyLink.setUrl(normalized);
+            linkRepository.save(legacyLink);
+        } else {
+            PieceLinkRequest request = new PieceLinkRequest();
+            request.setLabel("YouTube");
+            request.setUrl(normalized);
+            addLink(id, request);
         }
-        try {
-            return Files.deleteIfExists(resolveStoredPath(piece.getDemoAudioPath()));
-        } catch (IOException e) {
-            return false;
-        }
+        return findPieceById(id).orElseThrow(() -> new IllegalArgumentException("Stück nicht gefunden: " + id));
     }
 
     private String normalizeOptional(String value) {
@@ -245,10 +352,35 @@ public class PieceService {
         }
     }
 
+    private void validateLink(String label, String url) {
+        if (label == null || label.isBlank() || label.trim().length() > 120) {
+            throw new IllegalArgumentException("Link-Bezeichnung muss zwischen 1 und 120 Zeichen lang sein");
+        }
+        if (url == null || url.isBlank() || url.trim().length() > 1000) {
+            throw new IllegalArgumentException("Link-Adresse muss zwischen 1 und 1000 Zeichen lang sein");
+        }
+        try {
+            URI uri = new URI(url.trim());
+            String scheme = uri.getScheme();
+            if (scheme == null || !(scheme.equalsIgnoreCase("http") || scheme.equalsIgnoreCase("https"))
+                    || uri.getHost() == null) {
+                throw new IllegalArgumentException("Link muss eine gültige http(s)-Adresse sein");
+            }
+        } catch (URISyntaxException e) {
+            throw new IllegalArgumentException("Link-Adresse ist ungültig");
+        }
+    }
+
     private void requirePiece(Long pieceId) {
         if (!pieceRepository.existsById(pieceId)) {
             throw new IllegalArgumentException("Stück nicht gefunden: " + pieceId);
         }
+    }
+
+    private PieceResponse toResponse(Piece piece) {
+        List<PieceDemoAudio> audios = demoAudioRepository.findByPieceIdOrderBySortOrderAscIdAsc(piece.getId());
+        List<PieceLink> links = linkRepository.findByPieceIdOrderBySortOrderAscIdAsc(piece.getId());
+        return PieceResponse.from(piece, audios, links);
     }
 
     private void deleteStoredFile(String storedName) {
@@ -320,5 +452,15 @@ public class PieceService {
         }
         String name = originalName.trim();
         return name.toLowerCase(Locale.ROOT).endsWith(".mp3") ? name : name + ".mp3";
+    }
+
+    private String labelFromAudioName(String originalName) {
+        String label = originalName.toLowerCase(Locale.ROOT).endsWith(".mp3")
+                ? originalName.substring(0, originalName.length() - 4).trim()
+                : originalName.trim();
+        if (label.isEmpty()) {
+            return "Demo";
+        }
+        return label.length() > 120 ? label.substring(0, 120) : label;
     }
 }

@@ -1,10 +1,10 @@
 <section class="page">
-  <a class="back" routerLink="/">&larr; Alle Events</a>
+  <a class="back" routerLink="/">&larr; {{ 'Alle Events' | t }}</a>
 
   <header class="head">
     <div class="head__text">
-      <p class="eyebrow">Musiker*innen</p>
-      <h1 class="title">Band besetzen</h1>
+      <p class="eyebrow">{{ 'Musiker*innen' | t }}</p>
+      <h1 class="title">{{ 'Band besetzen' | t }}</h1>
     </div>
     <div class="head__actions">
       @if (canDelete() && musicians().length > 0) {
@@ -12,16 +12,16 @@
           type="button"
           class="head__delete"
           (click)="requestDeleteAll()"
-          aria-label="Alle Musiker*innen löschen"
-        >Alle löschen</button>
+          [attr.aria-label]="'Alle Musiker*innen löschen' | t"
+        >{{ 'Alle löschen' | t }}</button>
       }
-      <a class="head__add" routerLink="/musicians/new">+ Musiker*in hinzufügen</a>
+      <a class="head__add" routerLink="/musicians/new">+ {{ 'Musiker*in hinzufügen' | t }}</a>
     </div>
   </header>
 
   @if (canDelete()) {
     <section class="bands-section" aria-labelledby="bands-title">
-      <h2 class="bands__title" id="bands-title">Bands</h2>
+      <h2 class="bands__title" id="bands-title">{{ 'Bands' | t }}</h2>
 
       <div class="bands__create">
         <button
@@ -31,13 +31,13 @@
           [attr.aria-expanded]="createBandOpen()"
           [attr.aria-controls]="createBandOpen() ? 'band-create-form' : null"
         >
-          {{ createBandOpen() ? 'Abbrechen' : '+ Band anlegen' }}
+          {{ (createBandOpen() ? 'Abbrechen' : '+ Band anlegen') | t }}
         </button>
 
         @if (createBandOpen()) {
           <form id="band-create-form" class="band-form" (ngSubmit)="createBand()">
             <label class="field">
-              <span class="field__label">Bandname</span>
+              <span class="field__label">{{ 'Bandname' | t }}</span>
               <input
                 class="field__input"
                 type="text"
@@ -47,7 +47,7 @@
               />
             </label>
             <label class="field">
-              <span class="field__label">Genre (optional)</span>
+              <span class="field__label">{{ 'Genre (optional)' | t }}</span>
               <input
                 class="field__input"
                 type="text"
@@ -57,11 +57,11 @@
               />
             </label>
             <button class="band-form__submit" type="submit" [disabled]="creatingBand() || !newBandName().trim()">
-              {{ creatingBand() ? 'Wird gespeichert …' : 'Band anlegen' }}
+              {{ (creatingBand() ? 'Wird gespeichert …' : 'Band anlegen') | t }}
             </button>
           </form>
           @if (bandError(); as message) {
-            <p class="status status--error" role="alert">{{ message }}</p>
+            <p class="status status--error" role="alert">{{ message | t }}</p>
           }
         }
       </div>
@@ -78,16 +78,16 @@
             >&times;</button>
           </span>
         } @empty {
-          <span class="bands__empty">Noch keine Band angelegt.</span>
+          <span class="bands__empty">{{ 'Noch keine Band angelegt.' | t }}</span>
         }
       </div>
     </section>
   }
 
   @if (loading()) {
-    <p class="status">Musiker*innen werden geladen …</p>
+    <p class="status">{{ 'Musiker*innen werden geladen …' | t }}</p>
   } @else if (error(); as message) {
-    <p class="status status--error" role="alert">{{ message }}</p>
+    <p class="status status--error" role="alert">{{ message | t }}</p>
   } @else {
     <ul class="roster">
       @for (musician of musicians(); track musician.id) {
@@ -106,7 +106,7 @@
                 <div
                   class="row__bands"
                   role="group"
-                  [attr.aria-label]="'Band-Zuordnungen von ' + musicianName(musician)"
+                  [attr.aria-label]="'Band-Zuordnungen von {{name}}' | t: { name: musicianName(musician) }"
                 >
                   @for (membership of musicianMemberships; track membership.id) {
                     <span class="band-chip">
@@ -117,7 +117,7 @@
                           class="band-chip__remove"
                           (click)="removeMembership(membership)"
                           [disabled]="membershipSaving()"
-                          [attr.aria-label]="'Aus Band entfernen: ' + bandName()(membership.bandId)"
+                          [attr.aria-label]="'Aus Band entfernen: {{band}}' | t: { band: bandName()(membership.bandId) }"
                         >&times;</button>
                       }
                     </span>
@@ -129,9 +129,9 @@
                       [value]="''"
                       [disabled]="membershipSaving()"
                       (change)="onAssignBand(musician, $any($event.target).value)"
-                      aria-label="Band hinzufügen"
+                      [attr.aria-label]="'Band hinzufügen' | t"
                     >
-                      <option value="">+ Band</option>
+                      <option value="">+ {{ 'Band' | t }}</option>
                       @for (band of availableBands; track band.id) {
                         <option [value]="band.id">{{ band.name }}</option>
                       }
@@ -148,19 +148,19 @@
             <div class="row__delete-zone">
               @if (confirmingDelete()[musician.id]) {
                 <div class="row__confirm">
-                  <span class="row__confirm-label">„{{ musicianName(musician) }}“ wirklich löschen?</span>
+                  <span class="row__confirm-label">{{ '„{{name}}“ wirklich löschen?' | t: { name: musicianName(musician) } }}</span>
                   <div class="row__confirm-actions">
                     <button
                       type="button"
                       class="row__confirm-btn"
                       (click)="cancelDelete(musician)"
-                    >Abbrechen</button>
+                    >{{ 'Abbrechen' | t }}</button>
                     <button
                       type="button"
                       class="row__confirm-btn row__confirm-btn--danger"
                       (click)="confirmDelete(musician)"
                       [disabled]="deleting()[musician.id]"
-                    >Löschen</button>
+                    >{{ 'Löschen' | t }}</button>
                   </div>
                 </div>
               } @else {
@@ -168,8 +168,8 @@
                   type="button"
                   class="row__delete"
                   (click)="requestDelete(musician)"
-                  [attr.aria-label]="'Musiker*in löschen: ' + musicianName(musician)"
-                  title="Löschen"
+                  [attr.aria-label]="'Musiker*in löschen: {{name}}' | t: { name: musicianName(musician) }"
+                  [title]="'Löschen' | t"
                 >&times;</button>
               }
             </div>
@@ -177,7 +177,7 @@
         </li>
       } @empty {
         <li>
-          <p class="roster__empty">Noch keine Musiker*innen angelegt.</p>
+          <p class="roster__empty">{{ 'Noch keine Musiker*innen angelegt.' | t }}</p>
         </li>
       }
     </ul>
@@ -185,10 +185,9 @@
 </section>
 
 @if (bandToDelete(); as band) {
-  <app-modal-dialog title="Band löschen" (closed)="cancelBandDelete()">
+  <app-modal-dialog [title]="'Band löschen' | t" (closed)="cancelBandDelete()">
     <p class="confirm-dialog__text">
-      „{{ band.name }}“ wirklich löschen? Alle Zuordnungen zu Musiker*innen werden entfernt.
-      Bands mit bestehenden Gigs oder Proben können nicht gelöscht werden.
+      {{ '„{{name}}“ wirklich löschen? Alle Zuordnungen zu Musiker*innen werden entfernt. Bands mit bestehenden Gigs oder Proben können nicht gelöscht werden.' | t: { name: band.name } }}
     </p>
     <div class="confirm-dialog__actions">
       <button
@@ -196,23 +195,21 @@
         class="row__confirm-btn"
         (click)="cancelBandDelete()"
         [disabled]="deletingBand()"
-      >Abbrechen</button>
+      >{{ 'Abbrechen' | t }}</button>
       <button
         type="button"
         class="row__confirm-btn row__confirm-btn--danger"
         (click)="confirmBandDelete()"
         [disabled]="deletingBand()"
-      >{{ deletingBand() ? 'Wird gelöscht …' : 'Band löschen' }}</button>
+      >{{ (deletingBand() ? 'Wird gelöscht …' : 'Band löschen') | t }}</button>
     </div>
   </app-modal-dialog>
 }
 
 @if (confirmingDeleteAll()) {
-  <app-modal-dialog title="Alle Musiker*innen löschen" (closed)="cancelDeleteAll()">
+  <app-modal-dialog [title]="'Alle Musiker*innen löschen' | t" (closed)="cancelDeleteAll()">
     <p class="confirm-dialog__text">
-      Alle {{ musicians().length }} Musiker*innen werden gelöscht. Band-Zuordnungen und
-      Event-Zusagen werden entfernt; Equipment-Verantwortungen und verknüpfte
-      Benutzerkonten werden gelöst. Das kann nicht rückgängig gemacht werden.
+      {{ 'Alle {{count}} Musiker*innen werden gelöscht. Band-Zuordnungen und Event-Zusagen werden entfernt; Equipment-Verantwortungen und verknüpfte Benutzerkonten werden gelöst. Das kann nicht rückgängig gemacht werden.' | t: { count: musicians().length } }}
     </p>
     <div class="confirm-dialog__actions">
       <button
@@ -220,13 +217,13 @@
         class="row__confirm-btn"
         (click)="cancelDeleteAll()"
         [disabled]="deletingAll()"
-      >Abbrechen</button>
+      >{{ 'Abbrechen' | t }}</button>
       <button
         type="button"
         class="row__confirm-btn row__confirm-btn--danger"
         (click)="confirmDeleteAll()"
         [disabled]="deletingAll()"
-      >{{ deletingAll() ? 'Wird gelöscht …' : 'Alle löschen' }}</button>
+      >{{ (deletingAll() ? 'Wird gelöscht …' : 'Alle löschen') | t }}</button>
     </div>
   </app-modal-dialog>
 }
@@ -237,16 +234,16 @@
       type="button"
       class="notice-dialog__backdrop"
       tabindex="-1"
-      aria-label="Hinweis schließen"
+      [attr.aria-label]="'Hinweis schließen' | t"
       (click)="dismissDeleteError()"
     ></button>
     <div class="notice-dialog__panel" role="alert" aria-labelledby="delete-error-text">
-      <p class="notice-dialog__text" id="delete-error-text">{{ message }}</p>
+      <p class="notice-dialog__text" id="delete-error-text">{{ message | t }}</p>
       <button
         type="button"
         class="notice-dialog__close"
         (click)="dismissDeleteError()"
-        aria-label="Hinweis schließen"
+        [attr.aria-label]="'Hinweis schließen' | t"
       >&times;</button>
     </div>
   </div>

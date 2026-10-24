@@ -3,13 +3,14 @@ import { ChangeDetectionStrategy, Component, computed, input, output, signal } f
 import { ModalDialogComponent } from '../shared/modal-dialog.component';
 import type { SheetSelection } from './setlist-download';
 import type { PieceSheet, SetlistEntry } from './setlist.model';
+import { TranslatePipe } from '../language/translate.pipe';
 
 const ALL_PARTS = '*';
 const NO_PARTS = '-';
 
 @Component({
   selector: 'app-setlist-download-dialog',
-  imports: [ModalDialogComponent],
+  imports: [ModalDialogComponent, TranslatePipe],
   templateUrl: './setlist-download-dialog.component.html',
   styleUrl: './setlist-download-dialog.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

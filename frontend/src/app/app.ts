@@ -4,10 +4,12 @@ import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/rou
 
 import { AuthService } from './auth/auth.service';
 import { ToastComponent } from './notifications/toast.component';
+import { LanguageService, type AppLanguage } from './language/language.service';
+import { TranslatePipe } from './language/translate.pipe';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, NgOptimizedImage, ToastComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, NgOptimizedImage, ToastComponent, TranslatePipe],
   templateUrl: './app.html',
   styleUrl: './app.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -18,11 +20,14 @@ export class App {
   private readonly auth = inject(AuthService);
   private readonly document = inject(DOCUMENT);
   private readonly router = inject(Router);
+  private readonly languageService = inject(LanguageService);
 
   protected readonly currentUser = this.auth.currentUser;
   protected readonly isAuthenticated = this.auth.isAuthenticated;
   protected readonly isOrganizer = this.auth.isOrganizer;
   protected readonly isDarkMode = signal(this.readInitialTheme());
+  protected readonly language = this.languageService.language;
+  protected readonly languages = this.languageService.options;
 
   constructor() {
     this.applyTheme(this.isDarkMode());
@@ -49,6 +54,10 @@ export class App {
   protected logout(): void {
     this.auth.logout();
     void this.router.navigate(['/login']);
+  }
+
+  protected changeLanguage(event: Event): void {
+    this.languageService.setLanguage((event.target as HTMLSelectElement).value as AppLanguage);
   }
 
   private readInitialTheme(): boolean {

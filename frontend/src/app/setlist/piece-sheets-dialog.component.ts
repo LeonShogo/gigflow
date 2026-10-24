@@ -16,12 +16,13 @@ import { firstValueFrom } from 'rxjs';
 import { downloadBlob } from '../download';
 import { ToastService } from '../notifications/toast.service';
 import { ModalDialogComponent } from '../shared/modal-dialog.component';
+import { TranslatePipe } from '../language/translate.pipe';
 import type { PieceSheet } from './setlist.model';
 import { SetlistService } from './setlist.service';
 
 @Component({
   selector: 'app-piece-sheets-dialog',
-  imports: [FormsModule, ModalDialogComponent],
+  imports: [FormsModule, ModalDialogComponent, TranslatePipe],
   templateUrl: './piece-sheets-dialog.component.html',
   styleUrl: './piece-sheets-dialog.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

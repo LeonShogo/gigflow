@@ -33,6 +33,8 @@ import { ScheduleService } from '../schedule/schedule.service';
 import type { EventLocation, LocationType } from '../location/location.model';
 import { LOCATION_TYPES } from '../location/location.model';
 import { LocationService } from '../location/location.service';
+import { TranslatePipe } from '../language/translate.pipe';
+import { LanguageService } from '../language/language.service';
 
 const STATUS_LABELS: Record<ParticipationStatus, string> = {
   SUGGESTED: 'Vorschlag',
@@ -61,7 +63,7 @@ export interface EventPrintData {
 
 @Component({
   selector: 'app-event-print',
-  imports: [RouterLink],
+  imports: [RouterLink, TranslatePipe],
   templateUrl: './event-print.component.html',
   styleUrl: './event-print.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -78,6 +80,7 @@ export class EventPrintComponent implements OnInit {
   private readonly scheduleService = inject(ScheduleService);
   private readonly locationService = inject(LocationService);
   private readonly pdfService = inject(EventPdfService);
+  private readonly language = inject(LanguageService);
 
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
@@ -92,7 +95,7 @@ export class EventPrintComponent implements OnInit {
   protected readonly includeSetlist = signal(true);
   protected readonly downloading = signal(false);
   protected readonly repertoireTitle = computed(() =>
-    repertoireLabel(this.event()?.type ?? 'CONCERT'),
+    this.language.translate(repertoireLabel(this.event()?.type ?? 'CONCERT')),
   );
 
   protected readonly confirmedCount = computed(
@@ -111,7 +114,7 @@ export class EventPrintComponent implements OnInit {
       }
       const aName = `${a.musician?.lastName ?? ''} ${a.musician?.firstName ?? ''}`;
       const bName = `${b.musician?.lastName ?? ''} ${b.musician?.firstName ?? ''}`;
-      return aName.localeCompare(bName, 'de');
+      return aName.localeCompare(bName, this.language.locale());
     }),
   );
 
@@ -196,28 +199,28 @@ export class EventPrintComponent implements OnInit {
   }
 
   protected statusLabel(status: ParticipationStatus): string {
-    return STATUS_LABELS[status];
+    return this.language.translate(STATUS_LABELS[status]);
   }
 
   protected stateLabel(state: RequirementState): string {
     if (state === 'YES') {
-      return 'Ja';
+      return this.language.translate('Ja');
     }
     if (state === 'NO') {
-      return 'Nein';
+      return this.language.translate('Nein');
     }
-    return 'Offen';
+    return this.language.translate('Offen');
   }
 
   protected locationTypeLabel(type: LocationType): string {
-    return LOCATION_TYPES.find((t) => t.value === type)?.label ?? type;
+    return this.language.translate(LOCATION_TYPES.find((t) => t.value === type)?.label ?? type);
   }
 
-  protected formatDate = formatDate;
+  protected formatDate = (dateTime: string): string => formatDate(dateTime, this.language.locale());
 
-  protected formatTime = formatTime;
+  protected formatTime = (dateTime: string): string => formatTime(dateTime, this.language.locale());
 
-  protected typeLabel = typeLabel;
+  protected typeLabel = (type: EventItem['type']): string => this.language.translate(typeLabel(type));
 
   /**
    * Builds the gig-sheet PDF: the formatted info sheet plus, when included,
@@ -239,6 +242,7 @@ export class EventPrintComponent implements OnInit {
           requirements: this.requirements(),
           scheduleItems: this.scheduleItems(),
           locations: this.locations(),
+          language: this.language.language(),
         },
         (sheetId) => firstValueFrom(this.setlistService.downloadSheet(sheetId)),
       );

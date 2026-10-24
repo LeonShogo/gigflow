@@ -1,10 +1,10 @@
 <section class="detail">
-  <a class="back" routerLink="/">&larr; Alle Events</a>
+  <a class="back" routerLink="/">&larr; {{ 'Alle Events' | t }}</a>
 
   @if (loading()) {
-    <p class="status">Event wird geladen …</p>
+    <p class="status">{{ 'Event wird geladen …' | t }}</p>
   } @else if (error(); as message) {
-    <p class="status status--error" role="alert">{{ message }}</p>
+    <p class="status status--error" role="alert">{{ message | t }}</p>
   } @else if (event(); as event) {
     <header class="head">
       <p class="type">{{ typeLabel(event.type) }}</p>
@@ -14,7 +14,7 @@
           {{ formatDate(event.dateTime) }}
         </time>
         <time class="meta__time" [attr.datetime]="event.dateTime">
-          {{ formatTime(event.dateTime) }} Uhr
+          {{ formatTime(event.dateTime) }} {{ 'Uhr' | t }}
         </time>
       </div>
 
@@ -22,46 +22,46 @@
         <a
           class="detail__print"
           [routerLink]="['/events', event.id, 'print']"
-          attr.aria-label="Druckansicht für {{ event.title }} öffnen"
+          [attr.aria-label]="'Druckansicht für {{title}} öffnen' | t: { title: event.title }"
         >
-          Druckansicht
+          {{ 'Druckansicht' | t }}
         </a>
         <button
           type="button"
           class="detail__print"
           (click)="exportToCalendar()"
-          attr.aria-label="{{ event.title }} zum Kalender hinzufügen"
+          [attr.aria-label]="'{{title}} zum Kalender hinzufügen' | t: { title: event.title }"
         >
-          Zum Kalender hinzufügen
+          {{ 'Zum Kalender hinzufügen' | t }}
         </button>
         @if (canDelete()) {
           @if (confirmingDelete()) {
             <span class="detail__delete-confirm">
-              <span class="detail__delete-label">„{{ event.title }}“ wirklich löschen?</span>
+              <span class="detail__delete-label">{{ '„{{title}}“ wirklich löschen?' | t: { title: event.title } }}</span>
               <button
                 type="button"
                 class="detail__print"
                 (click)="cancelDelete()"
-              >Abbrechen</button>
+              >{{ 'Abbrechen' | t }}</button>
               <button
                 type="button"
                 class="detail__print detail__print--danger"
                 (click)="confirmDelete()"
                 [disabled]="deleting()"
-              >Löschen</button>
+              >{{ 'Löschen' | t }}</button>
             </span>
           } @else {
             <button
               type="button"
               class="detail__print detail__print--delete"
               (click)="requestDelete()"
-              attr.aria-label="Termin löschen: {{ event.title }}"
-            >Löschen</button>
+              [attr.aria-label]="'Termin löschen: {{title}}' | t: { title: event.title }"
+            >{{ 'Löschen' | t }}</button>
           }
         }
       </p>
       @if (deleteError(); as message) {
-        <p class="status status--error" role="alert">{{ message }}</p>
+        <p class="status status--error" role="alert">{{ message | t }}</p>
       }
     </header>
 
@@ -84,7 +84,7 @@
                       (click)="togglePanel('members')"
                       [attr.aria-expanded]="!isCollapsed('members')"
                     >
-                      <h2 class="panel__title">Musiker*innen / Zusagen</h2>
+                      <h2 class="panel__title">{{ 'Musiker*innen / Zusagen' | t }}</h2>
                       <span class="panel__desc">{{ panelDescription('members') }}</span>
                     </button>
                   </span>
@@ -93,21 +93,21 @@
                     class="panel__collapse"
                     (click)="togglePanel('members')"
                     [attr.aria-expanded]="!isCollapsed('members')"
-                  >{{ isCollapsed('members') ? 'Öffnen' : 'Einklappen' }}</button>
+                    >{{ (isCollapsed('members') ? 'Öffnen' : 'Einklappen') | t }}</button>
                 </div>
 
                 @if (!isCollapsed('members')) {
                   @if (participantsLoading()) {
-                    <p class="panel__note">Teilnahmen werden geladen …</p>
+                    <p class="panel__note">{{ 'Teilnahmen werden geladen …' | t }}</p>
                   } @else if (participantsError(); as message) {
-                    <p class="panel__note panel__note--error" role="alert">{{ message }}</p>
+                    <p class="panel__note panel__note--error" role="alert">{{ message | t }}</p>
                   } @else {
                     <div class="members__bar">
                       @if (participations().length === 0) {
-                        <span class="members__count">Noch keine Musiker*innen für diesen Termin vorgemerkt.</span>
+                        <span class="members__count">{{ 'Noch keine Musiker*innen für diesen Termin vorgemerkt.' | t }}</span>
                       } @else {
                         <span class="members__count">
-                          {{ confirmedCount() }} von {{ participations().length }} bestätigt
+                          {{ ' {{confirmed}} von {{total}} bestätigt' | t: { confirmed: confirmedCount(), total: participations().length } }}
                         </span>
                       }
                       @if (canManageMembers()) {
@@ -116,10 +116,10 @@
                           class="members__add--primary members__invite-band"
                           (click)="openBandPicker()"
                         >
-                          Ganze Band einladen
+                          {{ 'Ganze Band einladen' | t }}
                         </button>
                         <button type="button" class="members__add" (click)="togglePicker()">
-                          Musiker*in hinzufügen
+                          {{ 'Musiker*in hinzufügen' | t }}
                         </button>
                       }
                     </div>
@@ -127,7 +127,7 @@
                     @if (canSelfJoin()) {
                       <div class="members__self">
                         @if (myParticipation(); as mine) {
-                          <label class="sr-only" for="self-status">Mein Status</label>
+                            <label class="sr-only" for="self-status">{{ 'Mein Status' | t }}</label>
                           <select
                             id="self-status"
                             [class]="'member__status ' + statusClass(mine.status)"
@@ -142,7 +142,7 @@
                             }
                           </select>
                           <span class="members__self-hint">
-                            Dein Status: {{ statusLabel(mine.status) }}
+                            {{ 'Dein Status: {{status}}' | t: { status: statusLabel(mine.status) } }}
                           </span>
                         } @else {
                           <button
@@ -151,17 +151,17 @@
                             (click)="joinSelf()"
                             [disabled]="selfSaving()"
                           >
-                            Ich mache mit
+                            {{ 'Ich mache mit' | t }}
                           </button>
                         }
                       </div>
                     }
 
                     @if (participationFeedback(); as feedback) {
-                      <p class="members__feedback" role="status">{{ feedback }}</p>
+                      <p class="members__feedback" role="status">{{ feedback | t }}</p>
                     }
                     @if (participationError(); as message) {
-                      <p class="members__feedback members__feedback--error" role="alert">{{ message }}</p>
+                      <p class="members__feedback members__feedback--error" role="alert">{{ message | t }}</p>
                     }
 
                     @if (participations().length > 0) {
@@ -180,7 +180,7 @@
                             </div>
                             <div class="member__aside">
                               <label class="sr-only" [for]="'status-' + participation.id">
-                                Status von {{ participation.musician?.firstName }} {{ participation.musician?.lastName }}
+                                  {{ 'Status von {{name}}' | t: { name: participation.musician?.firstName + ' ' + participation.musician?.lastName } }}
                               </label>
                               <select
                                 [id]="'status-' + participation.id"
@@ -202,8 +202,8 @@
                                   class="member__remove"
                                   (click)="requestRemoveParticipation(participation)"
                                   [disabled]="pauseSaving()[participation.id]"
-                                  aria-label="Person entfernen"
-                                >Entfernen</button>
+                                  [attr.aria-label]="'Person entfernen' | t"
+                                >{{ 'Entfernen' | t }}</button>
                               } @else {
                                 <span class="member__confirm">
                                   <button
@@ -211,12 +211,12 @@
                                     class="member__remove member__remove--danger"
                                     (click)="confirmRemoveParticipation(participation)"
                                     [disabled]="pauseSaving()[participation.id]"
-                                  >Wirklich?</button>
+                                  >{{ 'Wirklich?' | t }}</button>
                                   <button
                                     type="button"
                                     class="member__remove"
                                     (click)="cancelRemoveParticipation(participation)"
-                                  >Abbrechen</button>
+                                  >{{ 'Abbrechen' | t }}</button>
                                 </span>
                               }
                             </div>
@@ -272,7 +272,7 @@
                               role="menuitem"
                               class="setlist__download-item"
                               (click)="downloadInfoPdf()"
-                            >Nur Infos (PDF)</button>
+                            >{{ 'Nur Infos (PDF)' | t }}</button>
                             <button
                               type="button"
                               role="menuitem"
@@ -280,7 +280,7 @@
                               (click)="openSheetDownloadDialog()"
                               [disabled]="!hasAnySheets()"
                               [attr.title]="hasAnySheets() ? null : 'Keine Noten vorhanden'"
-                            >Noten (ZIP) …</button>
+                            >{{ 'Noten (ZIP) …' | t }}</button>
                           </div>
                         }
                       </div>
@@ -288,9 +288,9 @@
                     @if (setlistLoading()) {
                       <p class="panel__note">{{ repertoireLabel(event.type) }} wird geladen …</p>
                     } @else if (setlistError(); as message) {
-                      <p class="panel__note panel__note--error" role="alert">{{ message }}</p>
+                      <p class="panel__note panel__note--error" role="alert">{{ message | t }}</p>
                     } @else if (entries().length === 0) {
-                      <p class="panel__note">Noch keine Stücke hinterlegt.</p>
+                      <p class="panel__note">{{ 'Noch keine Stücke hinterlegt.' | t }}</p>
                     } @else {
                       <ol class="setlist__entries" cdkDropList (cdkDropListDropped)="onDrop($event)">
                         @for (entry of entries(); track entry.id; let i = $index) {
@@ -302,19 +302,18 @@
                                 <span
                                   class="entry__sheet"
                                   [attr.aria-label]="entry.sheets.length + ' Noten hinterlegt'"
-                                >Noten ({{ entry.sheets.length }})</span>
+                                >{{ 'Noten' | t }} ({{ entry.sheets.length }})</span>
                               }
-                              @if (entry.hasDemoAudio) {
-                                <span class="entry__sheet entry__sheet--audio" aria-label="Demo-Audio vorhanden">Demo</span>
+                              @if (demoAudios(entry).length > 0) {
+                                <span class="entry__sheet entry__sheet--audio">{{ 'Demo' | t }} ({{ demoAudios(entry).length }})</span>
                               }
-                              @if (entry.youtubeUrl) {
+                              @for (link of pieceLinks(entry); track link.id) {
                                 <a
                                   class="entry__sheet entry__sheet--youtube"
-                                  [href]="entry.youtubeUrl"
+                                  [href]="link.url"
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  aria-label="YouTube-Link öffnen"
-                                >YouTube</a>
+                                >{{ link.label }}</a>
                               }
                             </span>
                             <span class="entry__actions">
@@ -324,125 +323,144 @@
                                   class="entry__btn entry__btn--pdf"
                                   (click)="openSheetDialog(entry)"
                                   [attr.aria-label]="canUploadSheets() ? 'Noten verwalten' : 'Noten anzeigen'"
-                                >Noten</button>
+                                >{{ 'Noten' | t }}</button>
                               } @else if (canUploadSheets()) {
                                 <button
                                   type="button"
                                   class="entry__btn entry__btn--pdf"
                                   (click)="openSheetDialog(entry)"
-                                  aria-label="Noten hochladen"
-                                >PDF laden</button>
+                                  [attr.aria-label]="'Noten hochladen' | t"
+                                >{{ 'PDF laden' | t }}</button>
                               }
                               <button
                                 type="button"
                                 class="entry__btn"
                                 (click)="moveEntry(i, -1)"
                                 [disabled]="i === 0"
-                                aria-label="Nach oben"
+                                [attr.aria-label]="'Nach oben' | t"
                               >&uarr;</button>
                               <button
                                 type="button"
                                 class="entry__btn"
                                 (click)="moveEntry(i, 1)"
                                 [disabled]="i === entries().length - 1"
-                                aria-label="Nach unten"
+                                [attr.aria-label]="'Nach unten' | t"
                               >&darr;</button>
-                              @if (entry.hasDemoAudio) {
+                              @for (audio of demoAudios(entry); track audio.id) {
                                 <button
                                   type="button"
                                   class="entry__btn entry__btn--audio"
-                                  (click)="toggleDemo(entry)"
+                                  (click)="toggleDemo(entry, audio)"
                                   [disabled]="mediaUploading()[entry.pieceId]"
-                                  aria-label="Demo abspielen"
-                                >{{ demoPlaying()?.pieceId === entry.pieceId ? 'Stop' : 'Demo' }}</button>
+                                  [attr.aria-pressed]="demoPlaying()?.audioId === audio.id"
+                                  [attr.aria-label]="demoPlaying()?.audioId === audio.id ? 'Demo stoppen: ' + audio.label : 'Demo abspielen: ' + audio.label"
+                                >{{ demoPlaying()?.audioId === audio.id ? '■' : '▶' }} {{ demoPlaying()?.audioId === audio.id ? ('Stop' | t) : audio.label }}</button>
                                 @if (canUploadSheets()) {
                                   <button
                                     type="button"
                                     class="entry__btn entry__btn--audio-remove"
-                                    (click)="removeDemoAudio(entry)"
+                                    (click)="removeDemoAudio(entry, audio)"
                                     [disabled]="mediaUploading()[entry.pieceId]"
-                                    aria-label="Demo entfernen"
+                                    [attr.aria-label]="'Demo entfernen: ' + audio.label"
                                   >&times;</button>
                                 }
-                              } @else if (canUploadSheets()) {
+                              }
+                              @if (canUploadSheets()) {
                                 <button
                                   type="button"
                                   class="entry__btn entry__btn--audio"
                                   (click)="selectDemoAudio(entry)"
-                                  aria-label="Demo-Audio hochladen"
-                                >Audio laden</button>
+                                  [attr.aria-label]="'Demo-Audio hochladen' | t"
+                                >+ {{ 'Demo' | t }}</button>
                               }
-                              @if (entry.youtubeUrl) {
-                                <button
-                                  type="button"
-                                  class="entry__btn entry__btn--youtube"
-                                  (click)="openYoutube(entry)"
-                                  aria-label="YouTube-Link öffnen"
-                                >YouTube</button>
-                                @if (canUploadSheets()) {
+                              @if (canUploadSheets()) {
+                                @for (link of pieceLinks(entry); track link.id) {
                                   <button
                                     type="button"
-                                    class="entry__btn entry__btn--youtube-edit"
-                                    (click)="editYoutube(entry)"
+                                    class="entry__btn entry__btn--media-danger"
+                                    (click)="removePieceLink(entry, link)"
                                     [disabled]="mediaUploading()[entry.pieceId]"
-                                    aria-label="YouTube-Link ändern"
-                                  >&hellip;</button>
+                                  [attr.aria-label]="'Link entfernen: {{label}}' | t: { label: link.label }"
+                                  >&times;</button>
                                 }
-                              } @else if (canUploadSheets()) {
                                 <button
                                   type="button"
                                   class="entry__btn entry__btn--youtube"
-                                  (click)="editYoutube(entry)"
-                                  aria-label="YouTube-Link hinzufügen"
-                                >YouTube</button>
+                                  (click)="editPieceMedia(entry)"
+                                  [attr.aria-label]="'Link hinzufügen' | t"
+                                >+ {{ 'Link' | t }}</button>
+                                <button
+                                  type="button"
+                                  class="entry__btn"
+                                  (click)="editPieceNotes(entry)"
+                                  [attr.aria-label]="'Tune-Notiz bearbeiten' | t"
+                                >{{ 'Notiz' | t }}</button>
                               }
                               <button
                                 type="button"
                                 class="entry__btn entry__btn--danger"
                                 (click)="removeEntry(entry)"
-                                aria-label="Stück entfernen"
+                                [attr.aria-label]="'Stück entfernen' | t"
                               >&times;</button>
                             </span>
+                            @if (entry.notes) {
+                              <p class="entry__notes">{{ entry.notes }}</p>
+                            }
                             @if (demoPlaying()?.pieceId === entry.pieceId) {
-                              <div class="entry__player">
-                                <audio controls autoplay [src]="demoPlaying()?.url ?? null" aria-label="Demo-Wiedergabe"></audio>
+                              <div class="entry__player" role="status">
+                                <span class="entry__playing-label">▶ {{ demoPlaying()?.title }} · {{ demoPlaying()?.label }}</span>
+                                <audio controls autoplay [src]="demoPlaying()?.url ?? null" [attr.aria-label]="'Demo-Wiedergabe' | t" (ended)="stopDemo()"></audio>
                                 <button
                                   type="button"
                                   class="entry__btn"
                                   (click)="stopDemo()"
-                                  aria-label="Wiedergabe beenden"
-                                >Schließen</button>
+                                  [attr.aria-label]="'Wiedergabe beenden' | t"
+                                >■ {{ 'Stop' | t }}</button>
                               </div>
                             }
-                            @if (canUploadSheets() && youtubeEditing()[entry.pieceId]) {
-                              <div class="entry__link-form">
-                                <label class="sr-only" [for]="'youtube-' + entry.id">YouTube-Link</label>
+                            @if (canUploadSheets() && mediaEditing()[entry.pieceId]) {
+                              <form class="entry__link-form" (submit)="$event.preventDefault(); savePieceLink(entry)">
+                                <label class="sr-only" [for]="'link-label-' + entry.id">{{ 'Link-Titel' | t }}</label>
                                 <input
                                   class="setlist__input"
-                                  [id]="'youtube-' + entry.id"
-                                  type="url"
-                                  placeholder="https://www.youtube.com/watch?v=…"
-                                  [value]="youtubeDraft()[entry.pieceId]"
-                                  (input)="onYoutubeDraftInput(entry, $event)"
-                                  (keydown.enter)="saveYoutube(entry)"
+                                  [id]="'link-label-' + entry.id"
+                                  type="text"
+                                  maxlength="120"
+                                  [placeholder]="'Titel, z. B. Live-Version' | t"
+                                  [value]="linkDrafts()[entry.pieceId]?.label ?? ''"
+                                  (input)="onLinkDraftInput(entry, 'label', $event)"
                                 />
-                                <button
-                                  type="button"
-                                  class="setlist__submit"
-                                  (click)="saveYoutube(entry)"
-                                  [disabled]="mediaUploading()[entry.pieceId]"
-                                >Speichern</button>
-                                <button
-                                  type="button"
-                                  class="entry__btn entry__btn--media-danger"
-                                  (click)="removeYoutube(entry)"
-                                  [disabled]="mediaUploading()[entry.pieceId]"
-                                >Entfernen</button>
+                                <label class="sr-only" [for]="'link-url-' + entry.id">{{ 'Link-Adresse' | t }}</label>
+                                <input
+                                  class="setlist__input"
+                                  [id]="'link-url-' + entry.id"
+                                  type="url"
+                                placeholder="https://…"
+                                  [value]="linkDrafts()[entry.pieceId]?.url ?? ''"
+                                  (input)="onLinkDraftInput(entry, 'url', $event)"
+                                />
+                                <button type="submit" class="setlist__submit" [disabled]="mediaUploading()[entry.pieceId]">{{ 'Hinzufügen' | t }}</button>
                                 <button
                                   type="button"
                                   class="entry__btn"
-                                  (click)="cancelYoutubeEdit(entry)"
-                                >Abbrechen</button>
+                                  (click)="cancelPieceMediaEdit(entry)"
+                                >{{ 'Abbrechen' | t }}</button>
+                              </form>
+                            }
+                            @if (canUploadSheets() && notesEditing()[entry.pieceId]) {
+                              <div class="entry__notes-form">
+                                <label class="sr-only" [for]="'piece-notes-' + entry.id">{{ 'Notizen zum Tune' | t }}</label>
+                                <textarea
+                                  class="setlist__input entry__notes-input"
+                                  [id]="'piece-notes-' + entry.id"
+                                  rows="2"
+                                  maxlength="10000"
+                                  [placeholder]="'Notizen zu diesem Tune' | t"
+                                  [value]="notesDrafts()[entry.pieceId]"
+                                  (input)="onPieceNotesInput(entry, $event)"
+                                ></textarea>
+                                <button type="button" class="setlist__submit" (click)="savePieceNotes(entry)" [disabled]="mediaUploading()[entry.pieceId]">{{ 'Speichern' | t }}</button>
+                                <button type="button" class="entry__btn" (click)="cancelPieceNotes(entry)">{{ 'Abbrechen' | t }}</button>
                               </div>
                             }
                           </li>
@@ -451,16 +469,16 @@
                     }
 
                     @if (sheetFeedback(); as feedback) {
-                      <p class="panel__note" role="status">{{ feedback }}</p>
+                      <p class="panel__note" role="status">{{ feedback | t }}</p>
                     }
                     @if (sheetError(); as message) {
-                      <p class="panel__note panel__note--error" role="alert">{{ message }}</p>
+                      <p class="panel__note panel__note--error" role="alert">{{ message | t }}</p>
                     }
                     @if (mediaFeedback(); as feedback) {
-                      <p class="panel__note" role="status">{{ feedback }}</p>
+                      <p class="panel__note" role="status">{{ feedback | t }}</p>
                     }
                     @if (mediaError(); as message) {
-                      <p class="panel__note panel__note--error" role="alert">{{ message }}</p>
+                      <p class="panel__note panel__note--error" role="alert">{{ message | t }}</p>
                     }
 
                     <input
@@ -468,26 +486,27 @@
                       class="sr-only"
                       type="file"
                       accept="audio/mpeg,.mp3"
-                      aria-label="Demo-Audio auswählen"
+                      [attr.aria-label]="'Demo-Audio auswählen' | t"
                       (change)="onAudioFileSelected($event)"
+                      multiple
                     />
 
                     <form class="setlist__add">
-                      <label class="sr-only" for="piece-title">Neues Stück</label>
+                      <label class="sr-only" for="piece-title">{{ 'Neues Stück' | t }}</label>
                       <input
                         id="piece-title"
                         class="setlist__input"
                         [value]="newTitle()"
                         (input)="onTitleInput($event)"
                         (keydown.enter)="onTitleEnter($event)"
-                        placeholder="Neues Stück hinzufügen …"
+                        [placeholder]="'Neues Stück hinzufügen …' | t"
                       />
                       <button
                         type="button"
                         class="setlist__submit"
                         [disabled]="canAdd()"
                         (click)="addPiece()"
-                      >Hinzufügen</button>
+                      >{{ 'Hinzufügen' | t }}</button>
                     </form>
                   </div>
                 }
@@ -504,7 +523,7 @@
                       (click)="togglePanel('rehearsals')"
                       [attr.aria-expanded]="!isCollapsed('rehearsals')"
                     >
-                      <h2 class="panel__title">Proben zu diesem Gig</h2>
+                      <h2 class="panel__title">{{ 'Proben zu diesem Gig' | t }}</h2>
                       <span class="panel__desc">{{ panelDescription('rehearsals') }}</span>
                     </button>
                   </span>
@@ -513,14 +532,14 @@
                     class="panel__collapse"
                     (click)="togglePanel('rehearsals')"
                     [attr.aria-expanded]="!isCollapsed('rehearsals')"
-                  >{{ isCollapsed('rehearsals') ? 'Öffnen' : 'Einklappen' }}</button>
+                    >{{ (isCollapsed('rehearsals') ? 'Öffnen' : 'Einklappen') | t }}</button>
                 </div>
 
                 @if (!isCollapsed('rehearsals')) {
                   @if (rehearsalsLoading()) {
-                    <p class="panel__note">Proben werden geladen …</p>
+                    <p class="panel__note">{{ 'Proben werden geladen …' | t }}</p>
                   } @else if (rehearsalsError(); as message) {
-                    <p class="panel__note panel__note--error" role="alert">{{ message }}</p>
+                    <p class="panel__note panel__note--error" role="alert">{{ message | t }}</p>
                   } @else {
                     <div class="rehearsals__bar">
                       <button type="button" class="rehearsals__add" (click)="toggleRehearsalPicker()">
@@ -529,14 +548,14 @@
                     </div>
 
                     @if (rehearsalsFeedback(); as feedback) {
-                      <p class="rehearsals__feedback" role="status">{{ feedback }}</p>
+                      <p class="rehearsals__feedback" role="status">{{ feedback | t }}</p>
                     }
                     @if (rehearsalsError(); as message) {
-                      <p class="rehearsals__feedback rehearsals__feedback--error" role="alert">{{ message }}</p>
+                      <p class="rehearsals__feedback rehearsals__feedback--error" role="alert">{{ message | t }}</p>
                     }
 
                     @if (rehearsals().length === 0) {
-                      <p class="panel__note">Noch keine Proben für diesen Gig geplant.</p>
+                      <p class="panel__note">{{ 'Noch keine Proben für diesen Gig geplant.' | t }}</p>
                     } @else {
                       <ul class="rehearsals">
                         @for (rehearsal of rehearsals(); track rehearsal.id) {
@@ -545,7 +564,7 @@
                               <span class="rehearsal__title">{{ rehearsal.title }}</span>
                               <span class="rehearsal__meta">
                                 <time [attr.datetime]="rehearsal.dateTime">{{ formatDate(rehearsal.dateTime) }}</time>
-                                <time [attr.datetime]="rehearsal.dateTime">{{ formatTime(rehearsal.dateTime) }} Uhr</time>
+                                <time [attr.datetime]="rehearsal.dateTime">{{ formatTime(rehearsal.dateTime) }} {{ 'Uhr' | t }}</time>
                               </span>
                             </a>
                             <div class="rehearsal__unlink">
@@ -555,21 +574,21 @@
                                   class="rehearsal__unlink-btn"
                                   (click)="requestUnlinkRehearsal(rehearsal)"
                                   [disabled]="rehearsalsSaving()[rehearsal.id]"
-                                >Lösen</button>
+                                >{{ 'Lösen' | t }}</button>
                               } @else {
                                 <span class="rehearsal__confirm">
-                                  <span class="rehearsal__confirm-text">Probe vom Gig lösen?</span>
+                                  <span class="rehearsal__confirm-text">{{ 'Probe vom Gig lösen?' | t }}</span>
                                   <button
                                     type="button"
                                     class="rehearsal__unlink-btn rehearsal__unlink-btn--danger"
                                     (click)="confirmUnlinkRehearsal(rehearsal)"
                                     [disabled]="rehearsalsSaving()[rehearsal.id]"
-                                  >Ja, lösen</button>
+                                  >{{ 'Ja, lösen' | t }}</button>
                                   <button
                                     type="button"
                                     class="rehearsal__unlink-btn"
                                     (click)="cancelUnlinkRehearsal(rehearsal)"
-                                  >Abbrechen</button>
+                                  >{{ 'Abbrechen' | t }}</button>
                                 </span>
                               }
                             </div>
@@ -586,21 +605,21 @@
                           (click)="toggleNewRehearsal()"
                           [attr.aria-expanded]="newRehearsalOpen()"
                         >
-                          {{ newRehearsalOpen() ? 'Neue Probe schließen' : 'Neue Probe anlegen' }}
+                          {{ (newRehearsalOpen() ? 'Neue Probe schließen' : 'Neue Probe anlegen') | t }}
                         </button>
 
                         @if (newRehearsalOpen()) {
                           <form class="picker__new" (ngSubmit)="createRehearsal()">
-                            <label class="sr-only" for="new-rehearsal-title">Titel</label>
+                            <label class="sr-only" for="new-rehearsal-title">{{ 'Titel' | t }}</label>
                             <input
                               id="new-rehearsal-title"
                               class="picker__input"
                               [value]="newRehearsalTitle()"
                               (input)="onNewRehearsalTitle($event)"
-                              placeholder="Titel"
+                              [placeholder]="'Titel' | t"
                               required
                             />
-                            <label class="sr-only" for="new-rehearsal-date">Datum</label>
+                            <label class="sr-only" for="new-rehearsal-date">{{ 'Datum' | t }}</label>
                             <input
                               id="new-rehearsal-date"
                               class="picker__input"
@@ -609,7 +628,7 @@
                               (input)="onNewRehearsalDate($event)"
                               required
                             />
-                            <label class="sr-only" for="new-rehearsal-time">Uhrzeit</label>
+                            <label class="sr-only" for="new-rehearsal-time">{{ 'Uhrzeit' | t }}</label>
                             <input
                               id="new-rehearsal-time"
                               class="picker__input"
@@ -622,14 +641,14 @@
                               type="submit"
                               class="picker__submit"
                               [disabled]="!canAddNewRehearsal()"
-                            >Anlegen & zuordnen</button>
+                            >{{ 'Anlegen & zuordnen' | t }}</button>
                           </form>
                         }
 
                         @if (allRehearsalsLoading()) {
-                          <p class="panel__note">Proben werden geladen …</p>
+                          <p class="panel__note">{{ 'Proben werden geladen …' | t }}</p>
                         } @else if (availableRehearsals().length === 0) {
-                          <p class="panel__note">Keine weiteren Proben verfügbar.</p>
+                          <p class="panel__note">{{ 'Keine weiteren Proben verfügbar.' | t }}</p>
                         } @else {
                           <ul class="picker__list">
                             @for (rehearsal of availableRehearsals(); track rehearsal.id) {
@@ -637,7 +656,7 @@
                                 <a class="picker__link" [routerLink]="['/events', rehearsal.id]">
                                   <span class="picker__name">{{ rehearsal.title }}</span>
                                   <span class="picker__instrument">
-                                    {{ formatDate(rehearsal.dateTime) }}, {{ formatTime(rehearsal.dateTime) }} Uhr
+                                    {{ formatDate(rehearsal.dateTime) }}, {{ formatTime(rehearsal.dateTime) }} {{ 'Uhr' | t }}
                                   </span>
                                 </a>
                                 <button
@@ -646,7 +665,7 @@
                                   (click)="addExistingRehearsal(rehearsal)"
                                   [disabled]="assigningRehearsal()[rehearsal.id]"
                                 >
-                                  {{ assigningRehearsal()[rehearsal.id] ? 'Ordne zu …' : 'Zuordnen' }}
+                                  {{ (assigningRehearsal()[rehearsal.id] ? 'Ordne zu …' : 'Zuordnen') | t }}
                                 </button>
                               </li>
                             }
@@ -669,7 +688,7 @@
                       (click)="togglePanel('equipment')"
                       [attr.aria-expanded]="!isCollapsed('equipment')"
                     >
-                      <h2 class="panel__title">Equipment</h2>
+                      <h2 class="panel__title">{{ 'Equipment' | t }}</h2>
                       <span class="panel__desc">{{ panelDescription('equipment') }}</span>
                     </button>
                   </span>
@@ -678,35 +697,35 @@
                     class="panel__collapse"
                     (click)="togglePanel('equipment')"
                     [attr.aria-expanded]="!isCollapsed('equipment')"
-                  >{{ isCollapsed('equipment') ? 'Öffnen' : 'Einklappen' }}</button>
+                    >{{ (isCollapsed('equipment') ? 'Öffnen' : 'Einklappen') | t }}</button>
                 </div>
 
                 @if (!isCollapsed('equipment')) {
                   @if (requirementsLoading()) {
-                    <p class="panel__note">Equipment wird geladen …</p>
+                    <p class="panel__note">{{ 'Equipment wird geladen …' | t }}</p>
                   } @else if (requirementsError(); as message) {
-                    <p class="panel__note panel__note--error" role="alert">{{ message }}</p>
+                    <p class="panel__note panel__note--error" role="alert">{{ message | t }}</p>
                   } @else {
                     <div class="equipment__bar">
                       <span class="equipment__count">
                         @if (requirements().length > 0) {
-                          {{ equipmentResolvedCount() }} von {{ requirements().length }} geklärt
+                          {{ '{{confirmed}} von {{total}} geklärt' | t: { confirmed: equipmentResolvedCount(), total: requirements().length } }}
                         }
                       </span>
                       <button type="button" class="equipment__add" (click)="toggleEquipmentPicker()">
-                        Equipment hinzufügen
+                        {{ 'Equipment hinzufügen' | t }}
                       </button>
                     </div>
 
                     @if (requirementsFeedback(); as feedback) {
-                      <p class="equipment__feedback" role="status">{{ feedback }}</p>
+                      <p class="equipment__feedback" role="status">{{ feedback | t }}</p>
                     }
                     @if (requirementsError(); as message) {
-                      <p class="equipment__feedback equipment__feedback--error" role="alert">{{ message }}</p>
+                      <p class="equipment__feedback equipment__feedback--error" role="alert">{{ message | t }}</p>
                     }
 
                     @if (requirements().length === 0) {
-                      <p class="panel__note">Noch kein Equipment für diesen Termin erfasst.</p>
+                      <p class="panel__note">{{ 'Noch kein Equipment für diesen Termin erfasst.' | t }}</p>
                     } @else {
                       <ul class="equipment">
                         @for (requirement of requirements(); track requirement.id) {
@@ -726,10 +745,10 @@
                                 [class.eq__chip--no]="requirement.availableOnSite === 'NO'"
                                 (click)="toggleRequirementState(requirement, 'availableOnSite')"
                                 [disabled]="requirementsSaving()[requirement.id]"
-                                aria-label="Vor Ort vorhanden: {{ stateLabel(requirement.availableOnSite) }}. Zum Umschalten klicken."
+                                [attr.aria-label]="'Vor Ort vorhanden: {{state}}. Zum Umschalten klicken.' | t: { state: stateLabel(requirement.availableOnSite) }"
                               >
                                 <span class="eq__mark" aria-hidden="true">{{ stateMark(requirement.availableOnSite) }}</span>
-                                Vor Ort: {{ stateLabel(requirement.availableOnSite) }}
+                                {{ 'Vor Ort: {{state}}' | t: { state: stateLabel(requirement.availableOnSite) } }}
                               </button>
                               <div class="eq__bring">
                                 <button
@@ -739,13 +758,13 @@
                                   [class.eq__chip--no]="requirement.needsToBeBrought === 'NO'"
                                   (click)="toggleRequirementState(requirement, 'needsToBeBrought')"
                                   [disabled]="requirementsSaving()[requirement.id]"
-                                  aria-label="Muss mitgebracht werden: {{ stateLabel(requirement.needsToBeBrought) }}. Zum Umschalten klicken."
+                                  [attr.aria-label]="'Muss mitgebracht werden: {{state}}. Zum Umschalten klicken.' | t: { state: stateLabel(requirement.needsToBeBrought) }"
                                 >
                                   <span class="eq__mark" aria-hidden="true">{{ stateMark(requirement.needsToBeBrought) }}</span>
-                                  Mitbringen: {{ stateLabel(requirement.needsToBeBrought) }}
+                                  {{ 'Mitbringen: {{state}}' | t: { state: stateLabel(requirement.needsToBeBrought) } }}
                                 </button>
                                 <label class="sr-only" [for]="'eq-resp-' + requirement.id">
-                                  Person, die das mitbringt: {{ requirement.equipmentName }}
+                                  {{ 'Person, die das mitbringt: {{name}}' | t: { name: requirement.equipmentName } }}
                                 </label>
                                 <select
                                   class="eq__select"
@@ -753,7 +772,7 @@
                                   [disabled]="requirementsSaving()[requirement.id]"
                                   (change)="onResponsibleChange(requirement, $any($event.target).value)"
                                 >
-                                  <option value="" [selected]="responsibleValue(requirement) === ''">Ohne Verantwortung</option>
+                                  <option value="" [selected]="responsibleValue(requirement) === ''">{{ 'Ohne Verantwortung' | t }}</option>
                                   @for (musician of participations(); track musician.id) {
                                     <option
                                       [value]="musician.musicianId"
@@ -771,7 +790,7 @@
                                   class="eq__remove-btn"
                                   (click)="requestRemoveRequirement(requirement)"
                                   [disabled]="requirementsSaving()[requirement.id]"
-                                >Entfernen</button>
+                                >{{ 'Entfernen' | t }}</button>
                               } @else {
                                 <span class="eq__confirm">
                                   <button
@@ -779,12 +798,12 @@
                                     class="eq__remove-btn eq__remove-btn--danger"
                                     (click)="confirmRemoveRequirement(requirement)"
                                     [disabled]="requirementsSaving()[requirement.id]"
-                                  >Wirklich?</button>
+                                  >{{ 'Wirklich?' | t }}</button>
                                   <button
                                     type="button"
                                     class="eq__remove-btn"
                                     (click)="cancelRemoveRequirement(requirement)"
-                                  >Abbrechen</button>
+                                  >{{ 'Abbrechen' | t }}</button>
                                 </span>
                               }
                             </div>
@@ -801,40 +820,40 @@
                           (click)="toggleNewEquipment()"
                           [attr.aria-expanded]="newEquipmentOpen()"
                         >
-                          {{ newEquipmentOpen() ? 'Neues Equipment schließen' : 'Neues Equipment anlegen' }}
+                          {{ (newEquipmentOpen() ? 'Neues Equipment schließen' : 'Neues Equipment anlegen') | t }}
                         </button>
 
                         @if (newEquipmentOpen()) {
                           <form class="picker__new" (ngSubmit)="addNewEquipment()">
-                            <label class="sr-only" for="new-eq-name">Name</label>
+                            <label class="sr-only" for="new-eq-name">{{ 'Name' | t }}</label>
                             <input
                               id="new-eq-name"
                               class="picker__input"
                               [value]="newEquipmentName()"
                               (input)="onNewEquipmentName($event)"
-                              placeholder="Name"
+                              [placeholder]="'Name' | t"
                               required
                             />
-                            <label class="sr-only" for="new-eq-category">Kategorie</label>
+                            <label class="sr-only" for="new-eq-category">{{ 'Kategorie' | t }}</label>
                             <input
                               id="new-eq-category"
                               class="picker__input"
                               [value]="newEquipmentCategory()"
                               (input)="onNewEquipmentCategory($event)"
-                              placeholder="Kategorie (optional)"
+                              [placeholder]="'Kategorie (optional)' | t"
                             />
                             <button
                               type="submit"
                               class="picker__submit"
                               [disabled]="!canAddNewEquipment()"
-                            >Anlegen & hinzufügen</button>
+                            >{{ 'Anlegen & hinzufügen' | t }}</button>
                           </form>
                         }
 
                         @if (equipmentCatalogLoading()) {
-                          <p class="panel__note">Equipment wird geladen …</p>
+                          <p class="panel__note">{{ 'Equipment wird geladen …' | t }}</p>
                         } @else if (availableEquipment().length === 0) {
-                          <p class="panel__note">Kein weiteres Equipment verfügbar.</p>
+                          <p class="panel__note">{{ 'Kein weiteres Equipment verfügbar.' | t }}</p>
                         } @else {
                           <ul class="picker__list">
                             @for (equipment of availableEquipment(); track equipment.id) {
@@ -874,7 +893,7 @@
                       (click)="togglePanel('locations')"
                       [attr.aria-expanded]="!isCollapsed('locations')"
                     >
-                      <h2 class="panel__title">Orte & Logistik</h2>
+                      <h2 class="panel__title">{{ 'Orte & Logistik' | t }}</h2>
                       <span class="panel__desc">{{ panelDescription('locations') }}</span>
                     </button>
                   </span>
@@ -883,14 +902,14 @@
                     class="panel__collapse"
                     (click)="togglePanel('locations')"
                     [attr.aria-expanded]="!isCollapsed('locations')"
-                  >{{ isCollapsed('locations') ? 'Öffnen' : 'Einklappen' }}</button>
+                  >{{ (isCollapsed('locations') ? 'Öffnen' : 'Einklappen') | t }}</button>
                 </div>
 
                 @if (!isCollapsed('locations')) {
                   @if (locationsLoading()) {
-                    <p class="panel__note">Orte werden geladen …</p>
+                    <p class="panel__note">{{ 'Orte werden geladen …' | t }}</p>
                   } @else if (locationsError(); as message) {
-                    <p class="panel__note panel__note--error" role="alert">{{ message }}</p>
+                    <p class="panel__note panel__note--error" role="alert">{{ message | t }}</p>
                   } @else {
                     <div class="schedule__bar">
                       <button
@@ -899,20 +918,20 @@
                         (click)="toggleLocationForm()"
                         [attr.aria-expanded]="locationFormOpen()"
                       >
-                        {{ locationFormOpen() ? 'Formular schließen' : 'Ort hinzufügen' }}
+                        {{ (locationFormOpen() ? 'Formular schließen' : 'Ort hinzufügen') | t }}
                       </button>
                     </div>
 
                     @if (locationsFeedback(); as feedback) {
-                      <p class="schedule__feedback" role="status">{{ feedback }}</p>
+                      <p class="schedule__feedback" role="status">{{ feedback | t }}</p>
                     }
                     @if (locationsError(); as message) {
-                      <p class="schedule__feedback schedule__feedback--error" role="alert">{{ message }}</p>
+                      <p class="schedule__feedback schedule__feedback--error" role="alert">{{ message | t }}</p>
                     }
 
                     @if (locationFormOpen()) {
                       <form class="picker__new" (ngSubmit)="saveLocation()">
-                        <label class="sr-only" for="location-type">Ortstyp</label>
+                        <label class="sr-only" for="location-type">{{ 'Ortstyp' | t }}</label>
                         <select
                           id="location-type"
                           class="picker__input locations__select"
@@ -920,58 +939,58 @@
                           name="locationType"
                           (ngModelChange)="onLocationTypeChange($event)"
                         >
-                          <option value="" disabled>Ortstyp wählen</option>
+                          <option value="" disabled>{{ 'Ortstyp wählen' | t }}</option>
                           @for (option of locationTypes; track option.value) {
-                            <option [ngValue]="option.value">{{ option.label }}</option>
+                            <option [ngValue]="option.value">{{ option.label | t }}</option>
                           }
                         </select>
 
-                        <label class="sr-only" for="location-name">Name</label>
+                        <label class="sr-only" for="location-name">{{ 'Name' | t }}</label>
                         <input
                           id="location-name"
                           class="picker__input"
                           [value]="locationName()"
                           (input)="onLocationName($event)"
-                          placeholder="Name"
+                          [placeholder]="'Name' | t"
                           required
                         />
 
-                        <label class="sr-only" for="location-address">Adresse</label>
+                        <label class="sr-only" for="location-address">{{ 'Adresse' | t }}</label>
                         <input
                           id="location-address"
                           class="picker__input"
                           [value]="locationAddress()"
                           (input)="onLocationAddress($event)"
-                          placeholder="Adresse"
+                          [placeholder]="'Adresse' | t"
                           required
                         />
 
-                        <label class="sr-only" for="location-description">Beschreibung (optional)</label>
+                        <label class="sr-only" for="location-description">{{ 'Beschreibung (optional)' | t }}</label>
                         <textarea
                           id="location-description"
                           class="picker__input locations__description"
                           rows="3"
                           [value]="locationDescription()"
                           (input)="onLocationDescription($event)"
-                          placeholder="Beschreibung (optional)"
+                          [placeholder]="'Beschreibung (optional)' | t"
                         ></textarea>
 
-                        <label class="sr-only" for="location-phone">Telefonnummer (optional)</label>
+                        <label class="sr-only" for="location-phone">{{ 'Telefonnummer (optional)' | t }}</label>
                         <input
                           id="location-phone"
                           class="picker__input"
                           [value]="locationPhone()"
                           (input)="onLocationPhone($event)"
-                          placeholder="Telefonnummer (optional)"
+                          [placeholder]="'Telefonnummer (optional)' | t"
                         />
 
-                        <label class="sr-only" for="location-maps">Karten-Link (optional)</label>
+                        <label class="sr-only" for="location-maps">{{ 'Karten-Link (optional)' | t }}</label>
                         <input
                           id="location-maps"
                           class="picker__input"
                           [value]="locationMapsUrl()"
                           (input)="onLocationMapsUrl($event)"
-                          placeholder="Karten-Link (optional)"
+                          [placeholder]="'Karten-Link (optional)' | t"
                         />
 
                         <div class="locations__form-actions">
@@ -980,21 +999,21 @@
                             class="picker__submit"
                             [disabled]="!canSaveLocation()"
                           >
-                            {{ editingLocationId() !== null ? 'Speichern' : 'Hinzufügen' }}
+                            {{ (editingLocationId() !== null ? 'Speichern' : 'Hinzufügen') | t }}
                           </button>
                           @if (editingLocationId() !== null) {
                             <button
                               type="button"
                               class="sched__btn"
                               (click)="cancelLocationEdit()"
-                            >Abbrechen</button>
+                            >{{ 'Abbrechen' | t }}</button>
                           }
                         </div>
                       </form>
                     }
 
                     @if (locations().length === 0) {
-                      <p class="panel__note">Noch keine Orte für diesen Termin erfasst.</p>
+                      <p class="panel__note">{{ 'Noch keine Orte für diesen Termin erfasst.' | t }}</p>
                     } @else {
                       <ul class="locations">
                         @for (location of locations(); track location.id) {
@@ -1011,7 +1030,7 @@
                                 [href]="mapsLink(location)"
                                 target="_blank"
                                 rel="noopener"
-                              >Karte öffnen</a>
+                              >{{ 'Karte öffnen' | t }}</a>
                               @if (location.phone) {
                                 <span class="loc__phone">Tel: {{ location.phone }}</span>
                               }
@@ -1027,14 +1046,14 @@
                                 class="sched__btn"
                                 (click)="startEditLocation(location)"
                                 [disabled]="locationsSaving()[location.id]"
-                              >Bearbeiten</button>
+                                >{{ 'Bearbeiten' | t }}</button>
                               @if (!confirmingLocationRemoval()[location.id]) {
                                 <button
                                   type="button"
                                   class="sched__btn"
                                   (click)="requestRemoveLocation(location)"
                                   [disabled]="locationsSaving()[location.id]"
-                                >Entfernen</button>
+                                >{{ 'Entfernen' | t }}</button>
                               } @else {
                                 <span class="locations__confirm">
                                   <button
@@ -1042,12 +1061,12 @@
                                     class="sched__btn sched__btn--danger"
                                     (click)="confirmRemoveLocation(location)"
                                     [disabled]="locationsSaving()[location.id]"
-                                  >Wirklich?</button>
+                                  >{{ 'Wirklich?' | t }}</button>
                                   <button
                                     type="button"
                                     class="sched__btn"
                                     (click)="cancelRemoveLocation(location)"
-                                  >Abbrechen</button>
+                                  >{{ 'Abbrechen' | t }}</button>
                                 </span>
                               }
                             </div>
@@ -1070,7 +1089,7 @@
                       (click)="togglePanel('schedule')"
                       [attr.aria-expanded]="!isCollapsed('schedule')"
                     >
-                      <h2 class="panel__title">Ablauf / Zeiten</h2>
+                      <h2 class="panel__title">{{ 'Ablauf / Zeiten' | t }}</h2>
                       <span class="panel__desc">{{ panelDescription('schedule') }}</span>
                     </button>
                   </span>
@@ -1079,14 +1098,14 @@
                     class="panel__collapse"
                     (click)="togglePanel('schedule')"
                     [attr.aria-expanded]="!isCollapsed('schedule')"
-                  >{{ isCollapsed('schedule') ? 'Öffnen' : 'Einklappen' }}</button>
+                  >{{ (isCollapsed('schedule') ? 'Öffnen' : 'Einklappen') | t }}</button>
                 </div>
 
                 @if (!isCollapsed('schedule')) {
                   @if (scheduleLoading()) {
-                    <p class="panel__note">Ablauf wird geladen …</p>
+                    <p class="panel__note">{{ 'Ablauf wird geladen …' | t }}</p>
                   } @else if (scheduleError(); as message) {
-                    <p class="panel__note panel__note--error" role="alert">{{ message }}</p>
+                    <p class="panel__note panel__note--error" role="alert">{{ message | t }}</p>
                   } @else {
                     <div class="schedule__bar">
                       <button
@@ -1095,46 +1114,46 @@
                         (click)="toggleScheduleForm()"
                         [attr.aria-expanded]="scheduleFormOpen()"
                       >
-                        {{ scheduleFormOpen() ? 'Neuen Zeitpunkt schließen' : 'Zeitpunkt hinzufügen' }}
+                        {{ (scheduleFormOpen() ? 'Neuen Zeitpunkt schließen' : 'Zeitpunkt hinzufügen') | t }}
                       </button>
                     </div>
 
                     @if (scheduleFeedback(); as feedback) {
-                      <p class="schedule__feedback" role="status">{{ feedback }}</p>
+                      <p class="schedule__feedback" role="status">{{ feedback | t }}</p>
                     }
                     @if (scheduleError(); as message) {
-                      <p class="schedule__feedback schedule__feedback--error" role="alert">{{ message }}</p>
+                      <p class="schedule__feedback schedule__feedback--error" role="alert">{{ message | t }}</p>
                     }
 
                     @if (scheduleFormOpen()) {
                       <form class="schedule__new" (ngSubmit)="saveScheduleItem()">
-                        <label class="sr-only" for="schedule-type">Ablaufart</label>
+                        <label class="sr-only" for="schedule-type">{{ 'Ablaufart' | t }}</label>
                         <select
                           id="schedule-type"
                           class="schedule__select"
                           [value]="scheduleType()"
                           (change)="onScheduleType($event)"
                         >
-                          <option value="" disabled>Ablaufart wählen</option>
+                          <option value="" disabled>{{ 'Ablaufart wählen' | t }}</option>
                           @for (preset of schedulePresets; track preset) {
-                            <option [value]="preset">{{ preset }}</option>
+                            <option [value]="preset">{{ preset | t }}</option>
                           }
-                          <option [value]="'custom'">Eigener Eintrag</option>
+                          <option [value]="'custom'">{{ 'Eigener Eintrag' | t }}</option>
                         </select>
 
                         @if (scheduleType() === 'custom') {
-                          <label class="sr-only" for="schedule-custom">Eigener Eintrag</label>
+                          <label class="sr-only" for="schedule-custom">{{ 'Eigener Eintrag' | t }}</label>
                           <input
                             id="schedule-custom"
                             class="schedule__input schedule__input--custom"
                             [value]="scheduleCustom()"
                             (input)="onScheduleCustom($event)"
-                            placeholder="Eigener Eintrag"
+                            [placeholder]="'Eigener Eintrag' | t"
                             required
                           />
                         }
 
-                        <label class="sr-only" for="schedule-time">Uhrzeit</label>
+                        <label class="sr-only" for="schedule-time">{{ 'Uhrzeit' | t }}</label>
                         <input
                           id="schedule-time"
                           class="schedule__input schedule__input--time"
@@ -1149,11 +1168,11 @@
                             class="schedule__submit"
                             [disabled]="!canSaveSchedule()"
                           >
-                            {{ editingScheduleId() !== null ? 'Speichern' : 'Hinzufügen' }}
+                            {{ (editingScheduleId() !== null ? 'Speichern' : 'Hinzufügen') | t }}
                           </button>
                           @if (editingScheduleId() !== null) {
                             <button type="button" class="schedule__cancel" (click)="cancelScheduleEdit()">
-                              Abbrechen
+                              {{ 'Abbrechen' | t }}
                             </button>
                           }
                         </div>
@@ -1161,7 +1180,7 @@
                     }
 
                     @if (scheduleItems().length === 0) {
-                      <p class="panel__note">Noch kein Ablauf für diesen Termin erfasst.</p>
+                      <p class="panel__note">{{ 'Noch kein Ablauf für diesen Termin erfasst.' | t }}</p>
                     } @else {
                       <ol class="schedule">
                         @for (item of scheduleItems(); track item.id) {
@@ -1174,13 +1193,13 @@
                                 class="sched__btn"
                                 (click)="startEditSchedule(item)"
                                 [disabled]="scheduleSaving()[item.id]"
-                              >Bearbeiten</button>
+                              >{{ 'Bearbeiten' | t }}</button>
                               <button
                                 type="button"
                                 class="sched__btn sched__btn--danger"
                                 (click)="requestRemoveSchedule(item)"
                                 [disabled]="scheduleSaving()[item.id]"
-                              >{{ scheduleSaving()[item.id] ? 'Entfernen …' : 'Entfernen' }}</button>
+                                >{{ (scheduleSaving()[item.id] ? 'Entfernen …' : 'Entfernen') | t }}</button>
                             </span>
                           </li>
                         }
@@ -1212,7 +1231,7 @@
                     class="panel__collapse"
                     (click)="togglePanel(panelKey)"
                     [attr.aria-expanded]="!isCollapsed(panelKey)"
-                  >{{ isCollapsed(panelKey) ? 'Öffnen' : 'Einklappen' }}</button>
+                  >{{ (isCollapsed(panelKey) ? 'Öffnen' : 'Einklappen') | t }}</button>
                 </div>
                 @if (!isCollapsed(panelKey)) {
                   <p class="panel__note">
@@ -1238,56 +1257,56 @@
 }
 
 @if (pickerOpen()) {
-  <app-modal-dialog title="Musiker*in hinzufügen" (closed)="togglePicker()">
+  <app-modal-dialog [title]="'Musiker*in hinzufügen' | t" (closed)="togglePicker()">
     <button
       type="button"
       class="picker__toggle-new"
       (click)="toggleNewMusician()"
       [attr.aria-expanded]="newMusicianOpen()"
     >
-    {{ newMusicianOpen() ? 'Neue Person schließen' : 'Neue Person anlegen' }}
+    {{ (newMusicianOpen() ? 'Neue Person schließen' : 'Neue Person anlegen') | t }}
   </button>
 
   @if (newMusicianOpen()) {
     <form class="picker__new" (ngSubmit)="addNewMusician()">
-      <label class="sr-only" for="new-first">Vorname</label>
+      <label class="sr-only" for="new-first">{{ 'Vorname' | t }}</label>
       <input
         id="new-first"
         class="picker__input"
         [value]="newFirstName()"
         (input)="onNewFirstName($event)"
-        placeholder="Vorname"
+        [placeholder]="'Vorname' | t"
         required
       />
-      <label class="sr-only" for="new-last">Nachname</label>
+      <label class="sr-only" for="new-last">{{ 'Nachname' | t }}</label>
       <input
         id="new-last"
         class="picker__input"
         [value]="newLastName()"
         (input)="onNewLastName($event)"
-        placeholder="Nachname"
+        [placeholder]="'Nachname' | t"
         required
       />
-      <label class="sr-only" for="new-instrument">Instrument</label>
+      <label class="sr-only" for="new-instrument">{{ 'Instrument' | t }}</label>
       <input
         id="new-instrument"
         class="picker__input"
         [value]="newInstrument()"
         (input)="onNewInstrument($event)"
-        placeholder="Instrument (optional)"
+        [placeholder]="'Instrument (optional)' | t"
       />
       <button
         type="submit"
         class="picker__submit"
         [disabled]="!canAddNewMusician()"
-      >Anlegen & hinzufügen</button>
+      >{{ 'Anlegen & hinzufügen' | t }}</button>
     </form>
   }
 
   @if (musiciansLoading()) {
-    <p class="panel__note">Musiker*innen werden geladen …</p>
+    <p class="panel__note">{{ 'Musiker*innen werden geladen …' | t }}</p>
   } @else if (availableMusicians().length === 0) {
-    <p class="panel__note">Keine weiteren Musiker*innen verfügbar.</p>
+    <p class="panel__note">{{ 'Keine weiteren Musiker*innen verfügbar.' | t }}</p>
   } @else {
     <ul class="picker__list">
       @for (musician of availableMusicians(); track musician.id) {
@@ -1304,7 +1323,7 @@
             (click)="addExistingMusician(musician)"
             [disabled]="addingMusicians()[musician.id]"
           >
-            {{ addingMusicians()[musician.id] ? 'Füge hinzu …' : 'Hinzufügen' }}
+            {{ (addingMusicians()[musician.id] ? 'Füge hinzu …' : 'Hinzufügen') | t }}
           </button>
         </li>
       }
@@ -1316,17 +1335,17 @@
 
 @if (bandPickerOpen()) {
   <app-modal-dialog
-    title="Band einladen"
+    [title]="'Band einladen' | t"
     [closeOnEscape]="invitingBandId() === null"
     (closed)="closeBandPicker()"
   >
-    <p class="panel__note">Wähle die Band aus, deren Mitglieder eingeladen werden sollen.</p>
+    <p class="panel__note">{{ 'Wähle die Band aus, deren Mitglieder eingeladen werden sollen.' | t }}</p>
     @if (bandsLoading()) {
-      <p class="panel__note">Bands werden geladen …</p>
+      <p class="panel__note">{{ 'Bands werden geladen …' | t }}</p>
     } @else if (bandPickerError(); as message) {
-      <p class="panel__note panel__note--error" role="alert">{{ message }}</p>
+      <p class="panel__note panel__note--error" role="alert">{{ message | t }}</p>
     } @else if (bands().length === 0) {
-      <p class="panel__note">Noch keine Bands angelegt.</p>
+      <p class="panel__note">{{ 'Noch keine Bands angelegt.' | t }}</p>
     } @else {
       <ul class="picker__list">
         @for (band of bands(); track band.id) {
@@ -1343,7 +1362,7 @@
               (click)="inviteBand(band)"
               [disabled]="invitingBandId() !== null"
             >
-              {{ invitingBandId() === band.id ? 'Wird eingeladen …' : 'Einladen' }}
+              {{ (invitingBandId() === band.id ? 'Wird eingeladen …' : 'Einladen') | t }}
             </button>
           </li>
         }

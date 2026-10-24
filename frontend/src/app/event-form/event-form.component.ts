@@ -13,10 +13,11 @@ import { Router, RouterLink } from '@angular/router';
 
 import { EventService } from '../dashboard/event.service';
 import type { Band, EventItem, EventType } from '../dashboard/event.model';
+import { TranslatePipe } from '../language/translate.pipe';
 
 @Component({
   selector: 'app-event-form',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, TranslatePipe],
   templateUrl: './event-form.component.html',
   styleUrl: './event-form.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

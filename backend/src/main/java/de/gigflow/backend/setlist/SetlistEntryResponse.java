@@ -8,12 +8,23 @@ public class SetlistEntryResponse {
     private Long setlistId;
     private Long pieceId;
     private String pieceTitle;
+    private String notes;
     private List<PieceSheetResponse> sheets = List.of();
+    private List<PieceDemoAudioResponse> demoAudios = List.of();
+    private List<PieceLinkResponse> links = List.of();
     private boolean hasDemoAudio;
     private String youtubeUrl;
     private int position;
 
     public static SetlistEntryResponse from(SetlistEntry entry, List<PieceSheet> sheets) {
+        return from(entry, sheets, List.of(), List.of());
+    }
+
+    public static SetlistEntryResponse from(
+            SetlistEntry entry,
+            List<PieceSheet> sheets,
+            List<PieceDemoAudio> demoAudios,
+            List<PieceLink> links) {
         SetlistEntryResponse response = new SetlistEntryResponse();
         response.setId(entry.getId());
         if (entry.getSetlist() != null) {
@@ -22,9 +33,16 @@ public class SetlistEntryResponse {
         if (entry.getPiece() != null) {
             response.setPieceId(entry.getPiece().getId());
             response.setPieceTitle(entry.getPiece().getTitle());
+            response.setNotes(entry.getPiece().getNotes());
             response.setSheets(sheets.stream().map(PieceSheetResponse::from).toList());
-            response.setHasDemoAudio(entry.getPiece().getDemoAudioPath() != null);
-            response.setYoutubeUrl(entry.getPiece().getYoutubeUrl());
+            response.setDemoAudios(demoAudios.stream().map(PieceDemoAudioResponse::from).toList());
+            response.setLinks(links.stream().map(PieceLinkResponse::from).toList());
+            response.setHasDemoAudio(!demoAudios.isEmpty());
+            response.setYoutubeUrl(links.stream()
+                    .filter(link -> "YouTube".equalsIgnoreCase(link.getLabel()))
+                    .findFirst()
+                    .map(PieceLink::getUrl)
+                    .orElse(null));
         }
         response.setPosition(entry.getPosition());
         return response;
@@ -62,12 +80,36 @@ public class SetlistEntryResponse {
         this.pieceTitle = pieceTitle;
     }
 
+    public String getNotes() {
+        return notes;
+    }
+
+    public void setNotes(String notes) {
+        this.notes = notes;
+    }
+
     public List<PieceSheetResponse> getSheets() {
         return sheets;
     }
 
     public void setSheets(List<PieceSheetResponse> sheets) {
         this.sheets = sheets;
+    }
+
+    public List<PieceDemoAudioResponse> getDemoAudios() {
+        return demoAudios;
+    }
+
+    public void setDemoAudios(List<PieceDemoAudioResponse> demoAudios) {
+        this.demoAudios = demoAudios;
+    }
+
+    public List<PieceLinkResponse> getLinks() {
+        return links;
+    }
+
+    public void setLinks(List<PieceLinkResponse> links) {
+        this.links = links;
     }
 
     public boolean getHasDemoAudio() {

@@ -1,8 +1,8 @@
 <section class="dashboard">
   <header class="page-head">
     <div class="page-head__text">
-      <p class="kicker">Tourplan</p>
-      <h1 class="title">Termine</h1>
+      <p class="kicker">{{ 'Tourplan' | t }}</p>
+      <h1 class="title">{{ 'Termine' | t }}</h1>
     </div>
     <div class="page-head__actions">
       @if (canDeleteAll()) {
@@ -11,16 +11,16 @@
           class="page-head__delete"
           (click)="requestDeleteAll()"
           [disabled]="deletingAll()"
-        >Alle Termine löschen</button>
+        >{{ 'Alle Termine löschen' | t }}</button>
       }
-      <a class="page-head__add" routerLink="/events/new">+ Neues Event</a>
+      <a class="page-head__add" routerLink="/events/new">+ {{ 'Neues Event' | t }}</a>
     </div>
   </header>
 
   @if (confirmingDeleteAll()) {
-    <div class="bulk-confirm" role="group" aria-label="Alle Termine löschen bestätigen">
+    <div class="bulk-confirm" role="group" [attr.aria-label]="'Alle Termine löschen bestätigen' | t">
       <span class="bulk-confirm__text" role="alert">
-        Alle {{ events().length }} Termine inklusive Proben, Setlists und Teilnahmen löschen?
+        {{ 'Alle {{count}} Termine inklusive Proben, Setlists und Teilnahmen löschen?' | t: { count: events().length } }}
       </span>
       <div class="bulk-confirm__actions">
         <button
@@ -28,18 +28,18 @@
           class="bulk-confirm__btn"
           (click)="cancelDeleteAll()"
           [disabled]="deletingAll()"
-        >Abbrechen</button>
+        >{{ 'Abbrechen' | t }}</button>
         <button
           type="button"
           class="bulk-confirm__btn bulk-confirm__btn--danger"
           (click)="deleteAllEvents()"
           [disabled]="deletingAll()"
-        >{{ deletingAll() ? 'Wird gelöscht …' : 'Alle löschen' }}</button>
+        >{{ (deletingAll() ? 'Wird gelöscht …' : 'Alle löschen') | t }}</button>
       </div>
     </div>
   }
 
-  <nav class="filters" aria-label="Events filtern">
+  <nav class="filters" [attr.aria-label]="'Events filtern' | t">
     @for (item of filters; track item.value) {
       <button
         type="button"
@@ -47,15 +47,15 @@
         [class.filter--active]="filter() === item.value"
         (click)="selectFilter(item.value)"
       >
-        {{ item.label }}
+        {{ item.label | t }}
       </button>
     }
   </nav>
 
   @if (loading()) {
-    <p class="status">Events werden geladen …</p>
+    <p class="status">{{ 'Events werden geladen …' | t }}</p>
   } @else if (error(); as message) {
-    <p class="status status--error" role="alert">{{ message }}</p>
+    <p class="status status--error" role="alert">{{ message | t }}</p>
   } @else {
     <ul class="events">
       @for (event of filteredEvents(); track event.id) {
@@ -87,14 +87,14 @@
               @if (dateContext(event.dateTime); as ctx) {
                 <span
                   class="event__ctx"
-                  [class.event__ctx--today]="ctx === 'Heute'"
+                  [class.event__ctx--today]="ctx === ('Heute' | t)"
                 >{{ ctx }}</span>
               }
               <time class="event__date" [attr.datetime]="event.dateTime">
                 {{ formatDate(event.dateTime) }}
               </time>
               <time class="event__time" [attr.datetime]="event.dateTime">
-                {{ formatTime(event.dateTime) }} Uhr
+                {{ formatTime(event.dateTime) }} {{ 'Uhr' | t }}
               </time>
             </div>
           </a>
@@ -103,19 +103,19 @@
             <div class="event__delete-zone">
               @if (confirmingDelete()[event.id]) {
                 <div class="event__confirm" role="dialog" aria-modal="true">
-                  <span class="event__confirm-label">„{{ event.title }}“ wirklich löschen?</span>
+                    <span class="event__confirm-label">{{ '„{{title}}“ wirklich löschen?' | t: { title: event.title } }}</span>
                   <div class="event__confirm-actions">
                     <button
                       type="button"
                       class="event__confirm-btn"
                       (click)="cancelDelete(event)"
-                    >Abbrechen</button>
+                    >{{ 'Abbrechen' | t }}</button>
                     <button
                       type="button"
                       class="event__confirm-btn event__confirm-btn--danger"
                       (click)="confirmDelete(event)"
                       [disabled]="deleting()[event.id]"
-                    >Löschen</button>
+                    >{{ 'Löschen' | t }}</button>
                   </div>
                 </div>
               } @else {
@@ -124,7 +124,7 @@
                   class="event__delete"
                   (click)="requestDelete(event)"
                   [attr.aria-label]="'Termin löschen: ' + event.title"
-                  title="Löschen"
+                  [title]="'Löschen' | t"
                 >&times;</button>
               }
             </div>
@@ -133,14 +133,14 @@
       } @empty {
         <li>
           <article class="event event--empty">
-            <p>Keine Events in dieser Ansicht.</p>
+            <p>{{ 'Keine Events in dieser Ansicht.' | t }}</p>
           </article>
         </li>
       }
     </ul>
 
     @if (deleteError(); as message) {
-      <p class="status status--error" role="alert">{{ message }}</p>
+      <p class="status status--error" role="alert">{{ message | t }}</p>
     }
   }
 </section>

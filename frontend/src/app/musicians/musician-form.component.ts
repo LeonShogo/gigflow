@@ -14,10 +14,11 @@ import { AuthService } from '../auth/auth.service';
 import { EventService } from '../dashboard/event.service';
 import { ToastService } from '../notifications/toast.service';
 import type { Band, BandMembership } from '../dashboard/event.model';
+import { TranslatePipe } from '../language/translate.pipe';
 
 @Component({
   selector: 'app-musician-form',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, TranslatePipe],
   templateUrl: './musician-form.component.html',
   styleUrl: './musician-form.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

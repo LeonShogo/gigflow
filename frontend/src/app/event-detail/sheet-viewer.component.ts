@@ -15,6 +15,7 @@ import {
 } from '@angular/core';
 import { getDocument, type PDFDocumentProxy, type PDFPageProxy, type RenderTask } from 'pdfjs-dist';
 import * as pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs';
+import { TranslatePipe } from '../language/translate.pipe';
 
 (globalThis as { pdfjsWorker?: typeof pdfjsWorker }).pdfjsWorker = pdfjsWorker;
 
@@ -53,7 +54,7 @@ const SWIPE_FEEDBACK_MS = 400;
 
 @Component({
   selector: 'app-sheet-viewer',
-  imports: [],
+  imports: [TranslatePipe],
   templateUrl: './sheet-viewer.component.html',
   styleUrl: './sheet-viewer.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

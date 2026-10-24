@@ -17,10 +17,11 @@ import { EventService } from '../dashboard/event.service';
 import { ToastService } from '../notifications/toast.service';
 import { ModalDialogComponent } from '../shared/modal-dialog.component';
 import type { Band, BandMembership } from '../dashboard/event.model';
+import { TranslatePipe } from '../language/translate.pipe';
 
 @Component({
   selector: 'app-musician-list',
-  imports: [RouterLink, FormsModule, ModalDialogComponent],
+  imports: [RouterLink, FormsModule, ModalDialogComponent, TranslatePipe],
   templateUrl: './musician-list.component.html',
   styleUrl: './musician-list.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

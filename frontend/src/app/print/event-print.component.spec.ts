@@ -88,7 +88,15 @@ describe('EventPrintComponent', () => {
       },
     ]);
     httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([
-      { id: 1, setlistId: 10, pieceId: 1, pieceTitle: 'Ode an die Freude', position: 0, sheets: [] },
+      {
+        id: 1,
+        setlistId: 10,
+        pieceId: 1,
+        pieceTitle: 'Ode an die Freude',
+        position: 0,
+        sheets: [],
+        notes: 'Intro zweimal, dann Refrain',
+      },
     ]);
   }
 
@@ -138,6 +146,7 @@ describe('EventPrintComponent', () => {
     expect(el.textContent).toContain('Musiker*innen / Zusagen');
     expect(el.textContent).toContain('1 von 2 bestätigt');
     expect(el.textContent).toContain('Setlist');
+    expect(el.textContent).toContain('Intro zweimal, dann Refrain');
     expect(el.textContent).toContain('Equipment');
     expect(el.textContent).toContain('Verstärker');
     expect(el.textContent).toContain('Proben zu diesem Gig');

@@ -1,11 +1,11 @@
-<app-modal-dialog title="Noten herunterladen" [wide]="true" (closed)="close()">
-  <p class="download-intro">Wähle eine Stimme. Stücke ohne passende Stimme werden übersprungen.</p>
+<app-modal-dialog [title]="'Noten herunterladen' | t" [wide]="true" (closed)="close()">
+  <p class="download-intro">{{ 'Wähle eine Stimme. Stücke ohne passende Stimme werden übersprungen.' | t }}</p>
 
   <div class="download-control">
-    <label class="download-label" for="global-part">Stimme</label>
+    <label class="download-label" for="global-part">{{ 'Stimme' | t }}</label>
     <select id="global-part" class="download-select" [value]="globalPart()" (change)="onGlobalPart($event)">
-      <option value="*">Alle Stimmen</option>
-      <option value="-">Keine Noten</option>
+      <option value="*">{{ 'Alle Stimmen' | t }}</option>
+      <option value="-">{{ 'Keine Noten' | t }}</option>
       @for (label of labels(); track label) {
         <option [value]="label">{{ label }}</option>
       }
@@ -14,11 +14,11 @@
 
   <label class="download-info">
     <input type="checkbox" [checked]="includeInfo()" (change)="toggleInfo($event)" />
-    Infoblatt beilegen
+    {{ 'Infoblatt beilegen' | t }}
   </label>
 
   @if (!hasAnySheet()) {
-    <p class="download-empty">Für dieses Repertoire sind keine Noten hinterlegt.</p>
+    <p class="download-empty">{{ 'Für dieses Repertoire sind keine Noten hinterlegt.' | t }}</p>
   } @else {
     <ul class="download-list">
       @for (entry of pieces(); track entry.pieceId; let index = $index) {
@@ -29,11 +29,11 @@
             class="download-select download-select--row"
             [value]="overrideValue(entry)"
             (change)="onOverride(entry.pieceId, $event)"
-            [attr.aria-label]="'Stimme für ' + entry.pieceTitle"
+            [attr.aria-label]="'Stimme für {{title}}' | t: { title: entry.pieceTitle }"
           >
-            <option value="">Wie oben ({{ effectiveLabel(entry) }})</option>
-            <option value="*">Alle Stimmen</option>
-            <option value="-">Keine</option>
+            <option value="">{{ 'Wie oben ({{part}})' | t: { part: effectiveLabel(entry) } }}</option>
+            <option value="*">{{ 'Alle Stimmen' | t }}</option>
+            <option value="-">{{ 'Keine' | t }}</option>
             @for (label of labels(); track label) {
               <option [value]="label">{{ label }}</option>
             }
@@ -44,15 +44,15 @@
   }
 
   <footer class="download-footer">
-    <span class="download-count">{{ selectedCount() }} PDFs</span>
-    <button type="button" class="download-btn" (click)="close()">Abbrechen</button>
+    <span class="download-count">{{ selectedCount() }} {{ 'PDFs' | t }}</span>
+    <button type="button" class="download-btn" (click)="close()">{{ 'Abbrechen' | t }}</button>
     <button
       type="button"
       class="download-btn download-btn--primary"
       [disabled]="!canDownload() || busy()"
       (click)="confirm()"
     >
-      {{ busy() ? 'Packe ZIP …' : 'ZIP herunterladen' }}
+      {{ (busy() ? 'Packe ZIP …' : 'ZIP herunterladen') | t }}
     </button>
   </footer>
 </app-modal-dialog>

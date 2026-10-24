@@ -8,12 +8,12 @@ import org.springframework.mock.web.MockMultipartFile;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -29,13 +29,18 @@ class PieceServiceTest {
 
     private PieceRepository pieceRepository;
     private PieceSheetRepository sheetRepository;
+    private PieceDemoAudioRepository demoAudioRepository;
+    private PieceLinkRepository linkRepository;
     private PieceService pieceService;
 
     @BeforeEach
     void setUp() {
         pieceRepository = mock(PieceRepository.class);
         sheetRepository = mock(PieceSheetRepository.class);
-        pieceService = new PieceService(pieceRepository, sheetRepository, tempDir.toString());
+        demoAudioRepository = mock(PieceDemoAudioRepository.class);
+        linkRepository = mock(PieceLinkRepository.class);
+        pieceService = new PieceService(
+                pieceRepository, sheetRepository, demoAudioRepository, linkRepository, tempDir.toString());
     }
 
     @Test
@@ -216,110 +221,208 @@ class PieceServiceTest {
         Piece piece = new Piece();
         piece.setId(1L);
         when(pieceRepository.findById(1L)).thenReturn(Optional.of(piece));
-        when(pieceRepository.save(any(Piece.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(pieceRepository.existsById(1L)).thenReturn(true);
+        when(demoAudioRepository.findByPieceIdOrderBySortOrderAscIdAsc(1L))
+                .thenReturn(List.of(), List.of(new PieceDemoAudio()));
+        when(demoAudioRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         PieceResponse response = pieceService.saveDemoAudio(1L, new MockMultipartFile(
                 "file", "Demo.mp3", "audio/mpeg", new byte[]{1, 2, 3}));
 
         assertTrue(response.getHasDemoAudio());
-        String storedName = piece.getDemoAudioPath();
+        ArgumentCaptor<List<PieceDemoAudio>> captor = ArgumentCaptor.forClass(List.class);
+        verify(demoAudioRepository).saveAll(captor.capture());
+        PieceDemoAudio audio = captor.getValue().get(0);
+        String storedName = audio.getStoredPath();
         assertTrue(storedName.matches("piece-1-[a-f0-9-]+\\.mp3"));
         assertTrue(Files.isRegularFile(tempDir.resolve(storedName)));
-        assertEquals("Demo.mp3", piece.getDemoAudioOriginalName());
+        assertEquals("Demo.mp3", audio.getOriginalName());
+        assertEquals("Demo", audio.getLabel());
     }
 
     @Test
     void saveDemoAudioRejectsNonMp3() {
-        Piece piece = new Piece();
-        piece.setId(1L);
-        when(pieceRepository.findById(1L)).thenReturn(Optional.of(piece));
+        when(pieceRepository.existsById(1L)).thenReturn(true);
 
         MockMultipartFile txt = new MockMultipartFile(
                 "file", "demo.txt", "text/plain", new byte[]{1, 2, 3});
 
         assertThrows(IllegalArgumentException.class, () -> pieceService.saveDemoAudio(1L, txt));
-        assertNull(piece.getDemoAudioPath());
+        verify(demoAudioRepository, never()).saveAll(any());
     }
 
     @Test
     void saveDemoAudioRejectsTooLargeFile() throws Exception {
-        Piece piece = new Piece();
-        piece.setId(1L);
-        when(pieceRepository.findById(1L)).thenReturn(Optional.of(piece));
+        when(pieceRepository.existsById(1L)).thenReturn(true);
 
         MockMultipartFile big = new MockMultipartFile(
                 "file", "big.mp3", "audio/mpeg", new byte[10 * 1024 * 1024 + 1]);
 
         assertThrows(IllegalArgumentException.class, () -> pieceService.saveDemoAudio(1L, big));
-        assertNull(piece.getDemoAudioPath());
+        verify(demoAudioRepository, never()).saveAll(any());
     }
 
     @Test
     void loadDemoAudioReturnsStoredFile() throws Exception {
         Files.write(tempDir.resolve("piece-1-abc.mp3"), new byte[]{1, 2, 3});
-        Piece piece = new Piece();
-        piece.setId(1L);
-        piece.setDemoAudioPath("piece-1-abc.mp3");
-        piece.setDemoAudioOriginalName("Demo.mp3");
-        when(pieceRepository.findById(1L)).thenReturn(Optional.of(piece));
+        PieceDemoAudio audio = audio(7L, 1L, "Demo", "piece-1-abc.mp3", "Demo.mp3", 0);
+        when(demoAudioRepository.findById(7L)).thenReturn(Optional.of(audio));
 
-        Optional<PieceService.DemoAudioFile> loaded = pieceService.loadDemoAudio(1L);
+        Optional<PieceService.DemoAudioFile> loaded = pieceService.loadDemoAudioById(7L);
 
         assertTrue(loaded.isPresent());
         assertEquals("Demo.mp3", loaded.get().originalName());
     }
 
     @Test
-    void removeDemoAudioDeletesFileAndClearsMetadata() throws Exception {
+    void removeDemoAudioDeletesFileAndRecord() throws Exception {
         Path saved = tempDir.resolve("piece-1-abc.mp3");
         Files.write(saved, new byte[]{1, 2, 3});
-        Piece piece = new Piece();
-        piece.setId(1L);
-        piece.setDemoAudioPath("piece-1-abc.mp3");
-        piece.setDemoAudioOriginalName("Demo.mp3");
-        when(pieceRepository.findById(1L)).thenReturn(Optional.of(piece));
-        when(pieceRepository.save(any(Piece.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        PieceDemoAudio audio = audio(7L, 1L, "Demo", "piece-1-abc.mp3", "Demo.mp3", 0);
+        when(demoAudioRepository.findByPieceIdOrderBySortOrderAscIdAsc(1L)).thenReturn(List.of(audio));
+        when(demoAudioRepository.findById(7L)).thenReturn(Optional.of(audio));
 
         pieceService.removeDemoAudio(1L);
 
         assertFalse(Files.exists(saved));
-        assertNull(piece.getDemoAudioPath());
-        assertNull(piece.getDemoAudioOriginalName());
+        verify(demoAudioRepository).delete(audio);
     }
 
     @Test
     void setYoutubeUrlStoresValidLink() {
-        Piece piece = new Piece();
-        piece.setId(1L);
+        Piece piece = piece(1L, "Hallo Welt");
+        when(pieceRepository.existsById(1L)).thenReturn(true);
         when(pieceRepository.findById(1L)).thenReturn(Optional.of(piece));
-        when(pieceRepository.save(any(Piece.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(linkRepository.findByPieceIdOrderBySortOrderAscIdAsc(1L)).thenReturn(List.of());
+        when(linkRepository.save(any(PieceLink.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         pieceService.setYoutubeUrl(1L, "https://www.youtube.com/watch?v=abc123");
 
-        assertEquals("https://www.youtube.com/watch?v=abc123", piece.getYoutubeUrl());
+        ArgumentCaptor<PieceLink> captor = ArgumentCaptor.forClass(PieceLink.class);
+        verify(linkRepository).save(captor.capture());
+        assertEquals("YouTube", captor.getValue().getLabel());
+        assertEquals("https://www.youtube.com/watch?v=abc123", captor.getValue().getUrl());
     }
 
     @Test
     void setYoutubeUrlClearsWhenBlank() {
-        Piece piece = new Piece();
-        piece.setId(1L);
-        piece.setYoutubeUrl("https://youtu.be/abc123");
+        Piece piece = piece(1L, "Hallo Welt");
+        PieceLink link = link(2L, 1L, "YouTube", "https://youtu.be/abc123", 0);
+        when(pieceRepository.existsById(1L)).thenReturn(true);
         when(pieceRepository.findById(1L)).thenReturn(Optional.of(piece));
-        when(pieceRepository.save(any(Piece.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(linkRepository.findByPieceIdOrderBySortOrderAscIdAsc(1L))
+                .thenReturn(List.of(link), List.of());
 
         pieceService.setYoutubeUrl(1L, "   ");
 
-        assertNull(piece.getYoutubeUrl());
+        verify(linkRepository).delete(link);
     }
 
     @Test
     void setYoutubeUrlRejectsNonYouTubeHost() {
-        Piece piece = new Piece();
-        piece.setId(1L);
-        when(pieceRepository.findById(1L)).thenReturn(Optional.of(piece));
+        when(pieceRepository.existsById(1L)).thenReturn(true);
 
         assertThrows(IllegalArgumentException.class,
                 () -> pieceService.setYoutubeUrl(1L, "https://example.com/watch?v=abc"));
+    }
+
+    @Test
+    void createPieceStoresNotes() {
+        when(pieceRepository.save(any(Piece.class))).thenAnswer(invocation -> {
+            Piece saved = invocation.getArgument(0);
+            saved.setId(1L);
+            return saved;
+        });
+        PieceRequest request = new PieceRequest();
+        request.setTitle("Hallo Welt");
+        request.setNotes("Intro zweimal, dann Refrain");
+
+        PieceResponse response = pieceService.createPiece(request);
+
+        assertEquals("Intro zweimal, dann Refrain", response.getNotes());
+    }
+
+    @Test
+    void addDemoAudiosAppendsFilesAndSortOrder() {
+        when(pieceRepository.existsById(1L)).thenReturn(true);
+        when(demoAudioRepository.findByPieceIdOrderBySortOrderAscIdAsc(1L))
+                .thenReturn(List.of(audio(5L, 1L, "Alt", "old.mp3", "Old.mp3", 2)));
+        when(demoAudioRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        List<PieceDemoAudioResponse> created = pieceService.addDemoAudios(1L, List.of(
+                new MockMultipartFile("files", "Live.mp3", "audio/mpeg", new byte[]{1}),
+                new MockMultipartFile("files", "Studio.mp3", "audio/mpeg", new byte[]{2})));
+
+        assertEquals(List.of("Live", "Studio"), created.stream().map(PieceDemoAudioResponse::getLabel).toList());
+        ArgumentCaptor<List<PieceDemoAudio>> captor = ArgumentCaptor.forClass(List.class);
+        verify(demoAudioRepository).saveAll(captor.capture());
+        assertEquals(List.of(3, 4), captor.getValue().stream().map(PieceDemoAudio::getSortOrder).toList());
+    }
+
+    @Test
+    void addLinksAllowsMultipleHttpsUrls() {
+        when(pieceRepository.existsById(1L)).thenReturn(true);
+        List<PieceLink> savedLinks = new ArrayList<>();
+        when(linkRepository.findByPieceIdOrderBySortOrderAscIdAsc(1L))
+                .thenAnswer(invocation -> List.copyOf(savedLinks));
+        when(linkRepository.save(any(PieceLink.class))).thenAnswer(invocation -> {
+            PieceLink saved = invocation.getArgument(0);
+            savedLinks.add(saved);
+            return saved;
+        });
+
+        PieceLinkRequest video = new PieceLinkRequest();
+        video.setLabel("Live video");
+        video.setUrl("https://youtu.be/abc123");
+        PieceLinkRequest recording = new PieceLinkRequest();
+        recording.setLabel("Studio");
+        recording.setUrl("https://example.org/song");
+
+        pieceService.addLink(1L, video);
+        pieceService.addLink(1L, recording);
+
+        assertEquals(List.of("Live video", "Studio"), savedLinks.stream().map(PieceLink::getLabel).toList());
+        assertEquals(List.of(0, 1), savedLinks.stream().map(PieceLink::getSortOrder).toList());
+    }
+
+    @Test
+    void addLinkRejectsNonHttpUrls() {
+        when(pieceRepository.existsById(1L)).thenReturn(true);
+        PieceLinkRequest request = new PieceLinkRequest();
+        request.setLabel("Unsafe");
+        request.setUrl("javascript:alert(1)");
+
+        assertThrows(IllegalArgumentException.class, () -> pieceService.addLink(1L, request));
+        verify(linkRepository, never()).save(any(PieceLink.class));
+    }
+
+    private Piece piece(Long id, String title) {
+        Piece piece = new Piece();
+        piece.setId(id);
+        piece.setTitle(title);
+        return piece;
+    }
+
+    private PieceLink link(Long id, Long pieceId, String label, String url, int sortOrder) {
+        PieceLink link = new PieceLink();
+        link.setId(id);
+        link.setPieceId(pieceId);
+        link.setLabel(label);
+        link.setUrl(url);
+        link.setSortOrder(sortOrder);
+        return link;
+    }
+
+    private PieceDemoAudio audio(
+            Long id, Long pieceId, String label, String storedPath, String originalName, int sortOrder) {
+        PieceDemoAudio audio = new PieceDemoAudio();
+        audio.setId(id);
+        audio.setPieceId(pieceId);
+        audio.setLabel(label);
+        audio.setStoredPath(storedPath);
+        audio.setOriginalName(originalName);
+        audio.setSortOrder(sortOrder);
+        return audio;
     }
 
     private PieceSheet sheet(Long id, Long pieceId, String label, String originalName, int sortOrder) {

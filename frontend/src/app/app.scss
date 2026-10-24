@@ -132,6 +132,17 @@
   font-weight: 600;
 }
 
+.shell__language {
+  min-height: 2.75rem;
+  max-width: 8.5rem;
+  padding: 0 0.55rem;
+  color: var(--ink-soft);
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font: 600 0.78rem var(--font-body);
+}
+
 .shell__user {
   font-size: 0.88rem;
   color: var(--ink-soft);
@@ -221,5 +232,9 @@
 
   .shell__theme-label {
     display: none;
+  }
+
+  .shell__language {
+    width: 6rem;
   }
 }

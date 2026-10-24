@@ -2,6 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { afterEach } from 'vitest';
 
 import { App } from './app';
 
@@ -14,6 +15,11 @@ describe('App', () => {
       imports: [App],
       providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
     }).compileComponents();
+  });
+
+  afterEach(() => {
+    localStorage.removeItem('gigflow-language');
+    document.documentElement.lang = 'de';
   });
 
   it('should create the app', () => {
@@ -50,5 +56,19 @@ describe('App', () => {
 
     expect(document.documentElement.dataset['theme']).toBe('light');
     expect(localStorage.getItem('gigflow-theme')).toBe('light');
+  });
+
+  it('switches and persists the app language', () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    const select = fixture.nativeElement.querySelector('.shell__language') as HTMLSelectElement;
+
+    select.value = 'fr';
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    expect(localStorage.getItem('gigflow-language')).toBe('fr');
+    expect(document.documentElement.lang).toBe('fr');
+    expect(fixture.nativeElement.querySelector('.shell__nav-link')?.textContent?.trim()).toBe('Événements');
   });
 });

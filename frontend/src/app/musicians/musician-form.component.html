@@ -1,53 +1,53 @@
 <section class="form-page">
-  <a class="back" routerLink="/musicians">&larr; Musiker*innen</a>
+  <a class="back" routerLink="/musicians">&larr; {{ 'Musiker*innen' | t }}</a>
 
   <header class="head">
     <p class="eyebrow">
-      {{ editId() !== null ? 'Bearbeiten' : 'Neu' }}
+      {{ (editId() !== null ? 'Bearbeiten' : 'Neu') | t }}
     </p>
     <h1 class="title">
-      {{ editId() !== null ? 'Musiker*in bearbeiten' : 'Musiker*in hinzufügen' }}
+      {{ (editId() !== null ? 'Musiker*in bearbeiten' : 'Musiker*in hinzufügen') | t }}
     </h1>
   </header>
 
   @if (loading()) {
-    <p class="status">Daten werden geladen …</p>
+    <p class="status">{{ 'Daten werden geladen …' | t }}</p>
   } @else if (loadError(); as message) {
-    <p class="error" role="alert">{{ message }}</p>
+    <p class="error" role="alert">{{ message | t }}</p>
   } @else {
     <form class="form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <label class="field">
-        <span class="field__label">Vorname</span>
+        <span class="field__label">{{ 'Vorname' | t }}</span>
         <input class="field__input" type="text" formControlName="firstName" />
         @if (form.controls.firstName.touched && form.controls.firstName.hasError('required')) {
-          <span class="field__hint">Bitte einen Vornamen angeben.</span>
+          <span class="field__hint">{{ 'Bitte einen Vornamen angeben.' | t }}</span>
         }
       </label>
 
       <label class="field">
-        <span class="field__label">Nachname</span>
+        <span class="field__label">{{ 'Nachname' | t }}</span>
         <input class="field__input" type="text" formControlName="lastName" />
         @if (form.controls.lastName.touched && form.controls.lastName.hasError('required')) {
-          <span class="field__hint">Bitte einen Nachnamen angeben.</span>
+          <span class="field__hint">{{ 'Bitte einen Nachnamen angeben.' | t }}</span>
         }
       </label>
 
       <label class="field">
-        <span class="field__label">Instrument</span>
-        <input class="field__input" type="text" formControlName="instrument" placeholder="z. B. Gitarre" />
+        <span class="field__label">{{ 'Instrument' | t }}</span>
+        <input class="field__input" type="text" formControlName="instrument" [placeholder]="'z. B. Gitarre' | t" />
       </label>
 
       <label class="field">
-        <span class="field__label">E-Mail</span>
+        <span class="field__label">{{ 'E-Mail' | t }}</span>
         <input class="field__input" type="email" formControlName="email" />
         @if (form.controls.email.touched && form.controls.email.hasError('email')) {
-          <span class="field__hint">Bitte eine gültige E-Mail angeben.</span>
+          <span class="field__hint">{{ 'Bitte eine gültige E-Mail angeben.' | t }}</span>
         }
       </label>
 
       @if (canManageBands() && bands().length > 0) {
         <fieldset class="field band-field">
-          <legend class="field__label">Bands</legend>
+          <legend class="field__label">{{ 'Bands' | t }}</legend>
           <div class="band-options">
             @for (band of bands(); track band.id) {
               <label class="band-option">
@@ -62,16 +62,16 @@
           </div>
         </fieldset>
       } @else if (canManageBands() && bandsError(); as message) {
-        <p class="field__hint">{{ message }}</p>
+        <p class="field__hint">{{ message | t }}</p>
       }
 
       @if (submitError(); as message) {
-        <p class="error" role="alert">{{ message }}</p>
+        <p class="error" role="alert">{{ message | t }}</p>
       }
 
       <div class="actions">
         <button class="submit" type="submit" [disabled]="saving()">
-          {{ saving() ? 'Wird gespeichert …' : 'Speichern' }}
+          {{ (saving() ? 'Wird gespeichert …' : 'Speichern') | t }}
         </button>
       </div>
     </form>

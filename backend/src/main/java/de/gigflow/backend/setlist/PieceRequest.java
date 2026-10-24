@@ -1,13 +1,16 @@
 package de.gigflow.backend.setlist;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 public class PieceRequest {
 
     @NotBlank
     private String title;
 
-    /** Optional YouTube link; null or blank clears it. */
+    @Size(max = 10000)
+    private String notes;
+
     private String youtubeUrl;
 
     public String getTitle() {
@@ -24,5 +27,13 @@ public class PieceRequest {
 
     public void setYoutubeUrl(String youtubeUrl) {
         this.youtubeUrl = youtubeUrl;
+    }
+
+    public String getNotes() {
+        return notes;
+    }
+
+    public void setNotes(String notes) {
+        this.notes = notes;
     }
 }

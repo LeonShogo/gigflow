@@ -16,15 +16,21 @@ public class SetlistEntryService {
     private final SetlistRepository setlistRepository;
     private final PieceRepository pieceRepository;
     private final PieceSheetRepository sheetRepository;
+    private final PieceDemoAudioRepository demoAudioRepository;
+    private final PieceLinkRepository linkRepository;
 
     public SetlistEntryService(SetlistEntryRepository entryRepository,
                                SetlistRepository setlistRepository,
                                PieceRepository pieceRepository,
-                               PieceSheetRepository sheetRepository) {
+                               PieceSheetRepository sheetRepository,
+                               PieceDemoAudioRepository demoAudioRepository,
+                               PieceLinkRepository linkRepository) {
         this.entryRepository = entryRepository;
         this.setlistRepository = setlistRepository;
         this.pieceRepository = pieceRepository;
         this.sheetRepository = sheetRepository;
+        this.demoAudioRepository = demoAudioRepository;
+        this.linkRepository = linkRepository;
     }
 
     public SetlistEntryResponse createEntry(SetlistEntryRequest request) {
@@ -77,13 +83,25 @@ public class SetlistEntryService {
         List<PieceSheet> sheets = pieceId == null
                 ? List.of()
                 : sheetRepository.findByPieceIdOrderBySortOrderAscIdAsc(pieceId);
-        return SetlistEntryResponse.from(entry, sheets);
+        List<PieceDemoAudio> audios = pieceId == null
+                ? List.of()
+                : demoAudioRepository.findByPieceIdOrderBySortOrderAscIdAsc(pieceId);
+        List<PieceLink> links = pieceId == null
+                ? List.of()
+                : linkRepository.findByPieceIdOrderBySortOrderAscIdAsc(pieceId);
+        return SetlistEntryResponse.from(entry, sheets, audios, links);
     }
 
     private List<SetlistEntryResponse> toResponses(List<SetlistEntry> entries) {
         Map<Long, List<PieceSheet>> sheetsByPiece = sheetsByPiece(entries);
+        Map<Long, List<PieceDemoAudio>> audiosByPiece = audiosByPiece(entries);
+        Map<Long, List<PieceLink>> linksByPiece = linksByPiece(entries);
         return entries.stream()
-                .map(entry -> SetlistEntryResponse.from(entry, sheetsFor(sheetsByPiece, entry)))
+                .map(entry -> SetlistEntryResponse.from(
+                        entry,
+                        sheetsFor(sheetsByPiece, entry),
+                        audiosFor(audiosByPiece, entry),
+                        linksFor(linksByPiece, entry)))
                 .toList();
     }
 
@@ -107,5 +125,46 @@ public class SetlistEntryService {
         }
         Collection<PieceSheet> sheets = sheetsByPiece.get(entry.getPiece().getId());
         return sheets == null ? List.of() : List.copyOf(sheets);
+    }
+
+    private Map<Long, List<PieceDemoAudio>> audiosByPiece(List<SetlistEntry> entries) {
+        List<Long> pieceIds = pieceIds(entries);
+        if (pieceIds.isEmpty()) {
+            return Map.of();
+        }
+        return demoAudioRepository.findByPieceIdInOrderByPieceIdAscSortOrderAscIdAsc(pieceIds).stream()
+                .collect(Collectors.groupingBy(PieceDemoAudio::getPieceId));
+    }
+
+    private Map<Long, List<PieceLink>> linksByPiece(List<SetlistEntry> entries) {
+        List<Long> pieceIds = pieceIds(entries);
+        if (pieceIds.isEmpty()) {
+            return Map.of();
+        }
+        return linkRepository.findByPieceIdInOrderByPieceIdAscSortOrderAscIdAsc(pieceIds).stream()
+                .collect(Collectors.groupingBy(PieceLink::getPieceId));
+    }
+
+    private List<Long> pieceIds(List<SetlistEntry> entries) {
+        return entries.stream()
+                .map(SetlistEntry::getPiece)
+                .filter(piece -> piece != null)
+                .map(Piece::getId)
+                .distinct()
+                .toList();
+    }
+
+    private List<PieceDemoAudio> audiosFor(Map<Long, List<PieceDemoAudio>> audiosByPiece, SetlistEntry entry) {
+        if (entry.getPiece() == null) {
+            return List.of();
+        }
+        return audiosByPiece.getOrDefault(entry.getPiece().getId(), List.of());
+    }
+
+    private List<PieceLink> linksFor(Map<Long, List<PieceLink>> linksByPiece, SetlistEntry entry) {
+        if (entry.getPiece() == null) {
+            return List.of();
+        }
+        return linksByPiece.getOrDefault(entry.getPiece().getId(), List.of());
     }
 }

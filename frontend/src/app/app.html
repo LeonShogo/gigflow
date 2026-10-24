@@ -1,5 +1,5 @@
 <header class="shell">
-  <a routerLink="/" class="shell__brand" aria-label="GigFlow – Startseite">
+  <a routerLink="/" class="shell__brand" [attr.aria-label]="'GigFlow – Startseite' | t">
     <img
       class="shell__mark"
       ngSrc="/svg/gigflow-icon.svg"
@@ -12,32 +12,32 @@
     <span class="shell__word">GigFlow</span>
   </a>
 
-  <nav class="shell__nav" aria-label="Hauptnavigation">
+  <nav class="shell__nav" [attr.aria-label]="'Hauptnavigation' | t">
     <a
       routerLink="/"
       routerLinkActive="shell__nav-link--active"
       [routerLinkActiveOptions]="{ exact: true }"
       class="shell__nav-link"
-    >Termine</a>
+    >{{ 'Termine' | t }}</a>
     <a
       routerLink="/calendar"
       routerLinkActive="shell__nav-link--active"
       class="shell__nav-link"
-    >Kalender</a>
+    >{{ 'Kalender' | t }}</a>
     <a
       routerLink="/musicians"
       routerLinkActive="shell__nav-link--active"
       class="shell__nav-link"
-    >Musiker*innen</a>
+    >{{ 'Musiker*innen' | t }}</a>
   </nav>
 
   <div class="shell__auth">
     <button
       type="button"
       class="shell__theme"
-      [attr.aria-label]="isDarkMode() ? 'Hellen Modus aktivieren' : 'Dunklen Modus aktivieren'"
+      [attr.aria-label]="(isDarkMode() ? 'Hellen Modus aktivieren' : 'Dunklen Modus aktivieren') | t"
       [attr.aria-pressed]="isDarkMode()"
-      [title]="isDarkMode() ? 'Hellen Modus aktivieren' : 'Dunklen Modus aktivieren'"
+      [title]="(isDarkMode() ? 'Hellen Modus aktivieren' : 'Dunklen Modus aktivieren') | t"
       (click)="toggleTheme()"
     >
       <span class="shell__theme-icon" aria-hidden="true">
@@ -52,18 +52,30 @@
           </svg>
         }
       </span>
-      <span class="shell__theme-label">{{ isDarkMode() ? 'Hell' : 'Dunkel' }}</span>
+      <span class="shell__theme-label">{{ (isDarkMode() ? 'Hell' : 'Dunkel') | t }}</span>
     </button>
+    <label class="sr-only" for="app-language">{{ 'Sprache wählen' | t }}</label>
+    <select
+      id="app-language"
+      class="shell__language"
+      [value]="language()"
+      (change)="changeLanguage($event)"
+      [attr.aria-label]="'Sprache wählen' | t"
+    >
+      @for (option of languages; track option.code) {
+        <option [value]="option.code">{{ option.label }}</option>
+      }
+    </select>
     @if (isAuthenticated()) {
       <span class="shell__user">
         @if (isOrganizer()) {
-          <span class="shell__badge">Organizer</span>
+          <span class="shell__badge">{{ 'Organizer' | t }}</span>
         }
         {{ currentUser()?.email }}
       </span>
-      <button type="button" class="shell__link" (click)="logout()">Abmelden</button>
+      <button type="button" class="shell__link" (click)="logout()">{{ 'Abmelden' | t }}</button>
     } @else {
-      <a routerLink="/login" class="shell__link">Anmelden</a>
+      <a routerLink="/login" class="shell__link">{{ 'Anmelden' | t }}</a>
     }
   </div>
 </header>

@@ -1601,32 +1601,21 @@ function loadConcertWithLocations(
     expect(dialog.querySelector('.download-select--row')).toBeTruthy();
   });
 
-  it('should show Demo and YouTube badges and play a demo inline', () => {
+  it('should show multiple media links and a clear playing/stopped demo state', async () => {
     const fixture = setup();
-    fixture.detectChanges();
-    httpMock.expectOne('/api/events/1').flush(CONCERT);
-    fixture.detectChanges();
-    httpMock.expectOne('/api/event-participations/event/1').flush([]);
-    httpMock.expectOne('/api/events/by-concert/1').flush([]);
-    httpMock.expectOne('/api/setlists/event/1').flush(EMPTY_SETLIST);
-    httpMock.expectOne('/api/events/1/layout').flush(DEFAULT_LAYOUT);
-    httpMock.expectOne('/api/event-locations/event/1').flush([]);
-    fixture.detectChanges();
-    httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([
-      {
-        id: 5,
-        setlistId: 10,
-        pieceId: 3,
-        pieceTitle: 'Hallo Welt',
-        position: 0,
-        sheets: [],
-        hasDemoAudio: true,
-        youtubeUrl: 'https://youtu.be/abc123',
-      },
-    ]);
-    httpMock.expectOne('/api/equipment-requirements/event/1').flush([]);
-    httpMock.expectOne('/api/schedule-items/event/1').flush([]);
-    fixture.detectChanges();
+    loadConcertWithEntries(fixture, [{
+      id: 5,
+      setlistId: 10,
+      pieceId: 3,
+      pieceTitle: 'Hallo Welt',
+      position: 0,
+      sheets: [],
+      demoAudios: [{ id: 20, pieceId: 3, label: 'Live', originalName: 'live.mp3', sortOrder: 0 }],
+      links: [
+        { id: 30, pieceId: 3, label: 'YouTube', url: 'https://youtu.be/abc123', sortOrder: 0 },
+        { id: 31, pieceId: 3, label: 'Bandcamp', url: 'https://bandcamp.com/track/demo', sortOrder: 1 },
+      ],
+    }]);
 
     const auth = TestBed.inject(AuthService);
     auth.login({ email: 'o@gigflow.local', password: 'password' }).subscribe();
@@ -1636,40 +1625,28 @@ function loadConcertWithLocations(
     });
     fixture.detectChanges();
 
-    const first = fixture.nativeElement.querySelectorAll('.entry')[0] as HTMLElement;
-    expect(first.querySelector('.entry__sheet--audio')?.textContent?.trim()).toBe('Demo');
-    expect(first.querySelector('.entry__sheet--youtube')?.textContent?.trim()).toBe('YouTube');
-    expect((first.querySelector('.entry__sheet--youtube') as HTMLAnchorElement).getAttribute('href')).toBe(
-      'https://youtu.be/abc123',
-    );
-
+    const first = fixture.nativeElement.querySelector('.entry') as HTMLElement;
+    expect(first.querySelector('.entry__sheet--audio')?.textContent).toContain('Demo (1)');
+    expect(first.querySelectorAll('.entry__sheet--youtube')).toHaveLength(2);
     (first.querySelector('.entry__btn--audio') as HTMLButtonElement).click();
-    const req = httpMock.expectOne('/api/pieces/3/demo-audio');
-    expect(req.request.responseType).toBe('blob');
-    req.flush(new Blob([new Uint8Array([1, 2, 3])], { type: 'audio/mpeg' }));
-    fixture.detectChanges();
+    const request = httpMock.expectOne('/api/pieces/3/demo-audios/20');
+    expect(request.request.responseType).toBe('blob');
+    request.flush(new Blob([new Uint8Array([1, 2, 3])], { type: 'audio/mpeg' }));
+    await settle(fixture);
 
-    expect(fixture.nativeElement.querySelector('.entry__player audio')).toBeTruthy();
+    expect(first.querySelector('.entry__player audio')).toBeTruthy();
+    expect(first.querySelector('.entry__playing-label')?.textContent).toContain('Live');
+    expect((first.querySelector('.entry__btn--audio') as HTMLButtonElement).textContent).toContain('Stop');
+    (first.querySelector('.entry__btn--audio') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(first.querySelector('.entry__player')).toBeNull();
   });
 
-  it('should upload a demo audio MP3 and show the badge afterwards', () => {
+  it('should upload multiple demo MP3s for one tune', () => {
     const fixture = setup();
-    fixture.detectChanges();
-    httpMock.expectOne('/api/events/1').flush(CONCERT);
-    fixture.detectChanges();
-    httpMock.expectOne('/api/event-participations/event/1').flush([]);
-    httpMock.expectOne('/api/events/by-concert/1').flush([]);
-    httpMock.expectOne('/api/setlists/event/1').flush(EMPTY_SETLIST);
-    httpMock.expectOne('/api/events/1/layout').flush(DEFAULT_LAYOUT);
-    httpMock.expectOne('/api/event-locations/event/1').flush([]);
-    fixture.detectChanges();
-    httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([
+    loadConcertWithEntries(fixture, [
       { id: 5, setlistId: 10, pieceId: 3, pieceTitle: 'Hallo Welt', position: 0, sheets: [] },
     ]);
-    httpMock.expectOne('/api/equipment-requirements/event/1').flush([]);
-    httpMock.expectOne('/api/schedule-items/event/1').flush([]);
-    fixture.detectChanges();
-
     const auth = TestBed.inject(AuthService);
     auth.login({ email: 'o@gigflow.local', password: 'password' }).subscribe();
     httpMock.expectOne('/api/auth/login').flush({
@@ -1678,44 +1655,40 @@ function loadConcertWithLocations(
     });
     fixture.detectChanges();
 
-    const first = fixture.nativeElement.querySelectorAll('.entry')[0] as HTMLElement;
-    expect(first.querySelector('.entry__btn--audio')?.textContent?.trim()).toBe('Audio laden');
+    const first = fixture.nativeElement.querySelector('.entry') as HTMLElement;
     (first.querySelector('.entry__btn--audio') as HTMLButtonElement).click();
-
-    const inputs = fixture.nativeElement.querySelectorAll('input[type="file"]');
-    const input = inputs[0] as HTMLInputElement;
-    const file = new File(['abc'], 'demo.mp3', { type: 'audio/mpeg' });
-    Object.defineProperty(input, 'files', { value: [file] });
+    const input = fixture.nativeElement.querySelector('input[type="file"]') as HTMLInputElement;
+    Object.defineProperty(input, 'files', {
+      value: [
+        new File(['a'], 'live.mp3', { type: 'audio/mpeg' }),
+        new File(['b'], 'studio.mp3', { type: 'audio/mpeg' }),
+      ],
+    });
     input.dispatchEvent(new Event('change'));
+    const upload = httpMock.expectOne('/api/pieces/3/demo-audios');
+    expect(upload.request.method).toBe('POST');
+    expect((upload.request.body as FormData).getAll('files')).toHaveLength(2);
+    upload.flush([
+      { id: 20, pieceId: 3, label: 'live', originalName: 'live.mp3', sortOrder: 0 },
+      { id: 21, pieceId: 3, label: 'studio', originalName: 'studio.mp3', sortOrder: 1 },
+    ]);
     fixture.detectChanges();
 
-    const req = httpMock.expectOne('/api/pieces/3/demo-audio');
-    expect(req.request.method).toBe('POST');
-    req.flush({ id: 3, title: 'Hallo Welt', hasDemoAudio: true });
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.textContent).toContain('Demo hochgeladen.');
-    expect(first.querySelector('.entry__sheet--audio')).toBeTruthy();
+    expect(first.querySelector('.entry__sheet--audio')?.textContent).toContain('Demo (2)');
+    expect(first.querySelectorAll('.entry__btn--audio')).toHaveLength(3);
   });
 
-  it('should remove a demo audio, drop the badge and restore it on undo', async () => {
+  it('should remove one demo and restore it on undo', async () => {
     const fixture = setup();
-    fixture.detectChanges();
-    httpMock.expectOne('/api/events/1').flush(CONCERT);
-    fixture.detectChanges();
-    httpMock.expectOne('/api/event-participations/event/1').flush([]);
-    httpMock.expectOne('/api/events/by-concert/1').flush([]);
-    httpMock.expectOne('/api/setlists/event/1').flush(EMPTY_SETLIST);
-    httpMock.expectOne('/api/events/1/layout').flush(DEFAULT_LAYOUT);
-    httpMock.expectOne('/api/event-locations/event/1').flush([]);
-    fixture.detectChanges();
-    httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([
-      { id: 5, setlistId: 10, pieceId: 3, pieceTitle: 'Hallo Welt', position: 0, sheets: [], hasDemoAudio: true },
-    ]);
-    httpMock.expectOne('/api/equipment-requirements/event/1').flush([]);
-    httpMock.expectOne('/api/schedule-items/event/1').flush([]);
-    fixture.detectChanges();
-
+    loadConcertWithEntries(fixture, [{
+      id: 5,
+      setlistId: 10,
+      pieceId: 3,
+      pieceTitle: 'Hallo Welt',
+      position: 0,
+      sheets: [],
+      demoAudios: [{ id: 20, pieceId: 3, label: 'Live', originalName: 'live.mp3', sortOrder: 0 }],
+    }]);
     const auth = TestBed.inject(AuthService);
     auth.login({ email: 'o@gigflow.local', password: 'password' }).subscribe();
     httpMock.expectOne('/api/auth/login').flush({
@@ -1724,52 +1697,33 @@ function loadConcertWithLocations(
     });
     fixture.detectChanges();
 
-    const first = fixture.nativeElement.querySelectorAll('.entry')[0] as HTMLElement;
+    const first = fixture.nativeElement.querySelector('.entry') as HTMLElement;
     (first.querySelector('.entry__btn--audio-remove') as HTMLButtonElement).click();
-    fixture.detectChanges();
-    const download = httpMock.expectOne('/api/pieces/3/demo-audio');
-    expect(download.request.method).toBe('GET');
+    const download = httpMock.expectOne('/api/pieces/3/demo-audios/20');
     download.flush(new Blob(['abc'], { type: 'audio/mpeg' }));
     await settle(fixture);
-
-    const req = httpMock.expectOne('/api/pieces/3/demo-audio');
-    expect(req.request.method).toBe('DELETE');
-    req.flush(null, { status: 204, statusText: 'No Content' });
+    const remove = httpMock.expectOne('/api/pieces/3/demo-audios/20');
+    expect(remove.request.method).toBe('DELETE');
+    remove.flush(null, { status: 204, statusText: 'No Content' });
     await settle(fixture);
-
-    expect(fixture.nativeElement.textContent).toContain('Demo entfernt.');
     expect(first.querySelector('.entry__sheet--audio')).toBeNull();
 
     TestBed.inject(ToastService).runAction();
+    const restore = httpMock.expectOne('/api/pieces/3/demo-audios');
+    expect(restore.request.method).toBe('POST');
+    expect(((restore.request.body as FormData).get('files') as File).name).toBe('live.mp3');
+    restore.flush([
+      { id: 22, pieceId: 3, label: 'live', originalName: 'live.mp3', sortOrder: 1 },
+    ]);
     await settle(fixture);
-
-    const upload = httpMock.expectOne('/api/pieces/3/demo-audio');
-    expect(upload.request.method).toBe('POST');
-    upload.flush({ id: 3, title: 'Hallo Welt', hasDemoAudio: true });
-    await settle(fixture);
-
-    expect(fixture.nativeElement.textContent).toContain('Demo wiederhergestellt.');
-    expect(first.querySelector('.entry__sheet--audio')).toBeTruthy();
+    expect(first.querySelector('.entry__sheet--audio')?.textContent).toContain('Demo (1)');
   });
 
-  it('should save and show a YouTube link via the inline form', () => {
+  it('should add multiple links and undo removal of one link', async () => {
     const fixture = setup();
-    fixture.detectChanges();
-    httpMock.expectOne('/api/events/1').flush(CONCERT);
-    fixture.detectChanges();
-    httpMock.expectOne('/api/event-participations/event/1').flush([]);
-    httpMock.expectOne('/api/events/by-concert/1').flush([]);
-    httpMock.expectOne('/api/setlists/event/1').flush(EMPTY_SETLIST);
-    httpMock.expectOne('/api/events/1/layout').flush(DEFAULT_LAYOUT);
-    httpMock.expectOne('/api/event-locations/event/1').flush([]);
-    fixture.detectChanges();
-    httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([
-      { id: 5, setlistId: 10, pieceId: 3, pieceTitle: 'Hallo Welt', position: 0, sheets: [] },
+    loadConcertWithEntries(fixture, [
+      { id: 5, setlistId: 10, pieceId: 3, pieceTitle: 'Hallo Welt', position: 0, sheets: [], links: [] },
     ]);
-    httpMock.expectOne('/api/equipment-requirements/event/1').flush([]);
-    httpMock.expectOne('/api/schedule-items/event/1').flush([]);
-    fixture.detectChanges();
-
     const auth = TestBed.inject(AuthService);
     auth.login({ email: 'o@gigflow.local', password: 'password' }).subscribe();
     httpMock.expectOne('/api/auth/login').flush({
@@ -1778,98 +1732,62 @@ function loadConcertWithLocations(
     });
     fixture.detectChanges();
 
-    const first = fixture.nativeElement.querySelectorAll('.entry')[0] as HTMLElement;
+    const first = fixture.nativeElement.querySelector('.entry') as HTMLElement;
     (first.querySelector('.entry__btn--youtube') as HTMLButtonElement).click();
     fixture.detectChanges();
-
-    const input = first.querySelector('.entry__link-form input') as HTMLInputElement;
-    expect(input).toBeTruthy();
-    input.value = 'https://www.youtube.com/watch?v=abc123';
-    input.dispatchEvent(new Event('input'));
+    const inputs = first.querySelectorAll('.entry__link-form input');
+    (inputs[0] as HTMLInputElement).value = 'Live';
+    inputs[0].dispatchEvent(new Event('input'));
+    (inputs[1] as HTMLInputElement).value = 'https://youtu.be/abc123';
+    inputs[1].dispatchEvent(new Event('input'));
     fixture.detectChanges();
-
     (first.querySelector('.entry__link-form .setlist__submit') as HTMLButtonElement).click();
-    const req = httpMock.expectOne('/api/pieces/3/youtube');
-    expect(req.request.method).toBe('PUT');
-    expect(req.request.body).toEqual({
-      youtubeUrl: 'https://www.youtube.com/watch?v=abc123',
-    });
-    req.flush({ id: 3, title: 'Hallo Welt', youtubeUrl: 'https://www.youtube.com/watch?v=abc123' });
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.textContent).toContain('YouTube-Link gespeichert.');
-    expect((first.querySelector('.entry__sheet--youtube') as HTMLAnchorElement).getAttribute('href')).toBe(
-      'https://www.youtube.com/watch?v=abc123',
-    );
-  });
-
-  it('should remove a YouTube link and restore it on undo', async () => {
-    const fixture = setup();
-    fixture.detectChanges();
-    httpMock.expectOne('/api/events/1').flush(CONCERT);
-    fixture.detectChanges();
-    httpMock.expectOne('/api/event-participations/event/1').flush([]);
-    httpMock.expectOne('/api/events/by-concert/1').flush([]);
-    httpMock.expectOne('/api/setlists/event/1').flush(EMPTY_SETLIST);
-    httpMock.expectOne('/api/events/1/layout').flush(DEFAULT_LAYOUT);
-    httpMock.expectOne('/api/event-locations/event/1').flush([]);
-    fixture.detectChanges();
-    httpMock.expectOne('/api/setlist-entries/by-setlist/10').flush([
-      {
-        id: 5,
-        setlistId: 10,
-        pieceId: 3,
-        pieceTitle: 'Hallo Welt',
-        position: 0,
-        sheets: [],
-        youtubeUrl: 'https://www.youtube.com/watch?v=abc123',
-      },
-    ]);
-    httpMock.expectOne('/api/equipment-requirements/event/1').flush([]);
-    httpMock.expectOne('/api/schedule-items/event/1').flush([]);
-    fixture.detectChanges();
-
-    const auth = TestBed.inject(AuthService);
-    auth.login({ email: 'o@gigflow.local', password: 'password' }).subscribe();
-    httpMock.expectOne('/api/auth/login').flush({
-      token: 't',
-      user: { id: 1, email: 'o@gigflow.local', organizer: true, musicianId: null },
-    });
-    fixture.detectChanges();
-
-    const first = fixture.nativeElement.querySelectorAll('.entry')[0] as HTMLElement;
-    (first.querySelector('.entry__btn--youtube-edit') as HTMLButtonElement).click();
-    fixture.detectChanges();
+    const create = httpMock.expectOne('/api/pieces/3/links');
+    expect(create.request.body).toEqual({ label: 'Live', url: 'https://youtu.be/abc123' });
+    create.flush({ id: 30, pieceId: 3, label: 'Live', url: 'https://youtu.be/abc123', sortOrder: 0 });
+    await settle(fixture);
+    expect(first.querySelector('.entry__sheet--youtube')?.textContent).toBe('Live');
 
     (first.querySelector('.entry__btn--media-danger') as HTMLButtonElement).click();
-    const remove = httpMock.expectOne('/api/pieces/3/youtube');
-    expect(remove.request.method).toBe('PUT');
-    expect(remove.request.body).toEqual({ youtubeUrl: null });
-    remove.flush({ id: 3, title: 'Hallo Welt', youtubeUrl: null });
+    const remove = httpMock.expectOne('/api/pieces/3/links/30');
+    expect(remove.request.method).toBe('DELETE');
+    remove.flush(null, { status: 204, statusText: 'No Content' });
     await settle(fixture);
-
-    expect(fixture.nativeElement.textContent).toContain('YouTube-Link entfernt.');
     expect(first.querySelector('.entry__sheet--youtube')).toBeNull();
 
     TestBed.inject(ToastService).runAction();
+    const restore = httpMock.expectOne('/api/pieces/3/links');
+    expect(restore.request.body).toEqual({ label: 'Live', url: 'https://youtu.be/abc123' });
+    restore.flush({ id: 31, pieceId: 3, label: 'Live', url: 'https://youtu.be/abc123', sortOrder: 0 });
     await settle(fixture);
+    expect(first.querySelector('.entry__sheet--youtube')?.textContent).toBe('Live');
+  });
 
-    const restore = httpMock.expectOne('/api/pieces/3/youtube');
-    expect(restore.request.method).toBe('PUT');
-    expect(restore.request.body).toEqual({
-      youtubeUrl: 'https://www.youtube.com/watch?v=abc123',
+  it('should save and display tune notes', async () => {
+    const fixture = setup();
+    loadConcertWithEntries(fixture, [
+      { id: 5, setlistId: 10, pieceId: 3, pieceTitle: 'Hallo Welt', position: 0, sheets: [] },
+    ]);
+    const auth = TestBed.inject(AuthService);
+    auth.login({ email: 'o@gigflow.local', password: 'password' }).subscribe();
+    httpMock.expectOne('/api/auth/login').flush({
+      token: 't',
+      user: { id: 1, email: 'o@gigflow.local', organizer: true, musicianId: null },
     });
-    restore.flush({
-      id: 3,
-      title: 'Hallo Welt',
-      youtubeUrl: 'https://www.youtube.com/watch?v=abc123',
-    });
+    fixture.detectChanges();
+    const first = fixture.nativeElement.querySelector('.entry') as HTMLElement;
+    (first.querySelector('[aria-label="Tune-Notiz bearbeiten"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const textarea = first.querySelector('.entry__notes-input') as HTMLTextAreaElement;
+    textarea.value = 'Intro zweimal, dann Refrain';
+    textarea.dispatchEvent(new Event('input'));
+    (first.querySelector('.entry__notes-form .setlist__submit') as HTMLButtonElement).click();
+    const save = httpMock.expectOne('/api/pieces/3');
+    expect(save.request.method).toBe('PUT');
+    expect(save.request.body).toEqual({ title: 'Hallo Welt', notes: 'Intro zweimal, dann Refrain' });
+    save.flush({ id: 3, title: 'Hallo Welt', notes: 'Intro zweimal, dann Refrain' });
     await settle(fixture);
-
-    expect(fixture.nativeElement.textContent).toContain('YouTube-Link wiederhergestellt.');
-    expect(
-      (first.querySelector('.entry__sheet--youtube') as HTMLAnchorElement).getAttribute('href'),
-    ).toBe('https://www.youtube.com/watch?v=abc123');
+    expect(first.querySelector('.entry__notes')?.textContent).toContain('Intro zweimal, dann Refrain');
   });
 
   it('should render locations with type, name, address, phone, note and maps link', () => {
