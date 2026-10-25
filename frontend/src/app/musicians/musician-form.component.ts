@@ -47,7 +47,7 @@ export class MusicianFormComponent {
   protected readonly editId = signal<number | null>(null);
   protected readonly bands = signal<Band[]>([]);
   protected readonly bandsError = signal<string | null>(null);
-  protected readonly canManageBands = this.auth.isOrganizer;
+  protected readonly canManageBands = this.auth.currentUser;
 
   private loadedMemberships: BandMembership[] = [];
 

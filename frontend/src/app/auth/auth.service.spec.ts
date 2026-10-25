@@ -30,7 +30,7 @@ describe('AuthService', () => {
 
     httpMock.expectOne('/api/auth/login').flush({
       token: 'jwt-token',
-      user: { id: 1, email: 'a@gigflow.local', organizer: false, musicianId: 3 },
+      user: { id: 1, email: 'a@gigflow.local', musicianId: 3 },
     });
 
     expect(captured).toBe(true);
@@ -44,7 +44,7 @@ describe('AuthService', () => {
     expect(service.currentUser()).toBeNull();
   });
 
-  it('should report organizer flag from current user', () => {
+  it('registers a standard account with its musician profile', () => {
     service.register({
       email: 'b@gigflow.local',
       password: 'password',
@@ -53,8 +53,8 @@ describe('AuthService', () => {
     }).subscribe();
     httpMock.expectOne('/api/auth/register').flush({
       token: 't',
-      user: { id: 2, email: 'b@gigflow.local', organizer: true, musicianId: null },
+      user: { id: 2, email: 'b@gigflow.local', musicianId: 4 },
     });
-    expect(service.isOrganizer()).toBe(true);
+    expect(service.currentUser()?.musicianId).toBe(4);
   });
 });

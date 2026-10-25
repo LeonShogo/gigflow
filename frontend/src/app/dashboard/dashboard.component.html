@@ -13,14 +13,16 @@
           [disabled]="deletingAll()"
         >{{ 'Alle Termine löschen' | t }}</button>
       }
-      <a class="page-head__add" routerLink="/events/new">+ {{ 'Neues Event' | t }}</a>
+      @if (canCreateEvent()) {
+        <a class="page-head__add" routerLink="/events/new">+ {{ 'Neues Event' | t }}</a>
+      }
     </div>
   </header>
 
   @if (confirmingDeleteAll()) {
     <div class="bulk-confirm" role="group" [attr.aria-label]="'Alle Termine löschen bestätigen' | t">
       <span class="bulk-confirm__text" role="alert">
-        {{ 'Alle {{count}} Termine inklusive Proben, Setlists und Teilnahmen löschen?' | t: { count: events().length } }}
+        {{ 'Alle {{count}} Termine inklusive Proben, Setlists und Teilnahmen löschen?' | t: { count: ownedEvents().length } }}
       </span>
       <div class="bulk-confirm__actions">
         <button
@@ -99,7 +101,7 @@
             </div>
           </a>
 
-          @if (canDelete()) {
+          @if (canDelete(event)) {
             <div class="event__delete-zone">
               @if (confirmingDelete()[event.id]) {
                 <div class="event__confirm" role="dialog" aria-modal="true">

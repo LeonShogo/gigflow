@@ -16,7 +16,6 @@ export class AuthService {
   readonly token = this.tokenSignal.asReadonly();
   readonly currentUser = this.userSignal.asReadonly();
   readonly isAuthenticated = computed(() => this.tokenSignal() !== null);
-  readonly isOrganizer = computed(() => this.userSignal()?.organizer === true);
   readonly musicianId = computed(() => this.userSignal()?.musicianId ?? null);
 
   login(credentials: LoginRequest): Observable<AuthResponse> {

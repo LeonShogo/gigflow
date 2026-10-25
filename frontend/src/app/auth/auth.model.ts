@@ -1,7 +1,6 @@
 export interface AuthUser {
   id: number;
   email: string;
-  organizer: boolean;
   musicianId?: number | null;
 }
 

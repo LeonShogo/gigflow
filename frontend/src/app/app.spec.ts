@@ -64,9 +64,11 @@ describe('App', () => {
     const trigger = fixture.nativeElement.querySelector('.shell__language-trigger') as HTMLButtonElement;
     trigger.click();
     fixture.detectChanges();
+    expect(trigger.querySelector('.shell__language-flag')).toBeTruthy();
     const options = Array.from(
       fixture.nativeElement.querySelectorAll('.shell__language-option'),
     ) as HTMLButtonElement[];
+    expect(options.every((button) => button.querySelector('.shell__language-flag'))).toBe(true);
     const option = options.find((button) => button.textContent?.includes('Français')) as HTMLButtonElement;
     option.click();
     fixture.detectChanges();

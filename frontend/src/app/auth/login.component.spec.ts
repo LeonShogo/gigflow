@@ -40,7 +40,7 @@ describe('LoginComponent', () => {
 
     httpMock.expectOne('/api/auth/login').flush({
       token: 'jwt',
-      user: { id: 1, email: 'a@gigflow.local', organizer: false, musicianId: 3 },
+      user: { id: 1, email: 'a@gigflow.local', musicianId: 3 },
     });
     fixture.detectChanges();
 
@@ -71,7 +71,7 @@ describe('LoginComponent', () => {
     });
     req.flush({
       token: 'jwt2',
-      user: { id: 2, email: 'new@gigflow.local', organizer: false, musicianId: 4 },
+      user: { id: 2, email: 'new@gigflow.local', musicianId: 4 },
     });
   });
 });

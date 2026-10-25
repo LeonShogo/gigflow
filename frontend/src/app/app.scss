@@ -141,13 +141,12 @@
 .shell__language-trigger {
   display: grid;
   place-items: center;
-  width: 2.5rem;
+  width: 2.75rem;
   height: 2.5rem;
-  padding: 0;
-  background: var(--paper-raised);
+  padding: 0.4rem;
+  background: var(--paper-inset);
   border: 1px solid var(--line);
-  border-radius: var(--radius-pill);
-  font-size: 1.15rem;
+  border-radius: var(--radius);
   cursor: pointer;
   transition: background-color var(--t-fast) ease, border-color var(--t-fast) ease;
 }
@@ -156,6 +155,20 @@
 .shell__language-trigger[aria-expanded="true"] {
   background: var(--accent-soft);
   border-color: var(--accent-line);
+}
+
+.shell__language-flag {
+  display: inline-grid;
+  place-items: center;
+  width: 1.35rem;
+  height: 0.9rem;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--ink) 14%, transparent);
+  border-radius: 0.16rem;
+  font-size: 0.9rem;
+  line-height: 1;
+  filter: saturate(0.7);
+  opacity: 0.84;
 }
 
 .shell__language-list {
@@ -209,20 +222,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.shell__badge {
-  display: inline-block;
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  color: var(--accent-ink);
-  background: var(--accent-soft);
-  border: 1px solid var(--accent-line);
-  border-radius: var(--radius);
-  padding: 0.14rem 0.5rem;
-  margin-right: 0.4rem;
 }
 
 .shell__link {

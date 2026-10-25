@@ -45,10 +45,16 @@ export class DashboardComponent {
   protected readonly confirmingDeleteAll = signal(false);
   protected readonly deletingAll = signal(false);
 
-  protected readonly canDelete = this.auth.isOrganizer;
-  protected readonly canDeleteAll = computed(
-    () => this.auth.isOrganizer() && this.events().length > 0,
-  );
+  protected readonly ownedEvents = computed(() => {
+    const userId = this.auth.currentUser()?.id;
+    return userId == null ? [] : this.events().filter((event) => event.createdByUserId === userId);
+  });
+  protected readonly canCreateEvent = computed(() => this.auth.currentUser() !== null);
+  protected readonly canDeleteAll = computed(() => this.ownedEvents().length > 0);
+
+  protected canDelete(event: EventItem): boolean {
+    return event.createdByUserId != null && event.createdByUserId === this.auth.currentUser()?.id;
+  }
 
   protected readonly filteredEvents = computed(() => {
     const current = this.filter();
@@ -150,7 +156,8 @@ export class DashboardComponent {
     this.deleteError.set(null);
     this.eventService.deleteAllEvents().subscribe({
       next: () => {
-        this.events.set([]);
+        const deletedIds = new Set(this.ownedEvents().map((event) => event.id));
+        this.events.update((events) => events.filter((event) => !deletedIds.has(event.id)));
         this.deletingAll.set(false);
         this.confirmingDeleteAll.set(false);
         this.toast.show('Alle Termine gelöscht.');

@@ -43,7 +43,7 @@ describe('MusicianListComponent', () => {
       .subscribe();
     httpMock.expectOne('/api/auth/login').flush({
       token: 't',
-      user: { id: 1, email: 'o@gigflow.local', organizer: true, musicianId: null },
+      user: { id: 1, email: 'owner@gigflow.local', musicianId: 1 },
     });
   }
 
@@ -163,7 +163,7 @@ describe('MusicianListComponent', () => {
     auth.login({ email: 'o@gigflow.local', password: 'password' }).subscribe();
     httpMock.expectOne('/api/auth/login').flush({
       token: 't',
-      user: { id: 1, email: 'o@gigflow.local', organizer: true, musicianId: null },
+      user: { id: 1, email: 'owner@gigflow.local', musicianId: 1 },
     });
     fixture.detectChanges();
 
@@ -234,13 +234,21 @@ describe('MusicianListComponent', () => {
     expect(fixture.nativeElement.querySelector('.head__delete')).toBeNull();
   });
 
-  it('should only show the bulk delete action for organizers', () => {
+  it('should show the bulk delete action to any signed-in user', () => {
     const fixture = TestBed.createComponent(MusicianListComponent);
     fixture.detectChanges();
     flushLoad();
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('.head__delete')).toBeNull();
+    const auth = TestBed.inject(AuthService);
+    auth.login({ email: 'member@gigflow.local', password: 'password' }).subscribe();
+    httpMock.expectOne('/api/auth/login').flush({
+      token: 't',
+      user: { id: 2, email: 'member@gigflow.local', musicianId: 2 },
+    });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.head__delete')).toBeTruthy();
   });
 
   it('should show a server message when deletion is blocked', () => {
@@ -253,7 +261,7 @@ describe('MusicianListComponent', () => {
     auth.login({ email: 'o@gigflow.local', password: 'password' }).subscribe();
     httpMock.expectOne('/api/auth/login').flush({
       token: 't',
-      user: { id: 1, email: 'o@gigflow.local', organizer: true, musicianId: null },
+      user: { id: 1, email: 'owner@gigflow.local', musicianId: 1 },
     });
     fixture.detectChanges();
 
@@ -287,7 +295,7 @@ describe('MusicianListComponent', () => {
     auth.login({ email: 'o@gigflow.local', password: 'password' }).subscribe();
     httpMock.expectOne('/api/auth/login').flush({
       token: 't',
-      user: { id: 1, email: 'o@gigflow.local', organizer: true, musicianId: null },
+      user: { id: 1, email: 'owner@gigflow.local', musicianId: 1 },
     });
     fixture.detectChanges();
 
@@ -325,7 +333,7 @@ describe('MusicianListComponent', () => {
     auth.login({ email: 'o@gigflow.local', password: 'password' }).subscribe();
     httpMock.expectOne('/api/auth/login').flush({
       token: 't',
-      user: { id: 1, email: 'o@gigflow.local', organizer: true, musicianId: null },
+      user: { id: 1, email: 'owner@gigflow.local', musicianId: 1 },
     });
     fixture.detectChanges();
 
@@ -355,7 +363,7 @@ describe('MusicianListComponent', () => {
     auth.login({ email: 'o@gigflow.local', password: 'password' }).subscribe();
     httpMock.expectOne('/api/auth/login').flush({
       token: 't',
-      user: { id: 1, email: 'o@gigflow.local', organizer: true, musicianId: null },
+      user: { id: 1, email: 'owner@gigflow.local', musicianId: 1 },
     });
     fixture.detectChanges();
 

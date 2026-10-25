@@ -28,7 +28,6 @@ export class App {
 
   protected readonly currentUser = this.auth.currentUser;
   protected readonly isAuthenticated = this.auth.isAuthenticated;
-  protected readonly isOrganizer = this.auth.isOrganizer;
   protected readonly isDarkMode = signal(this.readInitialTheme());
   protected readonly language = this.languageService.language;
   protected readonly languages = this.languageService.options;

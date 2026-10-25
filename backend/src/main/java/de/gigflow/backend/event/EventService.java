@@ -50,7 +50,7 @@ public class EventService {
         this.equipmentRequirementRepository = equipmentRequirementRepository;
     }
 
-    public EventResponse createEvent(EventRequest request) {
+    public EventResponse createEvent(EventRequest request, Long createdByUserId) {
         Band band = bandRepository.findById(request.getBandId())
                 .orElseThrow(() -> new IllegalArgumentException("Band nicht gefunden: " + request.getBandId()));
         Event concert = resolveConcert(request.getConcertId());
@@ -60,6 +60,7 @@ public class EventService {
         event.setType(request.getType());
         event.setBand(band);
         event.setConcert(concert);
+        event.setCreatedByUserId(createdByUserId);
         return EventResponse.from(eventRepository.save(event));
     }
 
@@ -133,8 +134,11 @@ public class EventService {
      * as part of a concert cleanup are skipped because they no longer exist.
      */
     @Transactional
-    public void deleteAllEvents() {
-        List<Long> ids = eventRepository.findAll().stream().map(Event::getId).toList();
+    public void deleteAllEvents(Long createdByUserId) {
+        List<Long> ids = eventRepository.findAll().stream()
+                .filter(event -> createdByUserId != null && createdByUserId.equals(event.getCreatedByUserId()))
+                .map(Event::getId)
+                .toList();
         for (Long id : ids) {
             eventRepository.findById(id).ifPresent(this::deleteEventDeep);
         }

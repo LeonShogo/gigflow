@@ -43,15 +43,11 @@ public class SecurityConfig {
                         // Authentication endpoints are public.
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        // A logged-in musician may join an event and manage their own participation.
+                        // A signed-in account may join an event and manage its own participation.
                         .requestMatchers(HttpMethod.POST, "/api/events/*/join").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/event-participations/*").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/event-participations/*").authenticated()
-                        // All other write operations are reserved for organizers.
-                        .requestMatchers(HttpMethod.POST, "/api/**").hasRole("ORGANIZER")
-                        .requestMatchers(HttpMethod.PUT, "/api/**").hasRole("ORGANIZER")
-                        .requestMatchers(HttpMethod.DELETE, "/api/**").hasRole("ORGANIZER")
-                        // Reads are available to any authenticated account.
+                        // Write ownership is checked by the endpoint against the event or item creator.
                         .requestMatchers("/api/**").authenticated()
                         // Angular routes and static PWA assets are public; the client guards protected views.
                         .anyRequest().permitAll())

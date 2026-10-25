@@ -7,6 +7,7 @@ public class SetlistEntryResponse {
     private Long id;
     private Long setlistId;
     private Long pieceId;
+    private Long pieceCreatedByUserId;
     private String pieceTitle;
     private String notes;
     private List<PieceSheetResponse> sheets = List.of();
@@ -32,6 +33,7 @@ public class SetlistEntryResponse {
         }
         if (entry.getPiece() != null) {
             response.setPieceId(entry.getPiece().getId());
+            response.setPieceCreatedByUserId(entry.getPiece().getCreatedByUserId());
             response.setPieceTitle(entry.getPiece().getTitle());
             response.setNotes(entry.getPiece().getNotes());
             response.setSheets(sheets.stream().map(PieceSheetResponse::from).toList());
@@ -70,6 +72,14 @@ public class SetlistEntryResponse {
 
     public void setPieceId(Long pieceId) {
         this.pieceId = pieceId;
+    }
+
+    public Long getPieceCreatedByUserId() {
+        return pieceCreatedByUserId;
+    }
+
+    public void setPieceCreatedByUserId(Long pieceCreatedByUserId) {
+        this.pieceCreatedByUserId = pieceCreatedByUserId;
     }
 
     public String getPieceTitle() {

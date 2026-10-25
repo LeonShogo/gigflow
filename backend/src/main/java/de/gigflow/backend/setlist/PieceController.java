@@ -1,5 +1,7 @@
 package de.gigflow.backend.setlist;
 
+import de.gigflow.backend.event.EventOwnershipService;
+import de.gigflow.backend.user.AuthenticatedUser;
 import jakarta.validation.Valid;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
@@ -7,6 +9,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -28,9 +31,11 @@ import java.util.Optional;
 public class PieceController {
 
     private final PieceService pieceService;
+    private final EventOwnershipService ownershipService;
 
-    public PieceController(PieceService pieceService) {
+    public PieceController(PieceService pieceService, EventOwnershipService ownershipService) {
         this.pieceService = pieceService;
+        this.ownershipService = ownershipService;
     }
 
     @GetMapping
@@ -46,13 +51,24 @@ public class PieceController {
     }
 
     @PostMapping
-    public ResponseEntity<PieceResponse> createPiece(@Valid @RequestBody PieceRequest request) {
-        PieceResponse created = pieceService.createPiece(request);
+    public ResponseEntity<PieceResponse> createPiece(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @Valid @RequestBody PieceRequest request) {
+        if (currentUser == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        PieceResponse created = pieceService.createPiece(request, currentUser.userId());
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<PieceResponse> updatePiece(@PathVariable Long id, @Valid @RequestBody PieceRequest request) {
+    public ResponseEntity<PieceResponse> updatePiece(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @Valid @RequestBody PieceRequest request) {
+        if (!ownershipService.canManagePiece(currentUser, id)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         try {
             PieceResponse updated = pieceService.updatePiece(id, request);
             return ResponseEntity.ok(updated);
@@ -62,7 +78,12 @@ public class PieceController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletePiece(@PathVariable Long id) {
+    public ResponseEntity<Void> deletePiece(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
+        if (!ownershipService.canManagePiece(currentUser, id)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         pieceService.deletePiece(id);
         return ResponseEntity.noContent().build();
     }
@@ -79,7 +100,11 @@ public class PieceController {
     @PostMapping("/{id}/sheets")
     public ResponseEntity<?> uploadSheets(
             @PathVariable Long id,
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
             @RequestParam("files") List<MultipartFile> files) {
+        if (!ownershipService.canManagePiece(currentUser, id)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         try {
             List<PieceSheetResponse> created = pieceService.addSheets(id, files);
             return ResponseEntity.status(HttpStatus.CREATED).body(created);
@@ -94,7 +119,13 @@ public class PieceController {
     }
 
     @PostMapping("/{id}/demo-audio")
-    public ResponseEntity<?> uploadDemoAudio(@PathVariable Long id, @RequestParam("file") MultipartFile file) {
+    public ResponseEntity<?> uploadDemoAudio(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @RequestParam("file") MultipartFile file) {
+        if (!ownershipService.canManagePiece(currentUser, id)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         try {
             PieceResponse updated = pieceService.saveDemoAudio(id, file);
             return ResponseEntity.ok(updated);
@@ -120,7 +151,11 @@ public class PieceController {
     @PostMapping("/{id}/demo-audios")
     public ResponseEntity<?> uploadDemoAudios(
             @PathVariable Long id,
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
             @RequestParam("files") List<MultipartFile> files) {
+        if (!ownershipService.canManagePiece(currentUser, id)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         try {
             return ResponseEntity.status(HttpStatus.CREATED).body(pieceService.addDemoAudios(id, files));
         } catch (IllegalArgumentException e) {
@@ -156,7 +191,11 @@ public class PieceController {
     @DeleteMapping("/{id}/demo-audios/{audioId}")
     public ResponseEntity<Void> deleteDemoAudio(
             @PathVariable Long id,
-            @PathVariable Long audioId) {
+            @PathVariable Long audioId,
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
+        if (!ownershipService.canManageDemoAudio(currentUser, audioId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         try {
             pieceService.deleteDemoAudio(id, audioId);
             return ResponseEntity.noContent().build();
@@ -177,7 +216,11 @@ public class PieceController {
     @PostMapping("/{id}/links")
     public ResponseEntity<?> createLink(
             @PathVariable Long id,
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
             @Valid @RequestBody PieceLinkRequest request) {
+        if (!ownershipService.canManagePiece(currentUser, id)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         try {
             return ResponseEntity.status(HttpStatus.CREATED).body(pieceService.addLink(id, request));
         } catch (IllegalArgumentException e) {
@@ -192,7 +235,12 @@ public class PieceController {
     public ResponseEntity<?> updateLink(
             @PathVariable Long id,
             @PathVariable Long linkId,
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
             @Valid @RequestBody PieceLinkRequest request) {
+        if (!ownershipService.canManageLink(currentUser, linkId)
+                || !ownershipService.canManagePiece(currentUser, id)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         try {
             return ResponseEntity.ok(pieceService.updateLink(id, linkId, request));
         } catch (IllegalArgumentException e) {
@@ -204,7 +252,14 @@ public class PieceController {
     }
 
     @DeleteMapping("/{id}/links/{linkId}")
-    public ResponseEntity<Void> deleteLink(@PathVariable Long id, @PathVariable Long linkId) {
+    public ResponseEntity<Void> deleteLink(
+            @PathVariable Long id,
+            @PathVariable Long linkId,
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
+        if (!ownershipService.canManageLink(currentUser, linkId)
+                || !ownershipService.canManagePiece(currentUser, id)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         try {
             pieceService.deleteLink(id, linkId);
             return ResponseEntity.noContent().build();
@@ -233,7 +288,12 @@ public class PieceController {
     }
 
     @DeleteMapping("/{id}/demo-audio")
-    public ResponseEntity<Void> deleteDemoAudio(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteDemoAudio(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
+        if (!ownershipService.canManagePiece(currentUser, id)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         try {
             pieceService.removeDemoAudio(id);
             return ResponseEntity.noContent().build();
@@ -243,7 +303,13 @@ public class PieceController {
     }
 
     @PutMapping("/{id}/youtube")
-    public ResponseEntity<?> updateYoutubeUrl(@PathVariable Long id, @RequestBody PieceYoutubeRequest request) {
+    public ResponseEntity<?> updateYoutubeUrl(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @RequestBody PieceYoutubeRequest request) {
+        if (!ownershipService.canManagePiece(currentUser, id)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         try {
             PieceResponse updated = pieceService.setYoutubeUrl(id, request.getYoutubeUrl());
             return ResponseEntity.ok(updated);

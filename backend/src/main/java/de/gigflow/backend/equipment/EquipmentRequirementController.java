@@ -1,8 +1,12 @@
 package de.gigflow.backend.equipment;
 
+import de.gigflow.backend.event.EventOwnershipService;
+import de.gigflow.backend.user.AuthenticatedUser;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,9 +24,13 @@ import java.util.Optional;
 public class EquipmentRequirementController {
 
     private final EquipmentRequirementService requirementService;
+    private final EventOwnershipService ownershipService;
 
-    public EquipmentRequirementController(EquipmentRequirementService requirementService) {
+    public EquipmentRequirementController(
+            EquipmentRequirementService requirementService,
+            EventOwnershipService ownershipService) {
         this.requirementService = requirementService;
+        this.ownershipService = ownershipService;
     }
 
     @GetMapping
@@ -43,7 +51,12 @@ public class EquipmentRequirementController {
     }
 
     @PostMapping
-    public ResponseEntity<EquipmentRequirementResponse> createRequirement(@Valid @RequestBody EquipmentRequirementRequest request) {
+    public ResponseEntity<EquipmentRequirementResponse> createRequirement(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @Valid @RequestBody EquipmentRequirementRequest request) {
+        if (!ownershipService.ownsEvent(currentUser, request.getEventId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         try {
             EquipmentRequirementResponse created = requirementService.createRequirement(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(created);
@@ -53,7 +66,14 @@ public class EquipmentRequirementController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<EquipmentRequirementResponse> updateRequirement(@PathVariable Long id, @Valid @RequestBody EquipmentRequirementRequest request) {
+    public ResponseEntity<EquipmentRequirementResponse> updateRequirement(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @Valid @RequestBody EquipmentRequirementRequest request) {
+        if (!ownershipService.canManageRequirement(currentUser, id)
+                || !ownershipService.ownsEvent(currentUser, request.getEventId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         try {
             EquipmentRequirementResponse updated = requirementService.updateRequirement(id, request);
             return ResponseEntity.ok(updated);
@@ -63,7 +83,12 @@ public class EquipmentRequirementController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteRequirement(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteRequirement(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
+        if (!ownershipService.canManageRequirement(currentUser, id)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         requirementService.deleteRequirement(id);
         return ResponseEntity.noContent().build();
     }

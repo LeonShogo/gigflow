@@ -43,12 +43,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
         if (SecurityContextHolder.getContext().getAuthentication() == null) {
             userRepository.findById(userId).ifPresent(user -> {
-                String role = user.isOrganizer() ? "ROLE_ORGANIZER" : "ROLE_USER";
-                AuthenticatedUser principal = new AuthenticatedUser(user.getId(), user.isOrganizer(),
-                        user.getMusician() == null ? null : user.getMusician().getId());
+                AuthenticatedUser principal = new AuthenticatedUser(
+                        user.getId(), user.getMusician() == null ? null : user.getMusician().getId());
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(principal, null,
-                                List.of(new SimpleGrantedAuthority(role)));
+                                List.of(new SimpleGrantedAuthority("ROLE_USER")));
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             });

@@ -131,22 +131,28 @@ class EventServiceTest {
     }
 
     @Test
-    void deleteAllEventsRemovesEveryEvent() {
+    void deleteAllEventsRemovesOnlyEventsOwnedByUser() {
         Event concert = new Event();
         concert.setId(5L);
+        concert.setCreatedByUserId(7L);
         Event rehearsal = new Event();
         rehearsal.setId(7L);
         rehearsal.setType(EventType.REHEARSAL);
+        rehearsal.setCreatedByUserId(7L);
+        Event otherUserEvent = new Event();
+        otherUserEvent.setId(8L);
+        otherUserEvent.setCreatedByUserId(99L);
 
-        when(eventRepository.findAll()).thenReturn(List.of(concert, rehearsal));
+        when(eventRepository.findAll()).thenReturn(List.of(concert, rehearsal, otherUserEvent));
         when(eventRepository.findById(5L)).thenReturn(Optional.of(concert));
         when(eventRepository.findById(7L)).thenReturn(Optional.of(rehearsal));
         when(eventRepository.findByConcertId(5L)).thenReturn(List.of());
         when(eventRepository.findByConcertId(7L)).thenReturn(List.of());
 
-        eventService.deleteAllEvents();
+        eventService.deleteAllEvents(7L);
 
         verify(eventRepository).delete(concert);
         verify(eventRepository).delete(rehearsal);
+        verify(eventRepository, never()).delete(otherUserEvent);
     }
 }

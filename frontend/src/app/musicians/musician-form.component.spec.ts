@@ -48,7 +48,7 @@ function loginAsOrganizer(httpMock: HttpTestingController): void {
     .subscribe();
   httpMock.expectOne('/api/auth/login').flush({
     token: 't',
-    user: { id: 1, email: 'o@gigflow.local', organizer: true, musicianId: null },
+    user: { id: 1, email: 'owner@gigflow.local', musicianId: 1 },
   });
 }
 

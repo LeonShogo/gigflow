@@ -337,7 +337,7 @@ class PieceServiceTest {
         request.setTitle("Hallo Welt");
         request.setNotes("Intro zweimal, dann Refrain");
 
-        PieceResponse response = pieceService.createPiece(request);
+        PieceResponse response = pieceService.createPiece(request, 7L);
 
         assertEquals("Intro zweimal, dann Refrain", response.getNotes());
     }

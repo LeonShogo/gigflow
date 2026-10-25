@@ -30,9 +30,6 @@ public class User {
     @Column(nullable = false)
     private String passwordHash;
 
-    @Column(nullable = false)
-    private boolean organizer = false;
-
     @OneToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "musician_id")
     private Musician musician;
@@ -59,14 +56,6 @@ public class User {
 
     public void setPasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
-    }
-
-    public boolean isOrganizer() {
-        return organizer;
-    }
-
-    public void setOrganizer(boolean organizer) {
-        this.organizer = organizer;
     }
 
     public Musician getMusician() {

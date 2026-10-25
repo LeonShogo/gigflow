@@ -16,18 +16,21 @@ const MOCK_EVENTS: EventItem[] = [
     title: 'Hafenrocker',
     type: 'CONCERT',
     dateTime: '2026-09-12T20:00:00',
+    createdByUserId: 1,
   },
   {
     id: 2,
     title: 'Donnerstagsprobe',
     type: 'REHEARSAL',
     dateTime: '2026-09-10T18:00:00',
+    createdByUserId: 1,
   },
   {
     id: 3,
     title: 'Lagerfeuer-Open-Air',
     type: 'CONCERT',
     dateTime: '2026-10-03T19:00:00',
+    createdByUserId: 1,
   },
 ];
 
@@ -159,7 +162,7 @@ describe('DashboardComponent', () => {
     auth.login({ email: 'o@gigflow.local', password: 'password' }).subscribe();
     httpMock.expectOne('/api/auth/login').flush({
       token: 't',
-      user: { id: 1, email: 'o@gigflow.local', organizer: true, musicianId: null },
+      user: { id: 1, email: 'o@gigflow.local', musicianId: 3 },
     });
     fixture.detectChanges();
 
@@ -206,7 +209,7 @@ describe('DashboardComponent', () => {
     auth.login({ email: 'o@gigflow.local', password: 'password' }).subscribe();
     httpMock.expectOne('/api/auth/login').flush({
       token: 't',
-      user: { id: 1, email: 'o@gigflow.local', organizer: true, musicianId: null },
+      user: { id: 1, email: 'o@gigflow.local', musicianId: 3 },
     });
     fixture.detectChanges();
 
@@ -232,7 +235,7 @@ describe('DashboardComponent', () => {
     expect(fixture.nativeElement.querySelector('.page-head__delete')).toBeNull();
   });
 
-  it('should hide the delete action for non-organizers', () => {
+  it('should hide delete actions for events owned by another account', () => {
     const fixture = TestBed.createComponent(DashboardComponent);
     fixture.detectChanges();
     httpMock.expectOne('/api/events').flush(MOCK_EVENTS);
@@ -242,7 +245,7 @@ describe('DashboardComponent', () => {
     auth.login({ email: 'm@gigflow.local', password: 'password' }).subscribe();
     httpMock.expectOne('/api/auth/login').flush({
       token: 't',
-      user: { id: 2, email: 'm@gigflow.local', organizer: false, musicianId: 3 },
+      user: { id: 2, email: 'm@gigflow.local', musicianId: 4 },
     });
     fixture.detectChanges();
 

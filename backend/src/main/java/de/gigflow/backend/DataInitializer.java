@@ -102,7 +102,8 @@ public class DataInitializer implements CommandLineRunner {
         }
 
         seedRichDemoGig(band);
-        seedUsers();
+        User owner = seedUsers();
+        assignLegacyOwners(owner.getId());
     }
 
     private void seedRichDemoGig(Band band) {
@@ -184,17 +185,38 @@ public class DataInitializer implements CommandLineRunner {
         requirement(gig, mixer, RequirementState.UNKNOWN, RequirementState.UNKNOWN, ben);
     }
 
-    private void seedUsers() {
-        if (userService.findByEmail("organizer@gigflow.local").isEmpty()) {
-            userService.register("organizer@gigflow.local", "organizer123", true);
-            System.out.println("[gigflow] Demo-Organizer-Konto: organizer@gigflow.local / organizer123");
+    private User seedUsers() {
+        User owner = userService.findByEmail("organizer@gigflow.local").orElseGet(() -> {
+            User created = userService.register("organizer@gigflow.local", "organizer123");
+            System.out.println("[gigflow] Demo-Eventkonto: organizer@gigflow.local / organizer123");
+            return created;
+        });
+        if (owner.getMusician() == null) {
+            Musician ownerMusician = musicianService.createMusicianEntity("Demo", "Eventkonto", "Gesang");
+            userService.linkToMusician(owner, ownerMusician);
         }
         if (userService.findByEmail("musiker@gigflow.local").isEmpty()) {
-            User user = userService.register("musiker@gigflow.local", "musiker1234", false);
+            User user = userService.register("musiker@gigflow.local", "musiker1234");
             Musician musician = musicianService.createMusicianEntity("Demo", "Musiker", "Multi-Instrumentalist");
             userService.linkToMusician(user, musician);
             System.out.println("[gigflow] Demo-Musiker-Konto: musiker@gigflow.local / musiker1234");
         }
+        return owner;
+    }
+
+    private void assignLegacyOwners(Long userId) {
+        eventRepository.findAll().stream()
+                .filter(event -> event.getCreatedByUserId() == null)
+                .forEach(event -> {
+                    event.setCreatedByUserId(userId);
+                    eventRepository.save(event);
+                });
+        pieceRepository.findAll().stream()
+                .filter(piece -> piece.getCreatedByUserId() == null)
+                .forEach(piece -> {
+                    piece.setCreatedByUserId(userId);
+                    pieceRepository.save(piece);
+                });
     }
 
     private Band firstOrCreateBand() {

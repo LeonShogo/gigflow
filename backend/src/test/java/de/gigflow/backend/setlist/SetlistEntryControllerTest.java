@@ -1,7 +1,10 @@
 package de.gigflow.backend.setlist;
 
+import de.gigflow.backend.event.EventOwnershipService;
+import de.gigflow.backend.user.AuthenticatedUser;
 import de.gigflow.backend.user.JwtService;
 import de.gigflow.backend.user.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -11,6 +14,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -26,10 +31,18 @@ class SetlistEntryControllerTest {
     private SetlistEntryService entryService;
 
     @MockitoBean
+    private EventOwnershipService ownershipService;
+
+    @MockitoBean
     private JwtService jwtService;
 
     @MockitoBean
     private UserRepository userRepository;
+
+    @BeforeEach
+    void allowTestOwnerRequest() {
+        when(ownershipService.canManageSetlist(nullable(AuthenticatedUser.class), anyLong())).thenReturn(true);
+    }
 
     @Test
     void missingSetlistReturnsNotFound() throws Exception {

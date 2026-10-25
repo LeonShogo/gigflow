@@ -1,8 +1,12 @@
 package de.gigflow.backend.setlist;
 
+import de.gigflow.backend.event.EventOwnershipService;
+import de.gigflow.backend.user.AuthenticatedUser;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,9 +24,11 @@ import java.util.Optional;
 public class SetlistEntryController {
 
     private final SetlistEntryService entryService;
+    private final EventOwnershipService ownershipService;
 
-    public SetlistEntryController(SetlistEntryService entryService) {
+    public SetlistEntryController(SetlistEntryService entryService, EventOwnershipService ownershipService) {
         this.entryService = entryService;
+        this.ownershipService = ownershipService;
     }
 
     @GetMapping
@@ -43,7 +49,12 @@ public class SetlistEntryController {
     }
 
     @PostMapping
-    public ResponseEntity<SetlistEntryResponse> createEntry(@Valid @RequestBody SetlistEntryRequest request) {
+    public ResponseEntity<SetlistEntryResponse> createEntry(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @Valid @RequestBody SetlistEntryRequest request) {
+        if (!ownershipService.canManageSetlist(currentUser, request.getSetlistId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         try {
             SetlistEntryResponse created = entryService.createEntry(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(created);
@@ -53,7 +64,14 @@ public class SetlistEntryController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<SetlistEntryResponse> updateEntry(@PathVariable Long id, @Valid @RequestBody SetlistEntryRequest request) {
+    public ResponseEntity<SetlistEntryResponse> updateEntry(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @Valid @RequestBody SetlistEntryRequest request) {
+        if (!ownershipService.canManageSetlistEntry(currentUser, id)
+                || !ownershipService.canManageSetlist(currentUser, request.getSetlistId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         try {
             SetlistEntryResponse updated = entryService.updateEntry(id, request);
             return ResponseEntity.ok(updated);
@@ -63,7 +81,12 @@ public class SetlistEntryController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteEntry(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteEntry(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
+        if (!ownershipService.canManageSetlistEntry(currentUser, id)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         entryService.deleteEntry(id);
         return ResponseEntity.noContent().build();
     }

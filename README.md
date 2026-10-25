@@ -56,10 +56,10 @@ Der Render-Blueprint baut Frontend und Backend in einen gemeinsamen Docker-Conta
 3. Das Repository `LeonShogo/gigflow` verbinden und den Blueprint aus `render.yaml` anwenden.
 4. Nach dem erfolgreichen Deployment die von Render angezeigte `https://...onrender.com`-URL öffnen.
 
-Demo-Logins:
+Demo-Logins (beide sind normale Konten; wer ein Event erstellt, verwaltet dieses Event):
 
-- Organizer: `organizer@gigflow.local` / `organizer123`
-- Musiker: `musiker@gigflow.local` / `musiker1234`
+- Event-Ersteller: `organizer@gigflow.local` / `organizer123`
+- Teilnehmer: `musiker@gigflow.local` / `musiker1234`
 
 Auf Android kann die App anschließend in Chrome über **App installieren**, auf iOS in Safari über **Teilen > Zum Home-Bildschirm** installiert werden.
 

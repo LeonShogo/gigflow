@@ -9,6 +9,7 @@ export interface EventItem {
   bandId?: number;
   bandName?: string;
   concertId?: number | null;
+  createdByUserId?: number | null;
   /** Reserve for later */
   venue?: string;
 }
@@ -62,5 +63,4 @@ export interface EventParticipation {
   musician?: MusicianPublic;
   status: ParticipationStatus;
 }
-
 

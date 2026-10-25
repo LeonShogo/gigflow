@@ -1,8 +1,11 @@
 package de.gigflow.backend.setlist;
 
+import de.gigflow.backend.event.EventOwnershipService;
+import de.gigflow.backend.user.AuthenticatedUser;
 import de.gigflow.backend.user.JwtService;
 import de.gigflow.backend.user.UserRepository;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -18,6 +21,8 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -38,6 +43,9 @@ class PieceControllerTest {
     private PieceService pieceService;
 
     @MockitoBean
+    private EventOwnershipService ownershipService;
+
+    @MockitoBean
     private JwtService jwtService;
 
     @MockitoBean
@@ -45,6 +53,13 @@ class PieceControllerTest {
 
     @TempDir
     Path tempDir;
+
+    @BeforeEach
+    void allowTestOwnerRequests() {
+        when(ownershipService.canManagePiece(nullable(AuthenticatedUser.class), anyLong())).thenReturn(true);
+        when(ownershipService.canManageLink(nullable(AuthenticatedUser.class), anyLong())).thenReturn(true);
+        when(ownershipService.canManageDemoAudio(nullable(AuthenticatedUser.class), anyLong())).thenReturn(true);
+    }
 
     @Test
     void uploadedSheetsShouldReturnCreatedList() throws Exception {

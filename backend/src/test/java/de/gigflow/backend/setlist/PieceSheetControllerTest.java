@@ -1,7 +1,10 @@
 package de.gigflow.backend.setlist;
 
+import de.gigflow.backend.event.EventOwnershipService;
+import de.gigflow.backend.user.AuthenticatedUser;
 import de.gigflow.backend.user.JwtService;
 import de.gigflow.backend.user.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +19,8 @@ import java.nio.file.Path;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -36,6 +41,9 @@ class PieceSheetControllerTest {
     private PieceService pieceService;
 
     @MockitoBean
+    private EventOwnershipService ownershipService;
+
+    @MockitoBean
     private JwtService jwtService;
 
     @MockitoBean
@@ -43,6 +51,11 @@ class PieceSheetControllerTest {
 
     @TempDir
     Path tempDir;
+
+    @BeforeEach
+    void allowTestOwnerRequests() {
+        when(ownershipService.canManageSheet(nullable(AuthenticatedUser.class), anyLong())).thenReturn(true);
+    }
 
     @Test
     void missingSheetShouldReturnNotFound() throws Exception {

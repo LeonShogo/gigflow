@@ -199,7 +199,7 @@ describe('PieceSheetsDialogComponent', () => {
     expect(closed).toHaveBeenCalledOnce();
   });
 
-  it('should not show management controls for non-organizers', async () => {
+  it('should not show management controls when management is disabled', async () => {
     fixture.componentRef.setInput('canManage', false);
     await flushLoad([GUITAR]);
 

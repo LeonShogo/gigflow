@@ -19,6 +19,7 @@ const CONCERT: EventItem = {
   title: 'Hafenrocker',
   type: 'CONCERT',
   dateTime: '2026-09-12T20:00:00',
+  createdByUserId: 1,
 };
 
 const REHEARSAL: EventItem = {
@@ -50,6 +51,7 @@ describe('EventDetailComponent', () => {
   function loadConcert(
     fixture: ComponentFixture<EventDetailComponent>,
     participations: unknown[] = [],
+    asOwner = false,
   ): void {
     fixture.detectChanges();
     httpMock.expectOne('/api/events/1').flush(CONCERT);
@@ -64,12 +66,16 @@ describe('EventDetailComponent', () => {
     httpMock.expectOne('/api/equipment-requirements/event/1').flush([])
     httpMock.expectOne('/api/schedule-items/event/1').flush([]);
     fixture.detectChanges();
+    if (asOwner) {
+      loginAsOwner(fixture);
+    }
   }
 
   /** Flushes a setlist with the given entries and returns the fixture. */
 function loadConcertWithEntries(
   fixture: ComponentFixture<EventDetailComponent>,
   entries: unknown[],
+  asOwner = false,
 ): void {
   fixture.detectChanges();
   httpMock.expectOne('/api/events/1').flush(CONCERT);
@@ -84,15 +90,18 @@ function loadConcertWithEntries(
   httpMock.expectOne('/api/equipment-requirements/event/1').flush([])
   httpMock.expectOne('/api/schedule-items/event/1').flush([]);
   fixture.detectChanges();
+  if (asOwner) {
+    loginAsOwner(fixture);
+  }
 }
 
-/** Logs in as the organizer so management controls become visible. */
-function loginAsOrganizer(fixture: ComponentFixture<EventDetailComponent>): void {
+/** Logs in as the event owner so management controls become visible. */
+function loginAsOwner(fixture: ComponentFixture<EventDetailComponent>): void {
   const auth = TestBed.inject(AuthService);
   auth.login({ email: 'o@gigflow.local', password: 'password' }).subscribe();
   httpMock.expectOne('/api/auth/login').flush({
     token: 't',
-    user: { id: 1, email: 'o@gigflow.local', organizer: true, musicianId: null },
+    user: { id: 1, email: 'owner@gigflow.local', musicianId: 10 },
   });
   fixture.detectChanges();
 }
@@ -107,6 +116,7 @@ async function settle(fixture: ComponentFixture<EventDetailComponent>): Promise<
 function loadConcertWithLocations(
   fixture: ComponentFixture<EventDetailComponent>,
   locations: unknown[],
+  asOwner = false,
 ): void {
   fixture.detectChanges();
   httpMock.expectOne('/api/events/1').flush(CONCERT);
@@ -121,6 +131,9 @@ function loadConcertWithLocations(
   httpMock.expectOne('/api/equipment-requirements/event/1').flush([]);
   httpMock.expectOne('/api/schedule-items/event/1').flush([]);
   fixture.detectChanges();
+  if (asOwner) {
+    loginAsOwner(fixture);
+  }
 }
 
   beforeEach(async () => {
@@ -202,7 +215,7 @@ function loadConcertWithLocations(
         musician: { id: 6, firstName: 'Tom', lastName: 'Winter', instrument: 'Schlagzeug' },
         status: 'DECLINED',
       },
-    ]);
+    ], true);
 
     const el: HTMLElement = fixture.nativeElement;
     const members = el.querySelectorAll('.member');
@@ -257,7 +270,7 @@ function loadConcertWithLocations(
         musician: { id: 4, firstName: 'Jonas', lastName: 'Keller' },
         status: 'INVITED',
       },
-    ]);
+    ], true);
 
     const select = fixture.nativeElement.querySelector('#status-2') as HTMLSelectElement;
     select.value = 'SUGGESTED';
@@ -366,7 +379,7 @@ function loadConcertWithLocations(
 
   it('should swap two panels via drag & drop and persist', () => {
     const fixture = setup();
-    loadConcert(fixture);
+    loadConcert(fixture, [], true);
 
     const board = fixture.debugElement.query(By.css('.board'));
     const panelEls: HTMLElement[] = Array.from(
@@ -439,7 +452,7 @@ function loadConcertWithLocations(
 
   it('should collapse and reopen a section and persist', () => {
     const fixture = setup();
-    loadConcert(fixture);
+    loadConcert(fixture, [], true);
 
     const el: HTMLElement = fixture.nativeElement;
     const membersCollapse = el.querySelector(
@@ -527,7 +540,7 @@ function loadConcertWithLocations(
 
   it('should add a new piece to the setlist', () => {
     const fixture = setup();
-    loadConcert(fixture);
+    loadConcert(fixture, [], true);
 
     const input = fixture.nativeElement.querySelector('.setlist__input') as HTMLInputElement;
     input.value = 'Neuer Song';
@@ -557,7 +570,7 @@ function loadConcertWithLocations(
 
   it('should add a piece via Enter key without submitting the form', () => {
     const fixture = setup();
-    loadConcert(fixture);
+    loadConcert(fixture, [], true);
 
     const input = fixture.nativeElement.querySelector('.setlist__input') as HTMLInputElement;
     input.value = 'Enter-Song';
@@ -589,7 +602,7 @@ function loadConcertWithLocations(
     const fixture = setup();
     loadConcertWithEntries(fixture, [
       { id: 5, setlistId: 10, pieceId: 3, pieceTitle: 'Hallo Welt', position: 0, sheets: [] },
-    ]);
+    ], true);
 
     (fixture.nativeElement.querySelector('.entry__btn--danger') as HTMLButtonElement).click();
     fixture.detectChanges();
@@ -604,10 +617,10 @@ function loadConcertWithLocations(
     loadConcertWithEntries(fixture, [
       { id: 5, setlistId: 10, pieceId: 3, pieceTitle: 'Hallo Welt', position: 0, sheets: [] },
       { id: 6, setlistId: 10, pieceId: 4, pieceTitle: 'Nachtfahrt', position: 1, sheets: [] },
-    ]);
+    ], true);
 
     const secondRow = fixture.nativeElement.querySelectorAll('.entry')[1] as HTMLElement;
-    (secondRow.querySelector('.entry__btn') as HTMLButtonElement).click();
+    (secondRow.querySelector('.entry__action-group--order .entry__btn') as HTMLButtonElement).click();
     fixture.detectChanges();
 
     httpMock.expectOne('/api/setlist-entries/6').flush({
@@ -640,7 +653,7 @@ function loadConcertWithLocations(
       { id: 5, setlistId: 10, pieceId: 3, pieceTitle: 'Hallo Welt', position: 0, sheets: [] },
       { id: 6, setlistId: 10, pieceId: 4, pieceTitle: 'Nachtfahrt', position: 1, sheets: [] },
       { id: 7, setlistId: 10, pieceId: 2, pieceTitle: 'Feuertanz', position: 2, sheets: [] },
-    ]);
+    ], true);
 
     const setlistEl = fixture.debugElement.query(By.css('.setlist__entries'));
     const dropList = setlistEl.injector.get(CdkDropList) as CdkDropList<unknown>;
@@ -797,6 +810,7 @@ function loadConcertWithLocations(
     ]);
     httpMock.expectOne('/api/schedule-items/event/1').flush([]);
     fixture.detectChanges();
+    loginAsOwner(fixture);
 
     const select = fixture.nativeElement.querySelector('.eq__select') as HTMLSelectElement;
     expect(select.value).toBe('42');
@@ -836,6 +850,7 @@ function loadConcertWithLocations(
     ]);
     httpMock.expectOne('/api/schedule-items/event/1').flush([]);
     fixture.detectChanges();
+    loginAsOwner(fixture);
 
     const select = fixture.nativeElement.querySelector('.eq__select') as HTMLSelectElement;
     select.value = '42';
@@ -934,6 +949,7 @@ function loadConcertWithLocations(
     ]);
     httpMock.expectOne('/api/schedule-items/event/1').flush([]);
     fixture.detectChanges();
+    loginAsOwner(fixture);
 
     const chip = fixture.nativeElement.querySelectorAll('.eq__chip')[0] as HTMLButtonElement;
     chip.click();
@@ -957,7 +973,7 @@ function loadConcertWithLocations(
 
   it('should add an existing equipment item as a requirement', () => {
     const fixture = setup();
-    loadConcert(fixture);
+    loadConcert(fixture, [], true);
 
     const addBtn = fixture.nativeElement.querySelector('.equipment__add') as HTMLButtonElement;
     addBtn.click();
@@ -1053,7 +1069,7 @@ function loadConcertWithLocations(
 
   it('should add a schedule item from a custom entry', () => {
     const fixture = setup();
-    loadConcert(fixture);
+    loadConcert(fixture, [], true);
 
     const comp = fixture.componentInstance as unknown as {
       scheduleFormOpen: { set(v: boolean): void };
@@ -1098,6 +1114,7 @@ function loadConcertWithLocations(
       { id: 5, eventId: 1, label: 'Soundcheck', time: '17:00' },
     ]);
     fixture.detectChanges();
+    loginAsOwner(fixture);
 
     (fixture.nativeElement.querySelector('.sched__btn') as HTMLButtonElement).click();
     fixture.detectChanges();
@@ -1140,6 +1157,7 @@ function loadConcertWithLocations(
       { id: 6, eventId: 1, label: 'Meet & Greet', time: '16:00' },
     ]);
     fixture.detectChanges();
+    loginAsOwner(fixture);
 
     (fixture.nativeElement.querySelector('.sched__btn') as HTMLButtonElement).click();
     fixture.detectChanges();
@@ -1187,6 +1205,7 @@ function loadConcertWithLocations(
       { id: 5, eventId: 1, label: 'Soundcheck', time: '17:00' },
     ]);
     fixture.detectChanges();
+    loginAsOwner(fixture);
 
     (fixture.nativeElement.querySelector('.sched__btn--danger') as HTMLButtonElement).click();
     fixture.detectChanges();
@@ -1199,7 +1218,7 @@ function loadConcertWithLocations(
 
   it('should assign an existing rehearsal to the concert', () => {
     const fixture = setup();
-    loadConcert(fixture);
+    loadConcert(fixture, [], true);
 
     const addBtn = fixture.nativeElement.querySelector('.rehearsals__add') as HTMLButtonElement;
     addBtn.click();
@@ -1231,7 +1250,7 @@ function loadConcertWithLocations(
 
   it('should create and assign a new rehearsal', () => {
     const fixture = setup();
-    loadConcert(fixture);
+    loadConcert(fixture, [], true);
 
     (fixture.nativeElement.querySelector('.rehearsals__add') as HTMLButtonElement).click();
     fixture.detectChanges();
@@ -1287,6 +1306,7 @@ function loadConcertWithLocations(
     httpMock.expectOne('/api/equipment-requirements/event/1').flush([])
     httpMock.expectOne('/api/schedule-items/event/1').flush([]);
     fixture.detectChanges();
+    loginAsOwner(fixture);
 
     const unlinkBtn = fixture.nativeElement.querySelector('.rehearsal__unlink-btn') as HTMLButtonElement;
     unlinkBtn.click();
@@ -1328,7 +1348,7 @@ function loadConcertWithLocations(
     auth.login({ email: 'm@gigflow.local', password: 'password' }).subscribe();
     httpMock.expectOne('/api/auth/login').flush({
       token: 't',
-      user: { id: 2, email: 'm@gigflow.local', organizer: false, musicianId: 3 },
+      user: { id: 2, email: 'member@gigflow.local', musicianId: 3 },
     });
     fixture.detectChanges();
 
@@ -1364,7 +1384,7 @@ function loadConcertWithLocations(
     expect(fixture.nativeElement.textContent).toContain('Dein Status wurde aktualisiert.');
   });
 
-  it('should not show the member-management add button for a non-organizer', () => {
+  it('should not show event-management actions to a non-owner', () => {
     const fixture = setup();
     fixture.detectChanges();
     httpMock.expectOne('/api/events/1').flush(CONCERT);
@@ -1384,7 +1404,7 @@ function loadConcertWithLocations(
     auth.login({ email: 'm@gigflow.local', password: 'password' }).subscribe();
     httpMock.expectOne('/api/auth/login').flush({
       token: 't',
-      user: { id: 2, email: 'm@gigflow.local', organizer: false, musicianId: 3 },
+      user: { id: 2, email: 'member@gigflow.local', musicianId: 3 },
     });
     fixture.detectChanges();
 
@@ -1404,7 +1424,7 @@ function loadConcertWithLocations(
       },
       { id: 6, setlistId: 10, pieceId: 4, pieceTitle: 'Nachtfahrt', position: 1, sheets: [] },
     ]);
-    loginAsOrganizer(fixture);
+    loginAsOwner(fixture);
 
     const first = fixture.nativeElement.querySelectorAll('.entry')[0] as HTMLElement;
     expect(first.querySelector('.entry__sheet')?.textContent?.trim()).toBe('Noten (1)');
@@ -1426,7 +1446,7 @@ function loadConcertWithLocations(
     loadConcertWithEntries(fixture, [
       { id: 5, setlistId: 10, pieceId: 3, pieceTitle: 'Hallo Welt', position: 0, sheets: [] },
     ]);
-    loginAsOrganizer(fixture);
+    loginAsOwner(fixture);
 
     const first = fixture.nativeElement.querySelectorAll('.entry')[0] as HTMLElement;
     expect(first.querySelector('.entry__btn--pdf')?.textContent?.trim()).toBe('PDF laden');
@@ -1621,7 +1641,7 @@ function loadConcertWithLocations(
     auth.login({ email: 'o@gigflow.local', password: 'password' }).subscribe();
     httpMock.expectOne('/api/auth/login').flush({
       token: 't',
-      user: { id: 1, email: 'o@gigflow.local', organizer: true, musicianId: null },
+      user: { id: 1, email: 'owner@gigflow.local', musicianId: 10 },
     });
     fixture.detectChanges();
 
@@ -1664,7 +1684,7 @@ function loadConcertWithLocations(
     auth.login({ email: 'o@gigflow.local', password: 'password' }).subscribe();
     httpMock.expectOne('/api/auth/login').flush({
       token: 't',
-      user: { id: 1, email: 'o@gigflow.local', organizer: true, musicianId: null },
+      user: { id: 1, email: 'owner@gigflow.local', musicianId: 10 },
     });
     fixture.detectChanges();
 
@@ -1706,7 +1726,7 @@ function loadConcertWithLocations(
     auth.login({ email: 'o@gigflow.local', password: 'password' }).subscribe();
     httpMock.expectOne('/api/auth/login').flush({
       token: 't',
-      user: { id: 1, email: 'o@gigflow.local', organizer: true, musicianId: null },
+      user: { id: 1, email: 'owner@gigflow.local', musicianId: 10 },
     });
     fixture.detectChanges();
 
@@ -1741,7 +1761,7 @@ function loadConcertWithLocations(
     auth.login({ email: 'o@gigflow.local', password: 'password' }).subscribe();
     httpMock.expectOne('/api/auth/login').flush({
       token: 't',
-      user: { id: 1, email: 'o@gigflow.local', organizer: true, musicianId: null },
+      user: { id: 1, email: 'owner@gigflow.local', musicianId: 10 },
     });
     fixture.detectChanges();
 
@@ -1785,7 +1805,7 @@ function loadConcertWithLocations(
     auth.login({ email: 'o@gigflow.local', password: 'password' }).subscribe();
     httpMock.expectOne('/api/auth/login').flush({
       token: 't',
-      user: { id: 1, email: 'o@gigflow.local', organizer: true, musicianId: null },
+      user: { id: 1, email: 'owner@gigflow.local', musicianId: 10 },
     });
     fixture.detectChanges();
     const first = fixture.nativeElement.querySelector('.entry') as HTMLElement;
@@ -1868,7 +1888,7 @@ function loadConcertWithLocations(
 
   it('should add a new location via the form', () => {
     const fixture = setup();
-    loadConcertWithLocations(fixture, []);
+    loadConcertWithLocations(fixture, [], true);
 
     const addBtn = fixture.nativeElement.querySelector('.panel--locations .schedule__add') as HTMLButtonElement;
     addBtn.click();
@@ -1931,7 +1951,7 @@ function loadConcertWithLocations(
         phone: null,
         mapsUrl: null,
       },
-    ]);
+    ], true);
 
     (fixture.nativeElement.querySelector('.panel--locations .sched__btn') as HTMLButtonElement).click();
     fixture.detectChanges();
@@ -1987,7 +2007,7 @@ function loadConcertWithLocations(
         phone: null,
         mapsUrl: null,
       },
-    ]);
+    ], true);
 
     (fixture.nativeElement.querySelector('.panel--locations .sched__btn') as HTMLButtonElement).click();
     fixture.detectChanges();
@@ -2050,7 +2070,7 @@ function loadConcertWithLocations(
         phone: null,
         mapsUrl: null,
       },
-    ]);
+    ], true);
 
     const buttons = fixture.nativeElement.querySelectorAll(
       '.panel--locations .sched__btn',
@@ -2070,7 +2090,7 @@ function loadConcertWithLocations(
     expect(fixture.nativeElement.textContent).toContain('Noch keine Orte für diesen Termin erfasst.');
   });
 
-  it('should show a delete action for organizers and delete the event after confirmation', async () => {
+  it('should show a delete action for the event owner and delete after confirmation', async () => {
     vi.spyOn(TestBed.inject(EventUndoService), 'capture').mockResolvedValue([]);
     const fixture = setup();
     loadConcert(fixture);
@@ -2079,7 +2099,7 @@ function loadConcertWithLocations(
     auth.login({ email: 'o@gigflow.local', password: 'password' }).subscribe();
     httpMock.expectOne('/api/auth/login').flush({
       token: 't',
-      user: { id: 1, email: 'o@gigflow.local', organizer: true, musicianId: null },
+      user: { id: 1, email: 'owner@gigflow.local', musicianId: 10 },
     });
     fixture.detectChanges();
 
@@ -2098,7 +2118,7 @@ function loadConcertWithLocations(
     fixture.detectChanges();
   });
 
-  it('should hide the delete action for non-organizers', () => {
+  it('should hide the delete action from non-owners', () => {
     const fixture = setup();
     loadConcert(fixture);
 
@@ -2106,7 +2126,7 @@ function loadConcertWithLocations(
     auth.login({ email: 'm@gigflow.local', password: 'password' }).subscribe();
     httpMock.expectOne('/api/auth/login').flush({
       token: 't',
-      user: { id: 2, email: 'm@gigflow.local', organizer: false, musicianId: 3 },
+      user: { id: 2, email: 'member@gigflow.local', musicianId: 3 },
     });
     fixture.detectChanges();
 
@@ -2121,7 +2141,7 @@ function loadConcertWithLocations(
     auth.login({ email: 'o@gigflow.local', password: 'password' }).subscribe();
     httpMock.expectOne('/api/auth/login').flush({
       token: 't',
-      user: { id: 1, email: 'o@gigflow.local', organizer: true, musicianId: null },
+      user: { id: 1, email: 'owner@gigflow.local', musicianId: 10 },
     });
     fixture.detectChanges();
 

@@ -45,10 +45,11 @@ public class PieceService {
         this.uploadDir = Path.of(uploadDir).toAbsolutePath().normalize();
     }
 
-    public PieceResponse createPiece(PieceRequest request) {
+    public PieceResponse createPiece(PieceRequest request, Long createdByUserId) {
         Piece piece = new Piece();
         piece.setTitle(request.getTitle());
         piece.setNotes(normalizeOptional(request.getNotes()));
+        piece.setCreatedByUserId(createdByUserId);
         Piece saved = pieceRepository.save(piece);
         if (normalizeOptional(request.getYoutubeUrl()) != null) {
             setYoutubeUrl(saved.getId(), request.getYoutubeUrl());

@@ -30,6 +30,7 @@ export interface SetlistEntry {
   id: number;
   setlistId: number;
   pieceId: number;
+  pieceCreatedByUserId?: number | null;
   pieceTitle: string;
   position: number;
   sheets: PieceSheet[];

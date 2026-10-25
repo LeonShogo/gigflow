@@ -17,14 +17,13 @@ public class UserService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    public User register(String email, String rawPassword, boolean organizer) {
+    public User register(String email, String rawPassword) {
         if (userRepository.findByEmail(email).isPresent()) {
             throw new IllegalArgumentException("Es existiert bereits ein Konto mit dieser E-Mail.");
         }
         User user = new User();
         user.setEmail(email);
         user.setPasswordHash(passwordEncoder.encode(rawPassword));
-        user.setOrganizer(organizer);
         return userRepository.save(user);
     }
 

@@ -62,7 +62,7 @@
         aria-haspopup="listbox"
         [attr.aria-expanded]="languageMenuOpen()"
         (click)="toggleLanguageMenu()"
-      ><span aria-hidden="true">{{ selectedLanguageFlag() }}</span></button>
+      ><span class="shell__language-flag" aria-hidden="true">{{ selectedLanguageFlag() }}</span></button>
       @if (languageMenuOpen()) {
         <div class="shell__language-list" role="listbox" [attr.aria-label]="'Sprache wählen' | t">
           @for (option of languages; track option.code) {
@@ -74,7 +74,7 @@
               [attr.aria-selected]="language() === option.code"
               (click)="selectLanguage(option.code)"
             >
-              <span aria-hidden="true">{{ option.flag }}</span>
+              <span class="shell__language-flag" aria-hidden="true">{{ option.flag }}</span>
               <span>{{ option.label }}</span>
             </button>
           }
@@ -83,9 +83,6 @@
     </div>
     @if (isAuthenticated()) {
       <span class="shell__user">
-        @if (isOrganizer()) {
-          <span class="shell__badge">{{ 'Organizer' | t }}</span>
-        }
         {{ currentUser()?.email }}
       </span>
       <button type="button" class="shell__link" (click)="logout()">{{ 'Abmelden' | t }}</button>

@@ -57,7 +57,7 @@ export class MusicianListComponent {
   protected readonly deleteError = signal<string | null>(null);
   private deleteErrorTimer: ReturnType<typeof setTimeout> | null = null;
 
-  protected readonly canDelete = this.auth.isOrganizer;
+  protected readonly canDelete = computed(() => this.auth.currentUser() !== null);
   protected readonly bandName = computed(() => {
     const names = new Map(this.bands().map((band) => [band.id, band.name]));
     return (bandId: number) => names.get(bandId) ?? `Band #${bandId}`;

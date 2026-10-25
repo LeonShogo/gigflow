@@ -8,14 +8,12 @@ public class UserDto {
 
     private Long id;
     private String email;
-    private boolean organizer;
     private Long musicianId;
 
     public static UserDto from(User user) {
         UserDto dto = new UserDto();
         dto.setId(user.getId());
         dto.setEmail(user.getEmail());
-        dto.setOrganizer(user.isOrganizer());
         dto.setMusicianId(user.getMusician() == null ? null : user.getMusician().getId());
         return dto;
     }
@@ -34,14 +32,6 @@ public class UserDto {
 
     public void setEmail(String email) {
         this.email = email;
-    }
-
-    public boolean isOrganizer() {
-        return organizer;
-    }
-
-    public void setOrganizer(boolean organizer) {
-        this.organizer = organizer;
     }
 
     public Long getMusicianId() {

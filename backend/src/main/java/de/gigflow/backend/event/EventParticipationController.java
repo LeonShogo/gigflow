@@ -22,9 +22,13 @@ import java.util.Optional;
 public class EventParticipationController {
 
     private final EventParticipationService participationService;
+    private final EventOwnershipService ownershipService;
 
-    public EventParticipationController(EventParticipationService participationService) {
+    public EventParticipationController(
+            EventParticipationService participationService,
+            EventOwnershipService ownershipService) {
         this.participationService = participationService;
+        this.ownershipService = ownershipService;
     }
 
     @GetMapping
@@ -48,7 +52,7 @@ public class EventParticipationController {
     public ResponseEntity<EventParticipationResponseDto> createParticipation(
             @AuthenticationPrincipal AuthenticatedUser currentUser,
             @Valid @RequestBody EventParticipationRequestDto request) {
-        if (currentUser == null || !currentUser.organizer()) {
+        if (!ownershipService.ownsEvent(currentUser, request.getEventId())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         try {
@@ -64,7 +68,15 @@ public class EventParticipationController {
             @PathVariable Long id,
             @AuthenticationPrincipal AuthenticatedUser currentUser,
             @Valid @RequestBody EventParticipationRequestDto request) {
-        if (!canManage(currentUser, id)) {
+        var existing = participationService.findParticipationById(id);
+        boolean ownParticipation = existing.isPresent()
+                && currentUser != null
+                && currentUser.musicianId() != null
+                && currentUser.musicianId().equals(existing.get().getMusicianId())
+                && existing.get().getEventId().equals(request.getEventId())
+                && existing.get().getMusicianId().equals(request.getMusicianId());
+        if (!ownershipService.canManageParticipation(currentUser, id) || (!ownParticipation
+                && !ownershipService.ownsEvent(currentUser, request.getEventId()))) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         try {
@@ -79,26 +91,11 @@ public class EventParticipationController {
     public ResponseEntity<Void> deleteParticipation(
             @PathVariable Long id,
             @AuthenticationPrincipal AuthenticatedUser currentUser) {
-        if (!canManage(currentUser, id)) {
+        if (!ownershipService.canManageParticipation(currentUser, id)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         participationService.deleteParticipation(id);
         return ResponseEntity.noContent().build();
     }
 
-    /**
-     * An organizer may manage any participation. A regular user may only manage
-     * their own participation (identified by their linked musician).
-     */
-    private boolean canManage(AuthenticatedUser currentUser, Long participationId) {
-        if (currentUser == null) {
-            return false;
-        }
-        if (currentUser.organizer()) {
-            return true;
-        }
-        return participationService.findParticipationById(participationId)
-                .map(p -> p.getMusicianId() != null && p.getMusicianId().equals(currentUser.musicianId()))
-                .orElse(false);
-    }
 }

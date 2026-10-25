@@ -1,8 +1,12 @@
 package de.gigflow.backend.location;
 
+import de.gigflow.backend.event.EventOwnershipService;
+import de.gigflow.backend.user.AuthenticatedUser;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,9 +24,11 @@ import java.util.Optional;
 public class EventLocationController {
 
     private final EventLocationService eventLocationService;
+    private final EventOwnershipService ownershipService;
 
-    public EventLocationController(EventLocationService eventLocationService) {
+    public EventLocationController(EventLocationService eventLocationService, EventOwnershipService ownershipService) {
         this.eventLocationService = eventLocationService;
+        this.ownershipService = ownershipService;
     }
 
     @GetMapping("/event/{eventId}")
@@ -38,7 +44,12 @@ public class EventLocationController {
     }
 
     @PostMapping
-    public ResponseEntity<EventLocationResponse> createEventLocation(@Valid @RequestBody EventLocationRequest request) {
+    public ResponseEntity<EventLocationResponse> createEventLocation(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @Valid @RequestBody EventLocationRequest request) {
+        if (!ownershipService.ownsEvent(currentUser, request.getEventId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         try {
             EventLocationResponse created = eventLocationService.createEventLocation(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(created);
@@ -48,7 +59,14 @@ public class EventLocationController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<EventLocationResponse> updateEventLocation(@PathVariable Long id, @Valid @RequestBody EventLocationRequest request) {
+    public ResponseEntity<EventLocationResponse> updateEventLocation(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @Valid @RequestBody EventLocationRequest request) {
+        if (!ownershipService.canManageLocation(currentUser, id)
+                || !ownershipService.ownsEvent(currentUser, request.getEventId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         try {
             EventLocationResponse updated = eventLocationService.updateEventLocation(id, request);
             return ResponseEntity.ok(updated);
@@ -58,7 +76,12 @@ public class EventLocationController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteEventLocation(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteEventLocation(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
+        if (!ownershipService.canManageLocation(currentUser, id)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         eventLocationService.deleteEventLocation(id);
         return ResponseEntity.noContent().build();
     }

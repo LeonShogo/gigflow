@@ -155,7 +155,12 @@ export class EventDetailComponent {
   protected readonly confirmingDelete = signal(false);
   protected readonly deleting = signal(false);
   protected readonly deleteError = signal<string | null>(null);
-  protected readonly canDelete = computed(() => this.auth.isOrganizer());
+  protected readonly canManageEvent = computed(() => {
+    const event = this.event();
+    const userId = this.auth.currentUser()?.id;
+    return event?.createdByUserId != null && event.createdByUserId === userId;
+  });
+  protected readonly canDelete = this.canManageEvent;
 
   protected readonly participations = signal<EventParticipation[]>([]);
   protected readonly participantsLoading = signal(true);
@@ -210,7 +215,7 @@ export class EventDetailComponent {
     'ACCEPTED',
     'DECLINED',
   ];
-  protected readonly canManageMembers = computed(() => this.auth.isOrganizer());
+  protected readonly canManageMembers = this.canManageEvent;
   protected readonly canSelfJoin = computed(
     () => this.auth.isAuthenticated() && this.auth.musicianId() != null,
   );
@@ -238,7 +243,6 @@ export class EventDetailComponent {
   protected readonly newTitle = signal('');
   protected readonly canAdd = computed(() => this.adding() || !this.newTitle().trim());
 
-  protected readonly canUploadSheets = computed(() => this.auth.isOrganizer());
   protected readonly sheetFeedback = signal<string | null>(null);
   protected readonly sheetError = signal<string | null>(null);
   protected readonly sheetFile = signal<File | null>(null);
@@ -765,6 +769,9 @@ export class EventDetailComponent {
   }
 
   protected onPanelDrop(event: CdkDragDrop<string[]>): void {
+    if (!this.canManageEvent()) {
+      return;
+    }
     const order = this.panelOrder();
     const targetIndex = this.resolvePanelTargetIndex(event);
     if (event.previousIndex === targetIndex) {
@@ -855,7 +862,7 @@ export class EventDetailComponent {
 
   private saveLayout(): void {
     const event = this.event();
-    if (!event) {
+    if (!event || !this.canManageEvent()) {
       return;
     }
     const collapsed: Record<string, boolean> = {};
@@ -1763,10 +1770,7 @@ export class EventDetailComponent {
   private loadSetlist(eventId: number): void {
     this.setlistLoading.set(true);
     this.setlistError.set(null);
-    const setlistRequest = this.auth.isOrganizer()
-      ? this.setlistService.getOrCreateForEvent(eventId)
-      : this.setlistService.getByEvent(eventId);
-    setlistRequest
+    this.setlistService.getByEvent(eventId)
       .pipe(
         catchError((err) => {
           if (err?.status === 404) {
@@ -1794,13 +1798,13 @@ export class EventDetailComponent {
   protected addPiece(): void {
     const setlistId = this.setlistId();
     const title = this.newTitle().trim();
-    if (setlistId == null || !title || this.adding()) {
+    if (!this.canManageEvent() || !title || this.adding()) {
       return;
     }
     this.adding.set(true);
-    this.setlistService
-      .addPieceToSetlist(setlistId, title, this.entries().length)
-      .subscribe({
+    const createEntry = (resolvedSetlistId: number): void => {
+      this.setlistId.set(resolvedSetlistId);
+      this.setlistService.addPieceToSetlist(resolvedSetlistId, title, this.entries().length).subscribe({
         next: (entry) => {
           this.entries.update((list) => [...list, entry]);
           this.newTitle.set('');
@@ -1811,6 +1815,23 @@ export class EventDetailComponent {
           this.setlistError.set('Stück konnte nicht hinzugefügt werden.');
         },
       });
+    };
+    if (setlistId != null) {
+      createEntry(setlistId);
+      return;
+    }
+    const event = this.event();
+    if (!event) {
+      this.adding.set(false);
+      return;
+    }
+    this.setlistService.getOrCreateForEvent(event.id).subscribe({
+      next: (setlist) => createEntry(setlist.id),
+      error: () => {
+        this.adding.set(false);
+        this.setlistError.set('Repertoire konnte nicht geladen werden.');
+      },
+    });
   }
 
   protected onTitleInput(event: Event): void {
@@ -1823,6 +1844,9 @@ export class EventDetailComponent {
   }
 
   protected removeEntry(entry: SetlistEntry): void {
+    if (!this.canManageEvent()) {
+      return;
+    }
     if (this.demoPlaying()?.entryId === entry.id) {
       this.stopDemo();
     }
@@ -1967,6 +1991,14 @@ export class EventDetailComponent {
 
   protected demoAudios(entry: SetlistEntry): PieceDemoAudio[] {
     return entry.demoAudios ?? [];
+  }
+
+  protected canManageTune(entry: SetlistEntry): boolean {
+    const userId = this.auth.currentUser()?.id;
+    if (userId == null || !this.canManageEvent()) {
+      return false;
+    }
+    return entry.pieceCreatedByUserId == null || entry.pieceCreatedByUserId === userId;
   }
 
   protected pieceLinks(entry: SetlistEntry): PieceLink[] {
@@ -2282,6 +2314,9 @@ export class EventDetailComponent {
   }
 
   protected moveEntry(index: number, delta: -1 | 1): void {
+    if (!this.canManageEvent()) {
+      return;
+    }
     const entries = this.entries();
     const target = index + delta;
     if (target < 0 || target >= entries.length) {
@@ -2293,6 +2328,9 @@ export class EventDetailComponent {
   }
 
   protected onDrop(event: CdkDragDrop<SetlistEntry[]>): void {
+    if (!this.canManageEvent()) {
+      return;
+    }
     const entries = this.entries();
     const { previousIndex, currentIndex } = event;
     if (previousIndex === currentIndex || entries.length === 0) {
@@ -2305,6 +2343,9 @@ export class EventDetailComponent {
   }
 
   private applyOrder(next: SetlistEntry[]): void {
+    if (!this.canManageEvent()) {
+      return;
+    }
     const setlistId = this.setlistId();
     if (setlistId == null) {
       return;

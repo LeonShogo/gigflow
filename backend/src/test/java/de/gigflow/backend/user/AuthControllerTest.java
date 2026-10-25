@@ -46,8 +46,7 @@ class AuthControllerTest {
         user.setId(7L);
         user.setEmail("max@gigflow.local");
         user.setPasswordHash("hashed");
-        user.setOrganizer(false);
-        when(userService.register("max@gigflow.local", "supersecret", false)).thenReturn(user);
+        when(userService.register("max@gigflow.local", "supersecret")).thenReturn(user);
         when(musicianService.createMusicianEntity("Max", "Mustermann", "Gitarre"))
                 .thenReturn(new Musician());
         when(jwtService.generateToken(7L)).thenReturn("jwt-token");
@@ -58,7 +57,7 @@ class AuthControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.token").value("jwt-token"))
                 .andExpect(jsonPath("$.user.email").value("max@gigflow.local"))
-                .andExpect(jsonPath("$.user.organizer").value(false));
+                .andExpect(jsonPath("$.user.organizer").doesNotExist());
 
         verify(userService).linkToMusician(eq(user), any(Musician.class));
     }

@@ -23,10 +23,15 @@ public class EventController {
 
     private final EventService eventService;
     private final EventParticipationService participationService;
+    private final EventOwnershipService ownershipService;
 
-    public EventController(EventService eventService, EventParticipationService participationService) {
+    public EventController(
+            EventService eventService,
+            EventParticipationService participationService,
+            EventOwnershipService ownershipService) {
         this.eventService = eventService;
         this.participationService = participationService;
+        this.ownershipService = ownershipService;
     }
 
     @GetMapping
@@ -56,7 +61,11 @@ public class EventController {
     @PutMapping("/{id}/layout")
     public ResponseEntity<PanelLayout> updatePanelLayout(
             @PathVariable Long id,
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
             @RequestBody PanelLayout layout) {
+        if (!ownershipService.ownsEvent(currentUser, id)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         return eventService.updatePanelLayout(id, layout)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
@@ -86,7 +95,11 @@ public class EventController {
     @PostMapping("/{id}/invite-band/{bandId}")
     public ResponseEntity<List<EventParticipationResponseDto>> inviteBand(
             @PathVariable Long id,
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
             @PathVariable Long bandId) {
+        if (!ownershipService.ownsEvent(currentUser, id)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         try {
             return ResponseEntity.ok(participationService.inviteBandMembers(id, bandId));
         } catch (IllegalArgumentException e) {
@@ -95,9 +108,17 @@ public class EventController {
     }
 
     @PostMapping
-    public ResponseEntity<EventResponse> createEvent(@Valid @RequestBody EventRequest request) {
+    public ResponseEntity<EventResponse> createEvent(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @Valid @RequestBody EventRequest request) {
+        if (currentUser == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        if (request.getConcertId() != null && !ownershipService.ownsEvent(currentUser, request.getConcertId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         try {
-            EventResponse created = eventService.createEvent(request);
+            EventResponse created = eventService.createEvent(request, currentUser.userId());
             return ResponseEntity.status(HttpStatus.CREATED).body(created);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
@@ -105,7 +126,14 @@ public class EventController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<EventResponse> updateEvent(@PathVariable Long id, @Valid @RequestBody EventRequest request) {
+    public ResponseEntity<EventResponse> updateEvent(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @Valid @RequestBody EventRequest request) {
+        if (!ownershipService.ownsEvent(currentUser, id)
+                || (request.getConcertId() != null && !ownershipService.ownsEvent(currentUser, request.getConcertId()))) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         try {
             EventResponse updated = eventService.updateEvent(id, request);
             return ResponseEntity.ok(updated);
@@ -115,7 +143,12 @@ public class EventController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteEvent(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteEvent(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
+        if (!ownershipService.ownsEvent(currentUser, id)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         try {
             eventService.deleteEvent(id);
             return ResponseEntity.noContent().build();
@@ -125,8 +158,11 @@ public class EventController {
     }
 
     @DeleteMapping
-    public ResponseEntity<Void> deleteAllEvents() {
-        eventService.deleteAllEvents();
+    public ResponseEntity<Void> deleteAllEvents(@AuthenticationPrincipal AuthenticatedUser currentUser) {
+        if (currentUser == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        eventService.deleteAllEvents(currentUser.userId());
         return ResponseEntity.noContent().build();
     }
 

@@ -1,7 +1,6 @@
 import { Routes } from '@angular/router';
 
 import { authGuard } from './auth/auth.guard';
-import { organizerGuard } from './auth/organizer.guard';
 
 export const routes: Routes = [
   {
@@ -21,7 +20,7 @@ export const routes: Routes = [
   },
   {
     path: 'events/new',
-    canActivate: [organizerGuard],
+    canActivate: [authGuard],
     loadComponent: () =>
       import('./event-form/event-form.component').then((m) => m.EventFormComponent),
   },
@@ -50,13 +49,13 @@ export const routes: Routes = [
   },
   {
     path: 'musicians/new',
-    canActivate: [organizerGuard],
+    canActivate: [authGuard],
     loadComponent: () =>
       import('./musicians/musician-form.component').then((m) => m.MusicianFormComponent),
   },
   {
     path: 'musicians/:id/edit',
-    canActivate: [organizerGuard],
+    canActivate: [authGuard],
     loadComponent: () =>
       import('./musicians/musician-form.component').then((m) => m.MusicianFormComponent),
   },

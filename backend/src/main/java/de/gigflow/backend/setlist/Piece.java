@@ -23,6 +23,9 @@ public class Piece {
     @Column(columnDefinition = "text")
     private String notes;
 
+    @Column(name = "created_by_user_id")
+    private Long createdByUserId;
+
     public Long getId() {
         return id;
     }
@@ -45,5 +48,13 @@ public class Piece {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    public Long getCreatedByUserId() {
+        return createdByUserId;
+    }
+
+    public void setCreatedByUserId(Long createdByUserId) {
+        this.createdByUserId = createdByUserId;
     }
 }

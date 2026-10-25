@@ -10,4 +10,6 @@ public interface SetlistEntryRepository extends JpaRepository<SetlistEntry, Long
     List<SetlistEntry> findBySetlistIdOrderByPositionAsc(Long setlistId);
 
     Optional<SetlistEntry> findFirstBySetlistIdOrderByPositionDesc(Long setlistId);
+
+    List<SetlistEntry> findByPiece_Id(Long pieceId);
 }

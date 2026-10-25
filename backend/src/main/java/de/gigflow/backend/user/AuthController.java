@@ -31,7 +31,7 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
         try {
-            User user = userService.register(request.getEmail(), request.getPassword(), false);
+            User user = userService.register(request.getEmail(), request.getPassword());
             Musician musician = musicianService.createMusicianEntity(
                     request.getFirstName(), request.getLastName(), request.getInstrument());
             userService.linkToMusician(user, musician);
