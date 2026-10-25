@@ -33,7 +33,6 @@ public class EventAccessService {
     private final EventInvitationRepository invitationRepository;
     private final UserRepository userRepository;
     private final UserContactService contactService;
-    private final EventMailService mailService;
     private final EventParticipationService participationService;
     private final String publicBaseUrl;
 
@@ -44,7 +43,6 @@ public class EventAccessService {
             EventInvitationRepository invitationRepository,
             UserRepository userRepository,
             UserContactService contactService,
-            EventMailService mailService,
             EventParticipationService participationService,
             @Value("${app.public-base-url:http://localhost:4200}") String publicBaseUrl) {
         this.eventRepository = eventRepository;
@@ -53,7 +51,6 @@ public class EventAccessService {
         this.invitationRepository = invitationRepository;
         this.userRepository = userRepository;
         this.contactService = contactService;
-        this.mailService = mailService;
         this.participationService = participationService;
         this.publicBaseUrl = publicBaseUrl.replaceAll("/+$", "");
     }
@@ -66,7 +63,7 @@ public class EventAccessService {
         List<Long> editorIds = editorRepository.findByEventId(eventId).stream()
                 .map(editor -> editor.getUser().getId())
                 .toList();
-        return new EventAccessResponse(event.getEditPolicy(), editorIds, List.of());
+        return new EventAccessResponse(event.getEditPolicy(), editorIds);
     }
 
     @Transactional(readOnly = true)
@@ -98,19 +95,13 @@ public class EventAccessService {
         if (policy == EventEditPolicy.SELECTED_PARTICIPANTS) {
             validateEditorSelection(owner, List.copyOf(editorIds));
         }
-        List<EventInvitationResponse> notifications = new ArrayList<>();
         editorRepository.deleteByEventId(eventId);
 
         if (policy == EventEditPolicy.SELECTED_PARTICIPANTS) {
             for (Long editorId : editorIds) {
-                boolean wasMember = hasActiveMembership(eventId, editorId);
                 addKnownMember(event, editorId);
                 User editorUser = userRepository.findById(editorId)
                         .orElseThrow(() -> new IllegalArgumentException("Konto nicht gefunden."));
-                boolean sent = !wasMember
-                        && mailService.sendAddedNotification(editorUser.getEmail(), event.getTitle(), publicBaseUrl);
-                notifications.add(new EventInvitationResponse(editorUser.getEmail(),
-                        !wasMember && !sent ? publicBaseUrl + "/events/" + eventId : null, sent, true));
                 EventEditor editor = new EventEditor();
                 editor.setEvent(event);
                 editor.setUser(editorUser);
@@ -122,34 +113,25 @@ public class EventAccessService {
         List<Long> configuredEditors = policy == EventEditPolicy.SELECTED_PARTICIPANTS
                 ? List.copyOf(editorIds)
                 : List.of();
-        return new EventAccessResponse(policy, configuredEditors, notifications);
+        return new EventAccessResponse(policy, configuredEditors);
     }
 
     @Transactional
-    public EventMembersResponse addKnownMembers(
+    public List<EventParticipationResponseDto> addKnownMembers(
             Long eventId, AuthenticatedUser owner, List<Long> userIds) {
         requireOwner(owner, eventId);
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new IllegalArgumentException("Event nicht gefunden."));
         Set<Long> uniqueIds = new LinkedHashSet<>(userIds);
         List<EventParticipationResponseDto> result = new ArrayList<>();
-        List<EventInvitationResponse> notifications = new ArrayList<>();
         for (Long userId : uniqueIds) {
             if (!contactService.isKnownContact(owner, userId)) {
                 throw new IllegalArgumentException("Dieses Konto ist noch kein bekannter Kontakt.");
             }
-            User member = userRepository.findById(userId)
-                    .orElseThrow(() -> new IllegalArgumentException("Konto nicht gefunden."));
-            boolean wasMember = hasActiveMembership(eventId, userId);
             EventParticipationResponseDto participation = addKnownMember(event, userId);
-            boolean sent = !wasMember
-                    && mailService.sendAddedNotification(member.getEmail(), event.getTitle(), publicBaseUrl);
-            notifications.add(new EventInvitationResponse(
-                    member.getEmail(), !wasMember && !sent ? publicBaseUrl + "/events/" + eventId : null,
-                    sent, true, wasMember));
             result.add(participation);
         }
-        return new EventMembersResponse(result, notifications);
+        return result;
     }
 
     private EventParticipationResponseDto addKnownMember(Event event, Long userId) {
@@ -177,45 +159,26 @@ public class EventAccessService {
     }
 
     @Transactional
-    public List<EventInvitationResponse> inviteEmails(
-            Long eventId, AuthenticatedUser owner, List<String> emails) {
+    public EventInvitationResponse createInvitationLink(Long eventId, AuthenticatedUser owner) {
         requireOwner(owner, eventId);
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new IllegalArgumentException("Event nicht gefunden."));
-        List<EventInvitationResponse> responses = new ArrayList<>();
-        for (String rawEmail : new LinkedHashSet<>(emails)) {
-            String email = normalizeEmail(rawEmail);
-            User existingUser = userRepository.findByEmail(email).orElse(null);
-            if (existingUser != null && contactService.isKnownContact(owner, existingUser.getId())) {
-                boolean wasMember = hasActiveMembership(eventId, existingUser.getId());
-                addKnownMember(event, existingUser.getId());
-                boolean sent = !wasMember && mailService.sendAddedNotification(
-                        existingUser.getEmail(), event.getTitle(), publicBaseUrl);
-                responses.add(new EventInvitationResponse(
-                        email, !wasMember && !sent ? publicBaseUrl + "/events/" + eventId : null,
-                        sent, true, wasMember));
-                continue;
-            }
-
-            String token = generateToken();
-            EventInvitation invitation = invitationRepository
-                    .findByEventIdAndEmailAndStatus(eventId, email, EventInvitationStatus.PENDING)
-                    .orElseGet(EventInvitation::new);
-            invitation.setEvent(event);
-            invitation.setEmail(email);
-            invitation.setTokenHash(hashToken(token));
-            invitation.setInvitedByUserId(owner.userId());
-            invitation.setStatus(EventInvitationStatus.PENDING);
-            invitation.setExpiresAt(LocalDateTime.now().plusDays(7));
-            invitation.setAcceptedByUserId(null);
-            invitation.setAcceptedAt(null);
-            invitationRepository.save(invitation);
-
-            String invitationUrl = publicBaseUrl + "/invitations/accept?token=" + token;
-            boolean sent = mailService.sendInvitation(email, event.getTitle(), invitationUrl);
-            responses.add(new EventInvitationResponse(email, invitationUrl, sent, false));
-        }
-        return responses;
+        invitationRepository.findByEventIdAndStatus(eventId, EventInvitationStatus.PENDING)
+                .forEach(pending -> {
+                    pending.setStatus(EventInvitationStatus.REVOKED);
+                    invitationRepository.save(pending);
+                });
+        String token = generateToken();
+        LocalDateTime expiresAt = LocalDateTime.now().plusDays(7);
+        EventInvitation invitation = new EventInvitation();
+        invitation.setEvent(event);
+        invitation.setEmail(null);
+        invitation.setTokenHash(hashToken(token));
+        invitation.setInvitedByUserId(owner.userId());
+        invitation.setStatus(EventInvitationStatus.PENDING);
+        invitation.setExpiresAt(expiresAt);
+        invitationRepository.save(invitation);
+        return new EventInvitationResponse(publicBaseUrl + "/invitations/accept?token=" + token, expiresAt);
     }
 
     @Transactional
@@ -229,7 +192,8 @@ public class EventAccessService {
                 || invitation.getExpiresAt().isBefore(LocalDateTime.now())) {
             throw new IllegalArgumentException("Einladungslink ist abgelaufen oder wurde bereits verwendet.");
         }
-        if (!normalizeEmail(invitation.getEmail()).equals(normalizeEmail(currentEmail))) {
+        if (invitation.getEmail() != null
+                && !normalizeEmail(invitation.getEmail()).equals(normalizeEmail(currentEmail))) {
             throw new IllegalArgumentException("Bitte melde dich mit der eingeladenen E-Mail-Adresse an.");
         }
 
@@ -272,16 +236,6 @@ public class EventAccessService {
                 .map(event -> user.userId().equals(event.getCreatedByUserId())).orElse(false)) {
             throw new IllegalArgumentException("Nur der*die Ersteller*in kann die Event-Zugriffe verwalten.");
         }
-    }
-
-    private boolean hasActiveMembership(Long eventId, Long userId) {
-        User user = userRepository.findById(userId).orElse(null);
-        if (user == null || user.getMusician() == null) {
-            return false;
-        }
-        return participationRepository.findByEventIdAndMusicianId(eventId, user.getMusician().getId())
-                .map(participation -> participation.getStatus() != EventParticipationStatus.DECLINED)
-                .orElse(false);
     }
 
     private String normalizeEmail(String email) {

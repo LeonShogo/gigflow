@@ -2,46 +2,19 @@ package de.gigflow.backend.event;
 
 public class EventInvitationResponse {
 
-    private String email;
     private String invitationUrl;
-    private boolean emailSent;
-    private boolean alreadyAdded;
-    private boolean alreadyMember;
+    private java.time.LocalDateTime expiresAt;
 
-    public EventInvitationResponse(String email, String invitationUrl, boolean emailSent, boolean alreadyAdded) {
-        this(email, invitationUrl, emailSent, alreadyAdded, false);
-    }
-
-    public EventInvitationResponse(
-            String email,
-            String invitationUrl,
-            boolean emailSent,
-            boolean alreadyAdded,
-            boolean alreadyMember) {
-        this.email = email;
+    public EventInvitationResponse(String invitationUrl, java.time.LocalDateTime expiresAt) {
         this.invitationUrl = invitationUrl;
-        this.emailSent = emailSent;
-        this.alreadyAdded = alreadyAdded;
-        this.alreadyMember = alreadyMember;
-    }
-
-    public String getEmail() {
-        return email;
+        this.expiresAt = expiresAt;
     }
 
     public String getInvitationUrl() {
         return invitationUrl;
     }
 
-    public boolean isEmailSent() {
-        return emailSent;
-    }
-
-    public boolean isAlreadyAdded() {
-        return alreadyAdded;
-    }
-
-    public boolean isAlreadyMember() {
-        return alreadyMember;
+    public java.time.LocalDateTime getExpiresAt() {
+        return expiresAt;
     }
 }

@@ -161,8 +161,7 @@ public class EventController {
                 EventAccessRequest accessRequest = new EventAccessRequest();
                 accessRequest.setEditPolicy(request.getEditPolicy());
                 accessRequest.setEditorUserIds(request.getEditorUserIds());
-                EventAccessResponse accessResponse = accessService.configureEditing(created.getId(), currentUser, accessRequest);
-                created.setNotifications(accessResponse.getNotifications());
+                accessService.configureEditing(created.getId(), currentUser, accessRequest);
             }
             created.setCanEdit(true);
             return ResponseEntity.status(HttpStatus.CREATED).body(created);

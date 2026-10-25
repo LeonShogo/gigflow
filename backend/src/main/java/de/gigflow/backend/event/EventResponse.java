@@ -1,9 +1,6 @@
 package de.gigflow.backend.event;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-
 import java.time.LocalDateTime;
-import java.util.List;
 
 public class EventResponse {
 
@@ -18,8 +15,6 @@ public class EventResponse {
     private EventEditPolicy editPolicy;
     private boolean canEdit;
 
-    @JsonInclude(JsonInclude.Include.NON_EMPTY)
-    private List<EventInvitationResponse> notifications = List.of();
 
     public static EventResponse from(Event event) {
         EventResponse response = new EventResponse();
@@ -119,11 +114,4 @@ public class EventResponse {
         this.canEdit = canEdit;
     }
 
-    public List<EventInvitationResponse> getNotifications() {
-        return notifications;
-    }
-
-    public void setNotifications(List<EventInvitationResponse> notifications) {
-        this.notifications = notifications == null ? List.of() : notifications;
-    }
 }

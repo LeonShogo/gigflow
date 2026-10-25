@@ -14,7 +14,6 @@ import { Router, RouterLink } from '@angular/router';
 import { EventService } from '../dashboard/event.service';
 import type { Band, EventEditPolicy, EventItem, EventType, UserContact } from '../dashboard/event.model';
 import { TranslatePipe } from '../language/translate.pipe';
-import { ToastService } from '../notifications/toast.service';
 
 @Component({
   selector: 'app-event-form',
@@ -27,7 +26,6 @@ export class EventFormComponent {
   private readonly formBuilder = inject(FormBuilder);
   private readonly router = inject(Router);
   private readonly eventService = inject(EventService);
-  private readonly toast = inject(ToastService);
 
   protected readonly form = this.formBuilder.nonNullable.group({
     title: ['', [Validators.required, Validators.maxLength(120)]],
@@ -102,20 +100,7 @@ export class EventFormComponent {
 
     this.saving.set(true);
     this.eventService.createEvent(payload).subscribe({
-      next: (created) => {
-        const pendingLink = created.notifications?.find((notification) => notification.invitationUrl)?.invitationUrl;
-        if (pendingLink) {
-          this.toast.show('Event erstellt. Kopiere den Event-Link und teile ihn mit den Mitbearbeitenden.', {
-            label: 'Event-Link kopieren',
-            run: () => {
-              void globalThis.navigator?.clipboard?.writeText(pendingLink);
-            },
-          });
-        } else if (created.notifications?.some((notification) => notification.emailSent)) {
-          this.toast.show('Event erstellt; Einladungen wurden per E-Mail versendet.');
-        }
-        void this.router.navigate(['/']);
-      },
+      next: () => void this.router.navigate(['/']),
       error: () => {
         this.saving.set(false);
         this.submitError.set('Event konnte nicht angelegt werden.');

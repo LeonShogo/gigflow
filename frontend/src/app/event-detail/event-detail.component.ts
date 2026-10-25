@@ -28,10 +28,10 @@ import { formatDate, formatTime, formatTimeOnly, repertoireLabel, typeLabel } fr
 import type {
   Band,
   EventEditPolicy,
+  EventInvitationLink,
   EventItem,
   EventParticipation,
   EventRequest,
-  EventInvitationResult,
   ParticipationStatus,
   UserContact,
 } from '../dashboard/event.model';
@@ -177,9 +177,8 @@ export class EventDetailComponent {
   protected readonly editPolicy = signal<EventEditPolicy>('OWNER_ONLY');
   protected readonly editorUserIds = signal<number[]>([]);
   protected readonly memberUserIds = signal<number[]>([]);
-  protected readonly invitationEmails = signal('');
-  protected readonly invitationResults = signal<EventInvitationResult[]>([]);
-  protected readonly invitationSending = signal(false);
+  protected readonly invitationLink = signal<EventInvitationLink | null>(null);
+  protected readonly invitationLinkCreating = signal(false);
 
   protected readonly participations = signal<EventParticipation[]>([]);
   protected readonly participantsLoading = signal(true);
@@ -308,20 +307,9 @@ export class EventDetailComponent {
         this.event.update((current) => current
           ? { ...current, editPolicy: updated.editPolicy }
           : current);
-        this.invitationResults.update((results) => [...results, ...(updated.notifications ?? [])]);
         this.accessSaving.set(false);
         this.accessSettingsOpen.set(false);
-        const unsentLink = updated.notifications?.find((notification) => notification.invitationUrl)?.invitationUrl;
-        if (unsentLink) {
-          this.toast.show('Freigabe gespeichert. Teile den Event-Link mit den Mitbearbeitenden.', {
-            label: 'Event-Link kopieren',
-            run: () => void globalThis.navigator?.clipboard?.writeText(unsentLink),
-          });
-        } else if (updated.notifications?.some((notification) => notification.emailSent)) {
-          this.toast.show('Freigabe gespeichert; Benachrichtigungen wurden versendet.');
-        } else {
-          this.toast.show('Bearbeitungsfreigabe gespeichert.');
-        }
+        this.toast.show('Bearbeitungsfreigabe gespeichert.');
       },
       error: (error) => {
         this.accessSaving.set(false);
@@ -338,13 +326,12 @@ export class EventDetailComponent {
     }
     this.accessSaving.set(true);
     this.eventService.addEventMembers(eventId, userIds).subscribe({
-      next: (response) => {
+      next: (participations) => {
         this.participations.update((current) => {
           const byId = new Map(current.map((participation) => [participation.id, participation]));
-          response.participations.forEach((participation) => byId.set(participation.id, participation));
+          participations.forEach((participation) => byId.set(participation.id, participation));
           return [...byId.values()];
         });
-        this.invitationResults.update((results) => [...results, ...response.notifications]);
         this.memberUserIds.set([]);
         this.accessSaving.set(false);
         this.toast.show('Teilnehmende hinzugefügt.');
@@ -356,36 +343,50 @@ export class EventDetailComponent {
     });
   }
 
-  protected onInvitationEmails(event: Event): void {
-    this.invitationEmails.set((event.target as HTMLTextAreaElement).value);
-  }
-
   protected closeAccessSettings(): void {
-    if (!this.accessSaving() && !this.invitationSending()) {
+    if (!this.accessSaving() && !this.invitationLinkCreating()) {
       this.accessSettingsOpen.set(false);
       this.accessError.set(null);
     }
   }
 
-  protected sendEmailInvitations(): void {
+  protected createInvitationLink(): void {
     const eventId = this.event()?.id;
-    const emails = [...new Set(this.invitationEmails().split(/[;,\n]/).map((email) => email.trim()).filter(Boolean))];
-    if (eventId == null || emails.length === 0 || this.invitationSending()) {
+    if (eventId == null || this.invitationLinkCreating()) {
       return;
     }
-    this.invitationSending.set(true);
+    this.invitationLinkCreating.set(true);
     this.accessError.set(null);
-    this.eventService.inviteByEmail(eventId, emails).subscribe({
-      next: (results) => {
-        this.invitationResults.set(results);
-        this.invitationEmails.set('');
-        this.invitationSending.set(false);
+    this.eventService.createInvitationLink(eventId).subscribe({
+      next: (invitationLink) => {
+        this.invitationLink.set(invitationLink);
+        this.invitationLinkCreating.set(false);
       },
       error: (error) => {
-        this.invitationSending.set(false);
-        this.accessError.set(error?.error?.message ?? 'Einladungen konnten nicht erstellt werden.');
+        this.invitationLinkCreating.set(false);
+        this.accessError.set(error?.error?.message ?? 'Einladungslink konnte nicht erstellt werden.');
       },
     });
+  }
+
+  protected copyInvitationLink(): void {
+    const url = this.invitationLink()?.invitationUrl;
+    if (!url) {
+      return;
+    }
+    const clipboard = globalThis.navigator?.clipboard;
+    if (!clipboard) {
+      this.accessError.set('Link markieren und manuell kopieren.');
+      return;
+    }
+    void clipboard.writeText(url).then(
+      () => this.toast.show('Einladungslink kopiert.'),
+      () => this.accessError.set('Link markieren und manuell kopieren.'),
+    );
+  }
+
+  protected selectInvitationLink(event: Event): void {
+    (event.target as HTMLInputElement).select();
   }
 
   protected leaveEvent(): void {

@@ -1468,7 +1468,7 @@
         <div class="access__section">
           <h3>{{ 'Mitbearbeitende auswählen' | t }}</h3>
           @if (contacts().length === 0) {
-            <p class="panel__note">{{ 'Noch keine bekannten Konten. Lade zuerst jemanden per E-Mail ein oder füge Teilnehmende hinzu.' | t }}</p>
+            <p class="panel__note">{{ 'Noch keine bekannten Konten. Füge zuerst Teilnehmende hinzu oder teile einen Einladungslink.' | t }}</p>
           } @else {
             <ul class="picker__list">
               @for (contact of contacts(); track contact.id) {
@@ -1490,7 +1490,7 @@
 
       <div class="access__section">
         <h3>{{ 'Bekannte Konten hinzufügen' | t }}</h3>
-        <p class="panel__note">{{ 'Diese Personen werden dem Event hinzugefügt. Bei eingerichtetem Mailversand erhalten sie eine Benachrichtigung.' | t }}</p>
+        <p class="panel__note">{{ 'Diese Konten werden direkt als Teilnehmende hinzugefügt und sehen das Event in ihrer Übersicht.' | t }}</p>
         @if (contacts().length === 0) {
           <p class="panel__note">{{ 'Noch keine bekannten Konten.' | t }}</p>
         } @else {
@@ -1511,22 +1511,20 @@
       </div>
 
       <div class="access__section">
-        <h3>{{ 'Per E-Mail einladen' | t }}</h3>
-        <p class="panel__note">{{ 'Für neue Kontakte wird ein persönlicher Einladungslink erstellt.' | t }}</p>
-        <label class="access__field">
-          <span class="access__label">{{ 'E-Mail-Adressen (durch Komma oder neue Zeile trennen)' | t }}</span>
-          <textarea class="picker__input" rows="3" [value]="invitationEmails()" (input)="onInvitationEmails($event)"></textarea>
-        </label>
-        <button type="button" class="picker__submit" (click)="sendEmailInvitations()" [disabled]="invitationSending() || !invitationEmails().trim()">
-          {{ (invitationSending() ? 'Wird gesendet …' : 'Einladungen senden') | t }}
+        <h3>{{ 'Einladungslink teilen' | t }}</h3>
+        <p class="panel__note">{{ 'Erstelle einen persönlichen Link und verschicke ihn selbst per WhatsApp oder E-Mail. Er ist einmal verwendbar und sieben Tage gültig.' | t }}</p>
+        <button type="button" class="picker__submit" (click)="createInvitationLink()" [disabled]="invitationLinkCreating()">
+          {{ (invitationLinkCreating() ? 'Link wird erstellt …' : 'Einladungslink erstellen') | t }}
         </button>
-        @for (result of invitationResults(); track result.email) {
-          <p class="panel__note">
-            {{ result.email }} — {{ (result.alreadyMember ? 'Konto war bereits im Event' : result.alreadyAdded ? (result.emailSent ? 'Konto hinzugefügt und benachrichtigt' : 'Konto hinzugefügt; E-Mail wurde nicht versendet') : result.emailSent ? 'Einladung versendet' : 'Einladungslink erstellt; bitte Mailversand konfigurieren oder Link kopieren') | t }}
-            @if (result.invitationUrl) {
-              <br /><a [href]="result.invitationUrl">{{ result.invitationUrl }}</a>
-            }
-          </p>
+        @if (invitationLink(); as link) {
+          <label class="access__field">
+            <span class="access__label">{{ 'Persönlicher Einladungslink' | t }}</span>
+            <input class="picker__input" type="url" readonly [value]="link.invitationUrl" (focus)="selectInvitationLink($event)" />
+          </label>
+          <p class="panel__note">{{ 'Gültig bis' | t }}: {{ formatDate(link.expiresAt) }}</p>
+          <button type="button" class="picker__submit" (click)="copyInvitationLink()">
+            {{ 'Link kopieren' | t }}
+          </button>
         }
       </div>
       @if (accessError(); as message) {

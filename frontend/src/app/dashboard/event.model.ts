@@ -13,7 +13,6 @@ export interface EventItem {
   createdByUserId?: number | null;
   editPolicy?: EventEditPolicy;
   canEdit?: boolean;
-  notifications?: EventInvitationResult[];
   /** Reserve for later */
   venue?: string;
 }
@@ -34,12 +33,9 @@ export interface UserContact {
   displayName: string;
 }
 
-export interface EventInvitationResult {
-  email: string;
-  invitationUrl: string | null;
-  emailSent: boolean;
-  alreadyAdded: boolean;
-  alreadyMember?: boolean;
+export interface EventInvitationLink {
+  invitationUrl: string;
+  expiresAt: string;
 }
 
 export interface Band {

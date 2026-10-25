@@ -26,7 +26,7 @@ public class EventInvitation {
     @JoinColumn(name = "event_id", nullable = false)
     private Event event;
 
-    @Column(nullable = false)
+    @Column
     private String email;
 
     @Column(name = "token_hash", nullable = false, unique = true, length = 64)

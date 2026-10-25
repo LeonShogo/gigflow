@@ -48,9 +48,9 @@ Der Dev-Server läuft unter `http://localhost:4200`. API-Aufrufe werden via Prox
 Beim ersten Start werden automatisch Demo-Bands, Musiker:innen und Events per `DataInitializer` angelegt.
 Die Eventübersicht zeigt nur selbst erstellte Events und Events, an denen das verknüpfte Musikerprofil teilnimmt. Beim Demo-Musiker-Konto ist „Streifzug durch die Nacht“ eingetragen.
 
-Event-Ersteller:innen können Bearbeitungsrechte pro Event auf **nur mich**, **alle Teilnehmenden** oder **ausgewählte Teilnehmende** setzen. Bekannte Konten basieren auf gemeinsam erstellten bzw. besuchten Events. Einladungen an weitere E-Mail-Adressen erzeugen persönliche, einmal verwendbare Links, die sieben Tage gültig sind.
+Event-Ersteller:innen können Bearbeitungsrechte pro Event auf **nur mich**, **alle Teilnehmenden** oder **ausgewählte Teilnehmende** setzen. Bekannte Konten basieren auf gemeinsam erstellten bzw. besuchten Events. Für weitere Personen kann ein persönlicher Einladungslink erzeugt und manuell über WhatsApp oder die eigene E-Mail verschickt werden. Der Link ist einmal verwendbar und sieben Tage gültig; ein neuer Link deaktiviert noch offene Links des Events.
 
-Für echten E-Mail-Versand müssen im Backend `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `MAIL_FROM` und `APP_PUBLIC_BASE_URL` gesetzt sein. Ohne SMTP-Konfiguration wird der Einladungslink in der App angezeigt, sodass er manuell verschickt werden kann.
+Für ein Deployment muss `APP_PUBLIC_BASE_URL` auf die öffentliche GigFlow-Adresse zeigen, damit Einladungslinks auf die richtige App verweisen. Ein Mailkonto oder SMTP-Zugang ist nicht erforderlich.
 
 ## HTTPS-Testdeployment auf Render
 

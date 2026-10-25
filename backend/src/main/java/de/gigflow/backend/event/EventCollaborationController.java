@@ -14,8 +14,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/api/events")
 public class EventCollaborationController {
@@ -71,17 +69,16 @@ public class EventCollaborationController {
         }
     }
 
-    @PostMapping("/{eventId}/invitations")
-    public ResponseEntity<?> inviteByEmail(
+    @PostMapping("/{eventId}/invitation-link")
+    public ResponseEntity<?> createInvitationLink(
             @PathVariable Long eventId,
-            @AuthenticationPrincipal AuthenticatedUser currentUser,
-            @Valid @RequestBody EventEmailsRequest request) {
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
         if (!ownershipService.ownsEvent(currentUser, eventId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         try {
             return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(accessService.inviteEmails(eventId, currentUser, request.getEmails()));
+                    .body(accessService.createInvitationLink(eventId, currentUser));
         } catch (IllegalArgumentException exception) {
             return ResponseEntity.badRequest().body(new EventController.ErrorBody(exception.getMessage()));
         }

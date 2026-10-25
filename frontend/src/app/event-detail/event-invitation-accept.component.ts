@@ -16,7 +16,7 @@ import { TranslatePipe } from '../language/translate.pipe';
       @if (loading()) {
         <p>{{ 'Einladung wird geprüft …' | t }}</p>
       } @else if (error(); as message) {
-        <p class="invitation-page__error" role="alert">{{ message | t }}</p>
+          <p class="invitation-page__error" role="alert">{{ message | t }}</p>
         @if (!isAuthenticated()) {
           <a class="invitation-page__link" [routerLink]="['/login']" [queryParams]="{ returnUrl: returnUrl }">
             {{ 'Anmelden oder registrieren' | t }}
@@ -63,7 +63,7 @@ export class EventInvitationAcceptComponent {
     }
     if (!this.auth.isAuthenticated()) {
       this.loading.set(false);
-      this.error.set('Bitte melde dich mit der eingeladenen E-Mail-Adresse an oder registriere dich.');
+      this.error.set('Bitte melde dich an oder registriere dich, um dem Event beizutreten.');
       return;
     }
     const user$ = this.auth.currentUser()

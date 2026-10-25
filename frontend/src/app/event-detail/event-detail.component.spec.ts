@@ -2219,5 +2219,33 @@ function loadConcertWithLocations(
     expect(fixture.nativeElement.querySelector('.access__field')).toBeNull();
     expect((fixture.componentInstance as unknown as { canManageEvent(): boolean }).canManageEvent()).toBe(true);
   });
+
+  it('creates and displays a personal invitation link for sharing', () => {
+    const fixture = setup();
+    loadConcert(fixture);
+    loginAsOwner(fixture);
+
+    const open = Array.from(
+      fixture.nativeElement.querySelectorAll('.detail__print') as NodeListOf<HTMLButtonElement>,
+    ).find((button) => button.textContent?.includes('Zugriff & Einladungen')) as HTMLButtonElement;
+    open.click();
+    fixture.detectChanges();
+    httpMock.expectOne('/api/events/1/access').flush({ editPolicy: 'OWNER_ONLY', editorUserIds: [] });
+    httpMock.expectOne('/api/users/contacts').flush([]);
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('.access__section:last-of-type .picker__submit') as HTMLButtonElement).click();
+    const request = httpMock.expectOne('/api/events/1/invitation-link');
+    expect(request.request.method).toBe('POST');
+    request.flush({
+      invitationUrl: 'https://gigflow.example/invitations/accept?token=personal-token',
+      expiresAt: '2026-11-02T12:00:00',
+    });
+    fixture.detectChanges();
+
+    expect((fixture.nativeElement.querySelector('input[type="url"]') as HTMLInputElement).value)
+      .toBe('https://gigflow.example/invitations/accept?token=personal-token');
+    expect(fixture.nativeElement.textContent).toContain('Link kopieren');
+  });
 });
     

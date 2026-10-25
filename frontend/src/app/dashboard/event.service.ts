@@ -8,7 +8,7 @@ import type {
   BandMembershipRequest,
   BandRequest,
   EventItem,
-  EventInvitationResult,
+  EventInvitationLink,
   EventEditPolicy,
   EventParticipation,
   EventRequest,
@@ -25,12 +25,6 @@ export interface PanelLayout {
 export interface EventAccessConfiguration {
   editPolicy: EventEditPolicy;
   editorUserIds: number[];
-  notifications?: EventInvitationResult[];
-}
-
-export interface EventMembersAddedResponse {
-  participations: EventParticipation[];
-  notifications: EventInvitationResult[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -63,12 +57,12 @@ export class EventService {
     return this.http.put<EventAccessConfiguration>(`/api/events/${eventId}/access`, access);
   }
 
-  addEventMembers(eventId: number, userIds: number[]): Observable<EventMembersAddedResponse> {
-    return this.http.post<EventMembersAddedResponse>(`/api/events/${eventId}/members`, { userIds });
+  addEventMembers(eventId: number, userIds: number[]): Observable<EventParticipation[]> {
+    return this.http.post<EventParticipation[]>(`/api/events/${eventId}/members`, { userIds });
   }
 
-  inviteByEmail(eventId: number, emails: string[]): Observable<EventInvitationResult[]> {
-    return this.http.post<EventInvitationResult[]>(`/api/events/${eventId}/invitations`, { emails });
+  createInvitationLink(eventId: number): Observable<EventInvitationLink> {
+    return this.http.post<EventInvitationLink>(`/api/events/${eventId}/invitation-link`, {});
   }
 
   leaveEvent(eventId: number): Observable<void> {

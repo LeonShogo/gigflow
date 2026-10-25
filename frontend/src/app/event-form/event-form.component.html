@@ -93,7 +93,7 @@
       <fieldset class="field contacts">
         <legend class="field__label">{{ 'Mitbearbeitende auswählen' | t }}</legend>
         @if (contacts().length === 0) {
-          <p class="field__hint">{{ 'Noch keine bekannten Konten. Du kannst sie nach dem Erstellen hinzufügen oder per E-Mail einladen.' | t }}</p>
+          <p class="field__hint">{{ 'Noch keine bekannten Konten. Du kannst sie nach dem Erstellen hinzufügen oder einen Einladungslink teilen.' | t }}</p>
         } @else {
           @for (contact of contacts(); track contact.id) {
             <label class="contact-option">
