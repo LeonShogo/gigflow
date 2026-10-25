@@ -1224,7 +1224,7 @@ function loadConcertWithLocations(
     addBtn.click();
     fixture.detectChanges();
     httpMock.expectOne('/api/events').flush([
-      { id: 7, title: 'Studio-Probe', type: 'REHEARSAL', dateTime: '2026-09-05T18:00:00' },
+      { id: 7, title: 'Studio-Probe', type: 'REHEARSAL', dateTime: '2026-09-05T18:00:00', canEdit: true },
     ]);
     fixture.detectChanges();
 
@@ -2179,6 +2179,45 @@ function loadConcertWithLocations(
     expect(el.textContent).toContain('Band-Mitglieder eingeladen.');
     expect(el.textContent).toContain('Anna Becker');
     expect(el.querySelector('app-modal-dialog')).toBeNull();
+  });
+
+  it('lets the event owner change its editing policy', () => {
+    const fixture = setup();
+    loadConcert(fixture);
+    loginAsOwner(fixture);
+
+    const open = Array.from(
+      fixture.nativeElement.querySelectorAll('.detail__print') as NodeListOf<HTMLButtonElement>,
+    )
+      .find((button) => button.textContent?.includes('Zugriff & Einladungen')) as HTMLButtonElement;
+    open.click();
+    fixture.detectChanges();
+    httpMock.expectOne('/api/events/1/access').flush({
+      editPolicy: 'OWNER_ONLY',
+      editorUserIds: [],
+    });
+    httpMock.expectOne('/api/users/contacts').flush([]);
+    fixture.detectChanges();
+
+    const policy = fixture.nativeElement.querySelector('.access__field select') as HTMLSelectElement;
+    policy.value = 'ALL_PARTICIPANTS';
+    policy.dispatchEvent(new Event('change', { bubbles: true }));
+    fixture.detectChanges();
+    const save = Array.from(
+      fixture.nativeElement.querySelectorAll('.picker__submit') as NodeListOf<HTMLButtonElement>,
+    )
+      .find((button) => button.textContent?.includes('Freigabe speichern')) as HTMLButtonElement;
+    save.click();
+    const request = httpMock.expectOne('/api/events/1/access');
+    expect(request.request.method).toBe('PUT');
+    expect(request.request.body).toEqual({
+      editPolicy: 'ALL_PARTICIPANTS',
+      editorUserIds: [],
+    });
+    request.flush({ id: 1, title: 'Hafenrocker', createdByUserId: 1, editPolicy: 'ALL_PARTICIPANTS', canEdit: true });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.access__field')).toBeNull();
+    expect((fixture.componentInstance as unknown as { canManageEvent(): boolean }).canManageEvent()).toBe(true);
   });
 });
     

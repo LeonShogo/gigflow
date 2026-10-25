@@ -21,6 +21,10 @@ public class EventRequest {
 
     private Long concertId;
 
+    private EventEditPolicy editPolicy = EventEditPolicy.OWNER_ONLY;
+
+    private java.util.List<Long> editorUserIds = java.util.List.of();
+
     public String getTitle() {
         return title;
     }
@@ -59,5 +63,21 @@ public class EventRequest {
 
     public void setConcertId(Long concertId) {
         this.concertId = concertId;
+    }
+
+    public EventEditPolicy getEditPolicy() {
+        return editPolicy;
+    }
+
+    public void setEditPolicy(EventEditPolicy editPolicy) {
+        this.editPolicy = editPolicy;
+    }
+
+    public java.util.List<Long> getEditorUserIds() {
+        return editorUserIds;
+    }
+
+    public void setEditorUserIds(java.util.List<Long> editorUserIds) {
+        this.editorUserIds = editorUserIds == null ? java.util.List.of() : editorUserIds;
     }
 }

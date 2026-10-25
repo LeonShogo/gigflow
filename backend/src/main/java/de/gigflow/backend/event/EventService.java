@@ -30,6 +30,8 @@ public class EventService {
     private final ScheduleItemRepository scheduleItemRepository;
     private final EventLocationRepository eventLocationRepository;
     private final EquipmentRequirementRepository equipmentRequirementRepository;
+    private final EventEditorRepository eventEditorRepository;
+    private final EventInvitationRepository eventInvitationRepository;
 
     public EventService(
             EventRepository eventRepository,
@@ -39,7 +41,9 @@ public class EventService {
             SetlistEntryRepository setlistEntryRepository,
             ScheduleItemRepository scheduleItemRepository,
             EventLocationRepository eventLocationRepository,
-            EquipmentRequirementRepository equipmentRequirementRepository) {
+            EquipmentRequirementRepository equipmentRequirementRepository,
+            EventEditorRepository eventEditorRepository,
+            EventInvitationRepository eventInvitationRepository) {
         this.eventRepository = eventRepository;
         this.bandRepository = bandRepository;
         this.participationRepository = participationRepository;
@@ -48,6 +52,8 @@ public class EventService {
         this.scheduleItemRepository = scheduleItemRepository;
         this.eventLocationRepository = eventLocationRepository;
         this.equipmentRequirementRepository = equipmentRequirementRepository;
+        this.eventEditorRepository = eventEditorRepository;
+        this.eventInvitationRepository = eventInvitationRepository;
     }
 
     public EventResponse createEvent(EventRequest request, Long createdByUserId) {
@@ -61,9 +67,11 @@ public class EventService {
         event.setBand(band);
         event.setConcert(concert);
         event.setCreatedByUserId(createdByUserId);
+        event.setEditPolicy(request.getEditPolicy());
         return EventResponse.from(eventRepository.save(event));
     }
 
+    @Transactional(readOnly = true)
     public Optional<EventResponse> findEventById(Long id) {
         return eventRepository.findById(id).map(EventResponse::from);
     }
@@ -94,10 +102,19 @@ public class EventService {
         return concert;
     }
 
+    @Transactional(readOnly = true)
     public List<EventResponse> findAllEvents() {
         return eventRepository.findAll().stream().map(EventResponse::from).toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<EventResponse> findEventsVisibleToUser(Long userId, Long musicianId) {
+        return eventRepository.findVisibleToUser(userId, musicianId).stream()
+                .map(EventResponse::from)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public List<EventResponse> findRehearsalsByConcert(Long concertId) {
         return eventRepository.findByConcertId(concertId).stream()
                 .filter(e -> e.getType() == EventType.REHEARSAL)
@@ -106,6 +123,7 @@ public class EventService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public Optional<PanelLayout> findPanelLayout(Long eventId) {
         return eventRepository.findById(eventId).map(event -> PanelLayout.fromStored(event.getPanelLayout()));
     }
@@ -171,6 +189,8 @@ public class EventService {
         scheduleItemRepository.deleteAll(scheduleItemRepository.findByEventId(event.getId()));
         eventLocationRepository.deleteAll(eventLocationRepository.findByEventId(event.getId()));
         equipmentRequirementRepository.deleteAll(equipmentRequirementRepository.findByEventId(event.getId()));
+        eventEditorRepository.deleteByEventId(event.getId());
+        eventInvitationRepository.deleteByEventId(event.getId());
 
         eventRepository.delete(event);
     }

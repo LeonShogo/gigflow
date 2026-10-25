@@ -421,3 +421,40 @@ section.detail .entry__sheet--youtube:hover {
     height: 1.8rem;
   }
 }
+
+.access__field {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.access__label {
+  color: var(--ink-soft);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.access__section {
+  display: grid;
+  gap: 0.55rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--line);
+}
+
+.access__section h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.access__section .picker__item label {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.access__section input[type='checkbox'] {
+  accent-color: var(--accent);
+}
+
+.access__section a {
+  overflow-wrap: anywhere;
+}

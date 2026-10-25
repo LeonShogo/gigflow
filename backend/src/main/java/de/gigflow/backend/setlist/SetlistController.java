@@ -32,19 +32,33 @@ public class SetlistController {
     }
 
     @GetMapping
-    public List<SetlistResponse> getAllSetlists() {
-        return setlistService.findAllSetlists();
+    public List<SetlistResponse> getAllSetlists(
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
+        return setlistService.findAllSetlists().stream()
+                .filter(setlist -> ownershipService.canViewEvent(currentUser, setlist.getEventId()))
+                .toList();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<SetlistResponse> getSetlistById(@PathVariable Long id) {
+    public ResponseEntity<SetlistResponse> getSetlistById(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
         Optional<SetlistResponse> setlist = setlistService.findSetlistById(id);
+        if (setlist.isPresent()
+                && !ownershipService.canViewEvent(currentUser, setlist.get().getEventId())) {
+            return ResponseEntity.notFound().build();
+        }
         return setlist.map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @GetMapping("/event/{eventId}")
-    public ResponseEntity<SetlistResponse> getSetlistByEvent(@PathVariable Long eventId) {
+    public ResponseEntity<SetlistResponse> getSetlistByEvent(
+            @PathVariable Long eventId,
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
+        if (!ownershipService.canViewEvent(currentUser, eventId)) {
+            return ResponseEntity.notFound().build();
+        }
         Optional<SetlistResponse> setlist = setlistService.findSetlistByEvent(eventId);
         return setlist.map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
@@ -54,7 +68,7 @@ public class SetlistController {
     public ResponseEntity<SetlistResponse> createSetlist(
             @AuthenticationPrincipal AuthenticatedUser currentUser,
             @Valid @RequestBody SetlistRequest request) {
-        if (!ownershipService.ownsEvent(currentUser, request.getEventId())) {
+        if (!ownershipService.canEditEvent(currentUser, request.getEventId())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         try {
@@ -71,7 +85,7 @@ public class SetlistController {
             @AuthenticationPrincipal AuthenticatedUser currentUser,
             @Valid @RequestBody SetlistRequest request) {
         if (!ownershipService.canManageSetlist(currentUser, id)
-                || !ownershipService.ownsEvent(currentUser, request.getEventId())) {
+                || !ownershipService.canEditEvent(currentUser, request.getEventId())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         try {

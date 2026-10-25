@@ -36,6 +36,7 @@ class EventOwnershipServiceTest {
     private PieceSheetRepository sheetRepository;
     private PieceLinkRepository linkRepository;
     private PieceDemoAudioRepository demoAudioRepository;
+    private EventEditorRepository editorRepository;
     private EventOwnershipService ownershipService;
 
     @BeforeEach
@@ -51,6 +52,7 @@ class EventOwnershipServiceTest {
         sheetRepository = mock(PieceSheetRepository.class);
         linkRepository = mock(PieceLinkRepository.class);
         demoAudioRepository = mock(PieceDemoAudioRepository.class);
+        editorRepository = mock(EventEditorRepository.class);
         ownershipService = new EventOwnershipService(
                 eventRepository,
                 participationRepository,
@@ -62,7 +64,8 @@ class EventOwnershipServiceTest {
                 pieceRepository,
                 sheetRepository,
                 linkRepository,
-                demoAudioRepository);
+                demoAudioRepository,
+                editorRepository);
     }
 
     @Test
@@ -75,6 +78,40 @@ class EventOwnershipServiceTest {
         assertTrue(ownershipService.ownsEvent(new AuthenticatedUser(4L, 40L), 12L));
         assertFalse(ownershipService.ownsEvent(new AuthenticatedUser(5L, 50L), 12L));
         assertFalse(ownershipService.ownsEvent(null, 12L));
+    }
+
+    @Test
+    void eventEditingPolicyControlsParticipatingAccounts() {
+        Event event = new Event();
+        event.setId(12L);
+        event.setCreatedByUserId(4L);
+        when(eventRepository.findById(12L)).thenReturn(Optional.of(event));
+        when(participationRepository.existsByEventIdAndMusicianId(12L, 50L)).thenReturn(true);
+
+        AuthenticatedUser participant = new AuthenticatedUser(9L, 50L);
+        assertFalse(ownershipService.canEditEvent(participant, 12L));
+
+        event.setEditPolicy(EventEditPolicy.ALL_PARTICIPANTS);
+        assertTrue(ownershipService.canEditEvent(participant, 12L));
+
+        event.setEditPolicy(EventEditPolicy.SELECTED_PARTICIPANTS);
+        when(editorRepository.existsByEventIdAndUserId(12L, 9L)).thenReturn(true);
+        assertTrue(ownershipService.canEditEvent(participant, 12L));
+        when(editorRepository.existsByEventIdAndUserId(12L, 10L)).thenReturn(false);
+        assertFalse(ownershipService.canEditEvent(new AuthenticatedUser(10L, 50L), 12L));
+    }
+
+    @Test
+    void eventVisibilityRequiresOwnershipOrParticipation() {
+        Event event = new Event();
+        event.setId(12L);
+        event.setCreatedByUserId(4L);
+        when(eventRepository.findById(12L)).thenReturn(Optional.of(event));
+        when(participationRepository.existsByEventIdAndMusicianId(12L, 50L)).thenReturn(true);
+
+        assertTrue(ownershipService.canViewEvent(new AuthenticatedUser(4L, 40L), 12L));
+        assertTrue(ownershipService.canViewEvent(new AuthenticatedUser(9L, 50L), 12L));
+        assertFalse(ownershipService.canViewEvent(new AuthenticatedUser(10L, 60L), 12L));
     }
 
     @Test

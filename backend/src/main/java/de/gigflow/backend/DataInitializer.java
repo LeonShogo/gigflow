@@ -103,6 +103,7 @@ public class DataInitializer implements CommandLineRunner {
 
         seedRichDemoGig(band);
         User owner = seedUsers();
+        ensureDemoMusicianEventMembership();
         assignLegacyOwners(owner.getId());
     }
 
@@ -195,13 +196,36 @@ public class DataInitializer implements CommandLineRunner {
             Musician ownerMusician = musicianService.createMusicianEntity("Demo", "Eventkonto", "Gesang");
             userService.linkToMusician(owner, ownerMusician);
         }
-        if (userService.findByEmail("musiker@gigflow.local").isEmpty()) {
-            User user = userService.register("musiker@gigflow.local", "musiker1234");
-            Musician musician = musicianService.createMusicianEntity("Demo", "Musiker", "Multi-Instrumentalist");
-            userService.linkToMusician(user, musician);
+        User musicianUser = userService.findByEmail("musiker@gigflow.local").orElseGet(() -> {
+            User created = userService.register("musiker@gigflow.local", "musiker1234");
             System.out.println("[gigflow] Demo-Musiker-Konto: musiker@gigflow.local / musiker1234");
+            return created;
+        });
+        if (musicianUser.getMusician() == null) {
+            Musician musician = musicianService.createMusicianEntity("Demo", "Musiker", "Multi-Instrumentalist");
+            userService.linkToMusician(musicianUser, musician);
         }
         return owner;
+    }
+
+    private void ensureDemoMusicianEventMembership() {
+        User musicianUser = userService.findByEmail("musiker@gigflow.local").orElse(null);
+        if (musicianUser == null || musicianUser.getMusician() == null) {
+            return;
+        }
+        Event demoGig = eventRepository.findAll().stream()
+                .filter(event -> "Streifzug durch die Nacht".equals(event.getTitle()))
+                .findFirst()
+                .orElse(null);
+        if (demoGig == null || eventParticipationRepository.existsByEventIdAndMusicianId(
+                demoGig.getId(), musicianUser.getMusician().getId())) {
+            return;
+        }
+        EventParticipation participation = new EventParticipation();
+        participation.setEvent(demoGig);
+        participation.setMusician(musicianUser.getMusician());
+        participation.setStatus(EventParticipationStatus.ACCEPTED);
+        eventParticipationRepository.save(participation);
     }
 
     private void assignLegacyOwners(Long userId) {

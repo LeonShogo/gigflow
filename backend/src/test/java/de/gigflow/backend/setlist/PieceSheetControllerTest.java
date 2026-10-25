@@ -54,6 +54,7 @@ class PieceSheetControllerTest {
 
     @BeforeEach
     void allowTestOwnerRequests() {
+        when(ownershipService.canViewSheet(nullable(AuthenticatedUser.class), anyLong())).thenReturn(true);
         when(ownershipService.canManageSheet(nullable(AuthenticatedUser.class), anyLong())).thenReturn(true);
     }
 

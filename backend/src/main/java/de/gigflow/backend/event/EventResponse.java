@@ -1,6 +1,9 @@
 package de.gigflow.backend.event;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class EventResponse {
 
@@ -12,6 +15,11 @@ public class EventResponse {
     private String bandName;
     private Long concertId;
     private Long createdByUserId;
+    private EventEditPolicy editPolicy;
+    private boolean canEdit;
+
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    private List<EventInvitationResponse> notifications = List.of();
 
     public static EventResponse from(Event event) {
         EventResponse response = new EventResponse();
@@ -20,6 +28,7 @@ public class EventResponse {
         response.setDateTime(event.getDateTime());
         response.setType(event.getType());
         response.setCreatedByUserId(event.getCreatedByUserId());
+        response.setEditPolicy(event.getEditPolicy());
         if (event.getBand() != null) {
             response.setBandId(event.getBand().getId());
             response.setBandName(event.getBand().getName());
@@ -92,5 +101,29 @@ public class EventResponse {
 
     public void setCreatedByUserId(Long createdByUserId) {
         this.createdByUserId = createdByUserId;
+    }
+
+    public EventEditPolicy getEditPolicy() {
+        return editPolicy;
+    }
+
+    public void setEditPolicy(EventEditPolicy editPolicy) {
+        this.editPolicy = editPolicy;
+    }
+
+    public boolean isCanEdit() {
+        return canEdit;
+    }
+
+    public void setCanEdit(boolean canEdit) {
+        this.canEdit = canEdit;
+    }
+
+    public List<EventInvitationResponse> getNotifications() {
+        return notifications;
+    }
+
+    public void setNotifications(List<EventInvitationResponse> notifications) {
+        this.notifications = notifications == null ? List.of() : notifications;
     }
 }

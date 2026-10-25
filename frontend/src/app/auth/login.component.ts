@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
 import { AuthService } from './auth.service';
 import { TranslatePipe } from '../language/translate.pipe';
@@ -15,6 +15,7 @@ import { TranslatePipe } from '../language/translate.pipe';
 export class LoginComponent {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   protected readonly mode = signal<'login' | 'register'>('login');
 
@@ -77,7 +78,8 @@ export class LoginComponent {
 
   private onSuccess(): void {
     this.submitting.set(false);
-    void this.router.navigate(['/']);
+    const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+    void this.router.navigateByUrl(returnUrl?.startsWith('/') && !returnUrl.startsWith('//') ? returnUrl : '/');
   }
 
   private onError(message: string): void {

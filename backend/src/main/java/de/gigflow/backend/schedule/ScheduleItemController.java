@@ -32,13 +32,23 @@ public class ScheduleItemController {
     }
 
     @GetMapping("/event/{eventId}")
-    public List<ScheduleItemResponse> getScheduleItemsByEvent(@PathVariable Long eventId) {
+    public List<ScheduleItemResponse> getScheduleItemsByEvent(
+            @PathVariable Long eventId,
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
+        if (!ownershipService.canViewEvent(currentUser, eventId)) {
+            return List.of();
+        }
         return scheduleItemService.findScheduleItemsByEvent(eventId);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ScheduleItemResponse> getScheduleItemById(@PathVariable Long id) {
+    public ResponseEntity<ScheduleItemResponse> getScheduleItemById(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
         Optional<ScheduleItemResponse> item = scheduleItemService.findScheduleItemById(id);
+        if (item.isPresent() && !ownershipService.canViewEvent(currentUser, item.get().getEventId())) {
+            return ResponseEntity.notFound().build();
+        }
         return item.map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
@@ -47,7 +57,7 @@ public class ScheduleItemController {
     public ResponseEntity<ScheduleItemResponse> createScheduleItem(
             @AuthenticationPrincipal AuthenticatedUser currentUser,
             @Valid @RequestBody ScheduleItemRequest request) {
-        if (!ownershipService.ownsEvent(currentUser, request.getEventId())) {
+        if (!ownershipService.canEditEvent(currentUser, request.getEventId())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         try {
@@ -64,7 +74,7 @@ public class ScheduleItemController {
             @AuthenticationPrincipal AuthenticatedUser currentUser,
             @Valid @RequestBody ScheduleItemRequest request) {
         if (!ownershipService.canManageScheduleItem(currentUser, id)
-                || !ownershipService.ownsEvent(currentUser, request.getEventId())) {
+                || !ownershipService.canEditEvent(currentUser, request.getEventId())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         try {

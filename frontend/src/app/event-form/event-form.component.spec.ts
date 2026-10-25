@@ -37,6 +37,7 @@ describe('EventFormComponent', () => {
     fixture.detectChanges();
     httpMock.expectOne('/api/bands').flush([{ id: 1, name: 'GigFlow Quartett' }]);
     httpMock.expectOne('/api/events').flush([]);
+    httpMock.expectOne('/api/users/contacts').flush([]);
     fixture.detectChanges();
 
     const el: HTMLElement = fixture.nativeElement;
@@ -51,6 +52,7 @@ describe('EventFormComponent', () => {
     fixture.detectChanges();
     httpMock.expectOne('/api/bands').flush([{ id: 1, name: 'GigFlow Quartett' }]);
     httpMock.expectOne('/api/events').flush([]);
+    httpMock.expectOne('/api/users/contacts').flush([]);
     fixture.detectChanges();
 
     const radios = fixture.nativeElement.querySelectorAll('input[formControlName="type"]') as NodeListOf<HTMLInputElement>;
@@ -67,6 +69,7 @@ describe('EventFormComponent', () => {
     fixture.detectChanges();
     httpMock.expectOne('/api/bands').flush([{ id: 1, name: 'GigFlow Quartett' }]);
     httpMock.expectOne('/api/events').flush([]);
+    httpMock.expectOne('/api/users/contacts').flush([]);
     fixture.detectChanges();
 
     setInput(fixture, 'input[formControlName="title"]', 'Sommerfest');
@@ -84,6 +87,8 @@ describe('EventFormComponent', () => {
       type: 'CONCERT',
       bandId: 1,
       concertId: null,
+      editPolicy: 'OWNER_ONLY',
+      editorUserIds: [],
     });
     request.flush({
       id: 9,
@@ -97,6 +102,44 @@ describe('EventFormComponent', () => {
     expect(TestBed.inject(Router).url).toBe('/');
   });
 
+  it('lets the creator select prior contacts as event editors during creation', async () => {
+    const fixture = TestBed.createComponent(EventFormComponent);
+    fixture.detectChanges();
+    httpMock.expectOne('/api/bands').flush([{ id: 1, name: 'GigFlow Quartett' }]);
+    httpMock.expectOne('/api/events').flush([]);
+    httpMock.expectOne('/api/users/contacts').flush([
+      { id: 7, email: 'a@example.org', displayName: 'Anna Becker' },
+    ]);
+    fixture.detectChanges();
+
+    const policy = fixture.nativeElement.querySelector(
+      'select[formControlName="editPolicy"]',
+    ) as HTMLSelectElement;
+    policy.value = 'SELECTED_PARTICIPANTS';
+    policy.dispatchEvent(new Event('change', { bubbles: true }));
+    fixture.detectChanges();
+    const editorCheckbox = fixture.nativeElement.querySelector(
+      '.contact-option input[type="checkbox"]',
+    ) as HTMLInputElement;
+    editorCheckbox.checked = true;
+    editorCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
+
+    setInput(fixture, 'input[formControlName="title"]', 'Sommerfest');
+    setInput(fixture, 'input[formControlName="date"]', '2026-09-12');
+    setInput(fixture, 'input[formControlName="time"]', '20:00');
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('.submit') as HTMLButtonElement).click();
+
+    const request = httpMock.expectOne('/api/events');
+    expect(request.request.body).toMatchObject({
+      title: 'Sommerfest',
+      editPolicy: 'SELECTED_PARTICIPANTS',
+      editorUserIds: [7],
+    });
+    request.flush({ id: 11, title: 'Sommerfest', dateTime: '2026-09-12T20:00:00', type: 'CONCERT' });
+    await fixture.whenStable();
+  });
+
   it('should show a band picker when more than one band exists', () => {
     const fixture = TestBed.createComponent(EventFormComponent);
     fixture.detectChanges();
@@ -105,6 +148,7 @@ describe('EventFormComponent', () => {
       { id: 2, name: 'The Dockyarders' },
     ]);
     httpMock.expectOne('/api/events').flush([]);
+    httpMock.expectOne('/api/users/contacts').flush([]);
     fixture.detectChanges();
 
     const select = fixture.nativeElement.querySelector(
@@ -119,6 +163,7 @@ describe('EventFormComponent', () => {
     fixture.detectChanges();
     httpMock.expectOne('/api/bands').flush([{ id: 1, name: 'GigFlow Quartett' }]);
     httpMock.expectOne('/api/events').flush([]);
+    httpMock.expectOne('/api/users/contacts').flush([]);
     fixture.detectChanges();
 
     const select = fixture.nativeElement.querySelector(
@@ -133,6 +178,7 @@ describe('EventFormComponent', () => {
     fixture.detectChanges();
     httpMock.expectOne('/api/bands').flush([]);
     httpMock.expectOne('/api/events').flush([]);
+    httpMock.expectOne('/api/users/contacts').flush([]);
     fixture.detectChanges();
 
     expect(
@@ -148,6 +194,7 @@ describe('EventFormComponent', () => {
     fixture.detectChanges();
     httpMock.expectOne('/api/bands').flush([{ id: 1, name: 'GigFlow Quartett' }]);
     httpMock.expectOne('/api/events').flush([]);
+    httpMock.expectOne('/api/users/contacts').flush([]);
     fixture.detectChanges();
 
     setInput(fixture, 'input[formControlName="title"]', 'Sommerfest');

@@ -1,4 +1,5 @@
 export type EventType = 'CONCERT' | 'REHEARSAL';
+export type EventEditPolicy = 'OWNER_ONLY' | 'ALL_PARTICIPANTS' | 'SELECTED_PARTICIPANTS';
 
 export interface EventItem {
   id: number;
@@ -10,6 +11,9 @@ export interface EventItem {
   bandName?: string;
   concertId?: number | null;
   createdByUserId?: number | null;
+  editPolicy?: EventEditPolicy;
+  canEdit?: boolean;
+  notifications?: EventInvitationResult[];
   /** Reserve for later */
   venue?: string;
 }
@@ -20,6 +24,22 @@ export interface EventRequest {
   type: EventType;
   bandId: number;
   concertId?: number | null;
+  editPolicy?: EventEditPolicy;
+  editorUserIds?: number[];
+}
+
+export interface UserContact {
+  id: number;
+  email: string;
+  displayName: string;
+}
+
+export interface EventInvitationResult {
+  email: string;
+  invitationUrl: string | null;
+  emailSent: boolean;
+  alreadyAdded: boolean;
+  alreadyMember?: boolean;
 }
 
 export interface Band {
@@ -63,4 +83,3 @@ export interface EventParticipation {
   musician?: MusicianPublic;
   status: ParticipationStatus;
 }
-

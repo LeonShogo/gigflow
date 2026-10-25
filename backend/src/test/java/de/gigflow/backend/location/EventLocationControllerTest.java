@@ -49,6 +49,8 @@ class EventLocationControllerTest {
     @BeforeEach
     void allowOwnerRequests() {
         when(ownershipService.ownsEvent(nullable(AuthenticatedUser.class), anyLong())).thenReturn(true);
+        when(ownershipService.canEditEvent(nullable(AuthenticatedUser.class), anyLong())).thenReturn(true);
+        when(ownershipService.canViewEvent(nullable(AuthenticatedUser.class), anyLong())).thenReturn(true);
         when(ownershipService.canManageLocation(nullable(AuthenticatedUser.class), anyLong())).thenReturn(true);
     }
 

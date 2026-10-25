@@ -47,6 +47,10 @@ public class Event {
     @Column(name = "created_by_user_id")
     private Long createdByUserId;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "edit_policy")
+    private EventEditPolicy editPolicy = EventEditPolicy.OWNER_ONLY;
+
     public Long getId() {
         return id;
     }
@@ -109,5 +113,13 @@ public class Event {
 
     public void setCreatedByUserId(Long createdByUserId) {
         this.createdByUserId = createdByUserId;
+    }
+
+    public EventEditPolicy getEditPolicy() {
+        return editPolicy;
+    }
+
+    public void setEditPolicy(EventEditPolicy editPolicy) {
+        this.editPolicy = editPolicy == null ? EventEditPolicy.OWNER_ONLY : editPolicy;
     }
 }

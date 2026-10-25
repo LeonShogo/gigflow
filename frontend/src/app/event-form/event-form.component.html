@@ -79,6 +79,37 @@
       </label>
     }
 
+    <label class="field">
+      <span class="field__label">{{ 'Wer darf dieses Event bearbeiten?' | t }}</span>
+      <select class="field__input" formControlName="editPolicy">
+        <option value="OWNER_ONLY">{{ 'Nur ich' | t }}</option>
+        <option value="ALL_PARTICIPANTS">{{ 'Alle Teilnehmenden' | t }}</option>
+        <option value="SELECTED_PARTICIPANTS">{{ 'Ausgewählte Teilnehmende' | t }}</option>
+      </select>
+      <span class="field__hint">{{ 'Teilnehmende sehen das Event; die Auswahl regelt zusätzlich, wer Inhalte ändern darf.' | t }}</span>
+    </label>
+
+    @if (form.controls.editPolicy.value === 'SELECTED_PARTICIPANTS') {
+      <fieldset class="field contacts">
+        <legend class="field__label">{{ 'Mitbearbeitende auswählen' | t }}</legend>
+        @if (contacts().length === 0) {
+          <p class="field__hint">{{ 'Noch keine bekannten Konten. Du kannst sie nach dem Erstellen hinzufügen oder per E-Mail einladen.' | t }}</p>
+        } @else {
+          @for (contact of contacts(); track contact.id) {
+            <label class="contact-option">
+              <input
+                type="checkbox"
+                [checked]="selectedEditorIds().includes(contact.id)"
+                (change)="toggleEditor(contact.id, $event)"
+              />
+              <span>{{ contact.displayName }}</span>
+              <span class="contact-option__email">{{ contact.email }}</span>
+            </label>
+          }
+        }
+      </fieldset>
+    }
+
     @if (submitError(); as message) {
       <p class="error" role="alert">{{ message | t }}</p>
     }

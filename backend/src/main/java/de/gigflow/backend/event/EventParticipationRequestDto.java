@@ -4,6 +4,15 @@ import jakarta.validation.constraints.NotNull;
 
 public class EventParticipationRequestDto {
 
+    public EventParticipationRequestDto() {
+    }
+
+    public EventParticipationRequestDto(Long eventId, Long musicianId, EventParticipationStatus status) {
+        this.eventId = eventId;
+        this.musicianId = musicianId;
+        this.status = status;
+    }
+
     @NotNull
     private Long eventId;
 

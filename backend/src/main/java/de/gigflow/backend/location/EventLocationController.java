@@ -32,13 +32,24 @@ public class EventLocationController {
     }
 
     @GetMapping("/event/{eventId}")
-    public List<EventLocationResponse> getEventLocationsByEvent(@PathVariable Long eventId) {
+    public List<EventLocationResponse> getEventLocationsByEvent(
+            @PathVariable Long eventId,
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
+        if (!ownershipService.canViewEvent(currentUser, eventId)) {
+            return List.of();
+        }
         return eventLocationService.findEventLocationsByEvent(eventId);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<EventLocationResponse> getEventLocationById(@PathVariable Long id) {
+    public ResponseEntity<EventLocationResponse> getEventLocationById(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
         Optional<EventLocationResponse> location = eventLocationService.findEventLocationById(id);
+        if (location.isPresent()
+                && !ownershipService.canViewEvent(currentUser, location.get().getEventId())) {
+            return ResponseEntity.notFound().build();
+        }
         return location.map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
@@ -47,7 +58,7 @@ public class EventLocationController {
     public ResponseEntity<EventLocationResponse> createEventLocation(
             @AuthenticationPrincipal AuthenticatedUser currentUser,
             @Valid @RequestBody EventLocationRequest request) {
-        if (!ownershipService.ownsEvent(currentUser, request.getEventId())) {
+        if (!ownershipService.canEditEvent(currentUser, request.getEventId())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         try {
@@ -64,7 +75,7 @@ public class EventLocationController {
             @AuthenticationPrincipal AuthenticatedUser currentUser,
             @Valid @RequestBody EventLocationRequest request) {
         if (!ownershipService.canManageLocation(currentUser, id)
-                || !ownershipService.ownsEvent(currentUser, request.getEventId())) {
+                || !ownershipService.canEditEvent(currentUser, request.getEventId())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         try {

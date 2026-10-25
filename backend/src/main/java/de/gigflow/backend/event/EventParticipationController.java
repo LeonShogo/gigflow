@@ -32,18 +32,32 @@ public class EventParticipationController {
     }
 
     @GetMapping
-    public List<EventParticipationResponseDto> getAllParticipations() {
-        return participationService.findAllParticipations();
+    public List<EventParticipationResponseDto> getAllParticipations(
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
+        return participationService.findAllParticipations().stream()
+                .filter(participation -> ownershipService.canViewEvent(currentUser, participation.getEventId()))
+                .toList();
     }
 
     @GetMapping("/event/{eventId}")
-    public List<EventParticipationResponseDto> getParticipationsByEvent(@PathVariable Long eventId) {
+    public List<EventParticipationResponseDto> getParticipationsByEvent(
+            @PathVariable Long eventId,
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
+        if (!ownershipService.canViewEvent(currentUser, eventId)) {
+            return List.of();
+        }
         return participationService.findParticipationsByEvent(eventId);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<EventParticipationResponseDto> getParticipationById(@PathVariable Long id) {
+    public ResponseEntity<EventParticipationResponseDto> getParticipationById(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
         Optional<EventParticipationResponseDto> participation = participationService.findParticipationById(id);
+        if (participation.isPresent()
+                && !ownershipService.canViewEvent(currentUser, participation.get().getEventId())) {
+            return ResponseEntity.notFound().build();
+        }
         return participation.map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }

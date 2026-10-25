@@ -34,6 +34,18 @@
         >
           {{ 'Zum Kalender hinzufügen' | t }}
         </button>
+        @if (isEventOwner()) {
+          <button type="button" class="detail__print" (click)="openAccessSettings()">
+            {{ 'Zugriff & Einladungen' | t }}
+          </button>
+        } @else if (myParticipation()) {
+          <button
+            type="button"
+            class="detail__print"
+            (click)="leaveEvent()"
+            [disabled]="selfSaving()"
+          >{{ (selfSaving() ? 'Wird verlassen …' : 'Event verlassen') | t }}</button>
+        }
         @if (canDelete()) {
           @if (confirmingDelete()) {
             <span class="detail__delete-confirm">
@@ -1436,4 +1448,90 @@
     (closed)="closeSheetDownloadDialog()"
     (confirmed)="onSheetDownloadConfirmed($event)"
   />
+}
+
+@if (accessSettingsOpen()) {
+  <app-modal-dialog [title]="'Zugriff & Einladungen' | t" [wide]="true" (closed)="closeAccessSettings()">
+    @if (accessLoading()) {
+      <p class="panel__note">{{ 'Einstellungen werden geladen …' | t }}</p>
+    } @else {
+      <label class="access__field">
+        <span class="access__label">{{ 'Wer darf dieses Event bearbeiten?' | t }}</span>
+        <select class="picker__input" [value]="editPolicy()" (change)="onEditPolicyChange($event)">
+          <option value="OWNER_ONLY">{{ 'Nur ich' | t }}</option>
+          <option value="ALL_PARTICIPANTS">{{ 'Alle Teilnehmenden' | t }}</option>
+          <option value="SELECTED_PARTICIPANTS">{{ 'Ausgewählte Teilnehmende' | t }}</option>
+        </select>
+      </label>
+
+      @if (editPolicy() === 'SELECTED_PARTICIPANTS') {
+        <div class="access__section">
+          <h3>{{ 'Mitbearbeitende auswählen' | t }}</h3>
+          @if (contacts().length === 0) {
+            <p class="panel__note">{{ 'Noch keine bekannten Konten. Lade zuerst jemanden per E-Mail ein oder füge Teilnehmende hinzu.' | t }}</p>
+          } @else {
+            <ul class="picker__list">
+              @for (contact of contacts(); track contact.id) {
+                <li class="picker__item">
+                  <label>
+                    <input type="checkbox" [checked]="editorUserIds().includes(contact.id)" (change)="toggleEditor(contact.id, $event)" />
+                    {{ contact.displayName }} <span class="picker__instrument">{{ contact.email }}</span>
+                  </label>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      }
+
+      <button type="button" class="picker__submit" (click)="saveAccessSettings()" [disabled]="accessSaving()">
+        {{ (accessSaving() ? 'Wird gespeichert …' : 'Freigabe speichern') | t }}
+      </button>
+
+      <div class="access__section">
+        <h3>{{ 'Bekannte Konten hinzufügen' | t }}</h3>
+        <p class="panel__note">{{ 'Diese Personen werden dem Event hinzugefügt. Bei eingerichtetem Mailversand erhalten sie eine Benachrichtigung.' | t }}</p>
+        @if (contacts().length === 0) {
+          <p class="panel__note">{{ 'Noch keine bekannten Konten.' | t }}</p>
+        } @else {
+          <ul class="picker__list">
+            @for (contact of contacts(); track contact.id) {
+              <li class="picker__item">
+                <label>
+                  <input type="checkbox" [checked]="memberUserIds().includes(contact.id)" (change)="toggleMember(contact.id, $event)" />
+                  {{ contact.displayName }} <span class="picker__instrument">{{ contact.email }}</span>
+                </label>
+              </li>
+            }
+          </ul>
+          <button type="button" class="picker__submit" (click)="addSelectedMembers()" [disabled]="memberUserIds().length === 0 || accessSaving()">
+            {{ 'Ausgewählte hinzufügen' | t }}
+          </button>
+        }
+      </div>
+
+      <div class="access__section">
+        <h3>{{ 'Per E-Mail einladen' | t }}</h3>
+        <p class="panel__note">{{ 'Für neue Kontakte wird ein persönlicher Einladungslink erstellt.' | t }}</p>
+        <label class="access__field">
+          <span class="access__label">{{ 'E-Mail-Adressen (durch Komma oder neue Zeile trennen)' | t }}</span>
+          <textarea class="picker__input" rows="3" [value]="invitationEmails()" (input)="onInvitationEmails($event)"></textarea>
+        </label>
+        <button type="button" class="picker__submit" (click)="sendEmailInvitations()" [disabled]="invitationSending() || !invitationEmails().trim()">
+          {{ (invitationSending() ? 'Wird gesendet …' : 'Einladungen senden') | t }}
+        </button>
+        @for (result of invitationResults(); track result.email) {
+          <p class="panel__note">
+            {{ result.email }} — {{ (result.alreadyMember ? 'Konto war bereits im Event' : result.alreadyAdded ? (result.emailSent ? 'Konto hinzugefügt und benachrichtigt' : 'Konto hinzugefügt; E-Mail wurde nicht versendet') : result.emailSent ? 'Einladung versendet' : 'Einladungslink erstellt; bitte Mailversand konfigurieren oder Link kopieren') | t }}
+            @if (result.invitationUrl) {
+              <br /><a [href]="result.invitationUrl">{{ result.invitationUrl }}</a>
+            }
+          </p>
+        }
+      </div>
+      @if (accessError(); as message) {
+        <p class="panel__note panel__note--error" role="alert">{{ message | t }}</p>
+      }
+    }
+  </app-modal-dialog>
 }

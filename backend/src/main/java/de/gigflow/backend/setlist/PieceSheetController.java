@@ -38,7 +38,11 @@ public class PieceSheetController {
     @GetMapping("/{id}")
     public ResponseEntity<Resource> downloadSheet(
             @PathVariable Long id,
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
             @RequestParam(name = "download", defaultValue = "false") boolean download) {
+        if (!ownershipService.canViewSheet(currentUser, id)) {
+            return ResponseEntity.notFound().build();
+        }
         Optional<PieceService.SheetFile> sheet = pieceService.loadSheet(id);
         if (sheet.isEmpty()) {
             return ResponseEntity.notFound().build();

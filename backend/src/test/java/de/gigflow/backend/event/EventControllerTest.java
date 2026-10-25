@@ -21,6 +21,7 @@ class EventControllerTest {
     private EventService eventService;
     private EventParticipationService participationService;
     private EventOwnershipService ownershipService;
+    private EventAccessService accessService;
     private EventController controller;
 
     @BeforeEach
@@ -28,7 +29,8 @@ class EventControllerTest {
         eventService = mock(EventService.class);
         participationService = mock(EventParticipationService.class);
         ownershipService = mock(EventOwnershipService.class);
-        controller = new EventController(eventService, participationService, ownershipService);
+        accessService = mock(EventAccessService.class);
+        controller = new EventController(eventService, participationService, ownershipService, accessService);
     }
 
     @Test

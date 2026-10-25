@@ -46,6 +46,10 @@ class EventServiceTest {
     @Mock
     private EquipmentRequirementRepository equipmentRequirementRepository;
     @Mock
+    private EventEditorRepository eventEditorRepository;
+    @Mock
+    private EventInvitationRepository eventInvitationRepository;
+    @Mock
     private BandMembershipRepository bandMembershipRepository;
 
     private EventService eventService;
@@ -55,7 +59,7 @@ class EventServiceTest {
         eventService = new EventService(
                 eventRepository, bandRepository, participationRepository, setlistRepository,
                 setlistEntryRepository, scheduleItemRepository, eventLocationRepository,
-                equipmentRequirementRepository);
+                equipmentRequirementRepository, eventEditorRepository, eventInvitationRepository);
     }
 
     @Test

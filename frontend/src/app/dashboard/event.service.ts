@@ -8,8 +8,11 @@ import type {
   BandMembershipRequest,
   BandRequest,
   EventItem,
+  EventInvitationResult,
+  EventEditPolicy,
   EventParticipation,
   EventRequest,
+  UserContact,
 } from './event.model';
 
 export interface PanelLayout {
@@ -17,6 +20,17 @@ export interface PanelLayout {
   collapsed: Record<string, boolean>;
   /** only set by the server on reads; ignored on writes */
   stored?: boolean;
+}
+
+export interface EventAccessConfiguration {
+  editPolicy: EventEditPolicy;
+  editorUserIds: number[];
+  notifications?: EventInvitationResult[];
+}
+
+export interface EventMembersAddedResponse {
+  participations: EventParticipation[];
+  notifications: EventInvitationResult[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -35,6 +49,34 @@ export class EventService {
 
   loadEvent(id: number): Observable<EventItem> {
     return this.http.get<EventItem>(`/api/events/${id}`);
+  }
+
+  loadContacts(): Observable<UserContact[]> {
+    return this.http.get<UserContact[]>('/api/users/contacts');
+  }
+
+  loadEventAccess(eventId: number): Observable<EventAccessConfiguration> {
+    return this.http.get<EventAccessConfiguration>(`/api/events/${eventId}/access`);
+  }
+
+  updateEventAccess(eventId: number, access: EventAccessConfiguration): Observable<EventAccessConfiguration> {
+    return this.http.put<EventAccessConfiguration>(`/api/events/${eventId}/access`, access);
+  }
+
+  addEventMembers(eventId: number, userIds: number[]): Observable<EventMembersAddedResponse> {
+    return this.http.post<EventMembersAddedResponse>(`/api/events/${eventId}/members`, { userIds });
+  }
+
+  inviteByEmail(eventId: number, emails: string[]): Observable<EventInvitationResult[]> {
+    return this.http.post<EventInvitationResult[]>(`/api/events/${eventId}/invitations`, { emails });
+  }
+
+  leaveEvent(eventId: number): Observable<void> {
+    return this.http.delete<void>(`/api/events/${eventId}/membership`);
+  }
+
+  acceptInvitation(token: string): Observable<EventItem> {
+    return this.http.post<EventItem>('/api/event-invitations/accept', { token });
   }
 
   loadRehearsalsForConcert(concertId: number): Observable<EventItem[]> {

@@ -13,6 +13,11 @@ export const routes: Routes = [
     loadComponent: () => import('./auth/login.component').then((m) => m.LoginComponent),
   },
   {
+    path: 'invitations/accept',
+    loadComponent: () =>
+      import('./event-detail/event-invitation-accept.component').then((m) => m.EventInvitationAcceptComponent),
+  },
+  {
     path: 'calendar',
     canActivate: [authGuard],
     loadComponent: () =>

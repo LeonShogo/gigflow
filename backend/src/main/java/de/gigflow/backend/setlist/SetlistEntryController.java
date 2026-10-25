@@ -32,19 +32,33 @@ public class SetlistEntryController {
     }
 
     @GetMapping
-    public List<SetlistEntryResponse> getAllEntries() {
-        return entryService.findAllEntries();
+    public List<SetlistEntryResponse> getAllEntries(
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
+        return entryService.findAllEntries().stream()
+                .filter(entry -> ownershipService.canManageSetlist(currentUser, entry.getSetlistId())
+                        || ownershipService.canViewSetlistEntry(currentUser, entry.getId()))
+                .toList();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<SetlistEntryResponse> getEntryById(@PathVariable Long id) {
+    public ResponseEntity<SetlistEntryResponse> getEntryById(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
         Optional<SetlistEntryResponse> entry = entryService.findEntryById(id);
+        if (entry.isPresent() && !ownershipService.canViewSetlistEntry(currentUser, id)) {
+            return ResponseEntity.notFound().build();
+        }
         return entry.map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @GetMapping("/by-setlist/{setlistId}")
-    public List<SetlistEntryResponse> getEntriesBySetlist(@PathVariable Long setlistId) {
+    public List<SetlistEntryResponse> getEntriesBySetlist(
+            @PathVariable Long setlistId,
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
+        if (!ownershipService.canViewSetlist(currentUser, setlistId)) {
+            return List.of();
+        }
         return entryService.findEntriesBySetlist(setlistId);
     }
 

@@ -46,6 +46,11 @@ Der Dev-Server läuft unter `http://localhost:4200`. API-Aufrufe werden via Prox
 ### Demo-Daten
 
 Beim ersten Start werden automatisch Demo-Bands, Musiker:innen und Events per `DataInitializer` angelegt.
+Die Eventübersicht zeigt nur selbst erstellte Events und Events, an denen das verknüpfte Musikerprofil teilnimmt. Beim Demo-Musiker-Konto ist „Streifzug durch die Nacht“ eingetragen.
+
+Event-Ersteller:innen können Bearbeitungsrechte pro Event auf **nur mich**, **alle Teilnehmenden** oder **ausgewählte Teilnehmende** setzen. Bekannte Konten basieren auf gemeinsam erstellten bzw. besuchten Events. Einladungen an weitere E-Mail-Adressen erzeugen persönliche, einmal verwendbare Links, die sieben Tage gültig sind.
+
+Für echten E-Mail-Versand müssen im Backend `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `MAIL_FROM` und `APP_PUBLIC_BASE_URL` gesetzt sein. Ohne SMTP-Konfiguration wird der Einladungslink in der App angezeigt, sodass er manuell verschickt werden kann.
 
 ## HTTPS-Testdeployment auf Render
 
@@ -72,7 +77,8 @@ Das kostenlose Testdeployment verwendet ein flüchtiges Container-Dateisystem. H
 | `/api/auth` | Registrierung, Login, Profil (`/me`) |
 | `/api/bands` | Bands verwalten |
 | `/api/memberships` | Band-Mitgliedschaften |
-| `/api/events` | Konzerte & Proben, Teilnahmen, Panel-Layout |
+| `/api/events` | Sichtbare Konzerte & Proben, Teilnahmen, Panel-Layout und Zugriffsrechte |
+| `/api/users/contacts`, `/api/event-invitations` | Bekannte Konten und Event-Einladungen |
 | `/api/musicians` | Musiker:innen-Profile |
 | `/api/setlists`, `/api/pieces` & `/api/piece-sheets` | Setlisten, Stücke, mehrere Noten-Stimmen pro Stück |
 | `/api/equipment` & `/api/equipment-requirements` | Equipment-Katalog & Eventspezifische Anforderungen |

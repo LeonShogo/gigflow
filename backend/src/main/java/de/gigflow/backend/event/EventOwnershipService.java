@@ -30,6 +30,7 @@ public class EventOwnershipService {
     private final PieceSheetRepository sheetRepository;
     private final PieceLinkRepository linkRepository;
     private final PieceDemoAudioRepository demoAudioRepository;
+    private final EventEditorRepository eventEditorRepository;
 
     public EventOwnershipService(
             EventRepository eventRepository,
@@ -42,7 +43,8 @@ public class EventOwnershipService {
             PieceRepository pieceRepository,
             PieceSheetRepository sheetRepository,
             PieceLinkRepository linkRepository,
-            PieceDemoAudioRepository demoAudioRepository) {
+            PieceDemoAudioRepository demoAudioRepository,
+            EventEditorRepository eventEditorRepository) {
         this.eventRepository = eventRepository;
         this.participationRepository = participationRepository;
         this.locationRepository = locationRepository;
@@ -54,6 +56,7 @@ public class EventOwnershipService {
         this.sheetRepository = sheetRepository;
         this.linkRepository = linkRepository;
         this.demoAudioRepository = demoAudioRepository;
+        this.eventEditorRepository = eventEditorRepository;
     }
 
     public boolean ownsEvent(AuthenticatedUser user, Long eventId) {
@@ -62,6 +65,42 @@ public class EventOwnershipService {
         }
         return eventRepository.findById(eventId)
                 .map(event -> Objects.equals(event.getCreatedByUserId(), user.userId()))
+                .orElse(false);
+    }
+
+    public boolean isEventParticipant(AuthenticatedUser user, Long eventId) {
+        return user != null && user.musicianId() != null && eventId != null
+                && participationRepository.existsByEventIdAndMusicianId(eventId, user.musicianId());
+    }
+
+    public boolean canViewEvent(AuthenticatedUser user, Long eventId) {
+        if (user == null || eventId == null) {
+            return false;
+        }
+        if (ownsEvent(user, eventId) || isEventParticipant(user, eventId)) {
+            return true;
+        }
+        return eventRepository.findById(eventId)
+                .map(event -> event.getConcert() != null
+                        && (ownsEvent(user, event.getConcert().getId())
+                        || isEventParticipant(user, event.getConcert().getId())))
+                .orElse(false);
+    }
+
+    public boolean canEditEvent(AuthenticatedUser user, Long eventId) {
+        if (ownsEvent(user, eventId)) {
+            return true;
+        }
+        if (!isEventParticipant(user, eventId)) {
+            return false;
+        }
+        return eventRepository.findById(eventId)
+                .map(event -> switch (event.getEditPolicy()) {
+                    case OWNER_ONLY -> false;
+                    case ALL_PARTICIPANTS -> true;
+                    case SELECTED_PARTICIPANTS -> eventEditorRepository
+                            .existsByEventIdAndUserId(eventId, user.userId());
+                })
                 .orElse(false);
     }
 
@@ -78,25 +117,37 @@ public class EventOwnershipService {
 
     public boolean canManageLocation(AuthenticatedUser user, Long locationId) {
         return user != null && locationRepository.findById(locationId)
-                .map(location -> ownsEvent(user, location.getEvent().getId()))
+                .map(location -> canEditEvent(user, location.getEvent().getId()))
                 .orElse(false);
     }
 
     public boolean canManageScheduleItem(AuthenticatedUser user, Long itemId) {
         return user != null && scheduleItemRepository.findById(itemId)
-                .map(item -> ownsEvent(user, item.getEvent().getId()))
+                .map(item -> canEditEvent(user, item.getEvent().getId()))
                 .orElse(false);
     }
 
     public boolean canManageRequirement(AuthenticatedUser user, Long requirementId) {
         return user != null && requirementRepository.findById(requirementId)
-                .map(item -> ownsEvent(user, item.getEvent().getId()))
+                .map(item -> canEditEvent(user, item.getEvent().getId()))
                 .orElse(false);
     }
 
     public boolean canManageSetlist(AuthenticatedUser user, Long setlistId) {
         return user != null && setlistRepository.findById(setlistId)
-                .map(setlist -> ownsEvent(user, setlist.getEvent().getId()))
+                .map(setlist -> canEditEvent(user, setlist.getEvent().getId()))
+                .orElse(false);
+    }
+
+    public boolean canViewSetlist(AuthenticatedUser user, Long setlistId) {
+        return user != null && setlistRepository.findById(setlistId)
+                .map(setlist -> canViewEvent(user, setlist.getEvent().getId()))
+                .orElse(false);
+    }
+
+    public boolean canViewSetlistEntry(AuthenticatedUser user, Long entryId) {
+        return user != null && entryRepository.findById(entryId)
+                .map(entry -> canViewSetlist(user, entry.getSetlist().getId()))
                 .orElse(false);
     }
 
@@ -115,7 +166,23 @@ public class EventOwnershipService {
                     var entries = entryRepository.findByPiece_Id(pieceId);
                     if (!entries.isEmpty()) {
                         return entries.stream()
-                                .allMatch(entry -> ownsEvent(user, entry.getSetlist().getEvent().getId()));
+                                .allMatch(entry -> canEditEvent(user, entry.getSetlist().getEvent().getId()));
+                    }
+                    return Objects.equals(piece.getCreatedByUserId(), user.userId());
+                })
+                .orElse(false);
+    }
+
+    public boolean canViewPiece(AuthenticatedUser user, Long pieceId) {
+        if (user == null) {
+            return false;
+        }
+        return pieceRepository.findById(pieceId)
+                .map(piece -> {
+                    var entries = entryRepository.findByPiece_Id(pieceId);
+                    if (!entries.isEmpty()) {
+                        return entries.stream()
+                                .anyMatch(entry -> canViewEvent(user, entry.getSetlist().getEvent().getId()));
                     }
                     return Objects.equals(piece.getCreatedByUserId(), user.userId());
                 })
@@ -125,6 +192,18 @@ public class EventOwnershipService {
     public boolean canManageSheet(AuthenticatedUser user, Long sheetId) {
         return user != null && sheetRepository.findById(sheetId)
                 .map(sheet -> canManagePiece(user, sheet.getPieceId()))
+                .orElse(false);
+    }
+
+    public boolean canViewSheet(AuthenticatedUser user, Long sheetId) {
+        return user != null && sheetRepository.findById(sheetId)
+                .map(sheet -> canViewPiece(user, sheet.getPieceId()))
+                .orElse(false);
+    }
+
+    public boolean canViewDemoAudio(AuthenticatedUser user, Long audioId) {
+        return user != null && demoAudioRepository.findById(audioId)
+                .map(audio -> canViewPiece(user, audio.getPieceId()))
                 .orElse(false);
     }
 

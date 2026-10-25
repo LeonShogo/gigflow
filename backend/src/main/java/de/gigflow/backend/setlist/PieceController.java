@@ -39,12 +39,19 @@ public class PieceController {
     }
 
     @GetMapping
-    public List<PieceResponse> getAllPieces() {
-        return pieceService.findAllPieces();
+    public List<PieceResponse> getAllPieces(@AuthenticationPrincipal AuthenticatedUser currentUser) {
+        return pieceService.findAllPieces().stream()
+                .filter(piece -> ownershipService.canViewPiece(currentUser, piece.getId()))
+                .toList();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<PieceResponse> getPieceById(@PathVariable Long id) {
+    public ResponseEntity<PieceResponse> getPieceById(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
+        if (!ownershipService.canViewPiece(currentUser, id)) {
+            return ResponseEntity.notFound().build();
+        }
         Optional<PieceResponse> piece = pieceService.findPieceById(id);
         return piece.map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
@@ -89,7 +96,12 @@ public class PieceController {
     }
 
     @GetMapping("/{id}/sheets")
-    public ResponseEntity<List<PieceSheetResponse>> getSheets(@PathVariable Long id) {
+    public ResponseEntity<List<PieceSheetResponse>> getSheets(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
+        if (!ownershipService.canViewPiece(currentUser, id)) {
+            return ResponseEntity.notFound().build();
+        }
         try {
             return ResponseEntity.ok(pieceService.findSheets(id));
         } catch (IllegalArgumentException e) {
@@ -140,7 +152,12 @@ public class PieceController {
     }
 
     @GetMapping("/{id}/demo-audios")
-    public ResponseEntity<List<PieceDemoAudioResponse>> getDemoAudios(@PathVariable Long id) {
+    public ResponseEntity<List<PieceDemoAudioResponse>> getDemoAudios(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
+        if (!ownershipService.canViewPiece(currentUser, id)) {
+            return ResponseEntity.notFound().build();
+        }
         try {
             return ResponseEntity.ok(pieceService.findDemoAudios(id));
         } catch (IllegalArgumentException e) {
@@ -171,7 +188,11 @@ public class PieceController {
     @GetMapping("/{id}/demo-audios/{audioId}")
     public ResponseEntity<Resource> downloadDemoAudio(
             @PathVariable Long id,
-            @PathVariable Long audioId) {
+            @PathVariable Long audioId,
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
+        if (!ownershipService.canViewDemoAudio(currentUser, audioId)) {
+            return ResponseEntity.notFound().build();
+        }
         Optional<PieceService.DemoAudioFile> demoAudio = pieceService.loadDemoAudio(id, audioId);
         if (demoAudio.isEmpty()) {
             return ResponseEntity.notFound().build();
@@ -205,7 +226,12 @@ public class PieceController {
     }
 
     @GetMapping("/{id}/links")
-    public ResponseEntity<List<PieceLinkResponse>> getLinks(@PathVariable Long id) {
+    public ResponseEntity<List<PieceLinkResponse>> getLinks(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
+        if (!ownershipService.canViewPiece(currentUser, id)) {
+            return ResponseEntity.notFound().build();
+        }
         try {
             return ResponseEntity.ok(pieceService.findLinks(id));
         } catch (IllegalArgumentException e) {
@@ -269,7 +295,12 @@ public class PieceController {
     }
 
     @GetMapping("/{id}/demo-audio")
-    public ResponseEntity<Resource> downloadDemoAudio(@PathVariable Long id) {
+    public ResponseEntity<Resource> downloadDemoAudio(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
+        if (!ownershipService.canViewPiece(currentUser, id)) {
+            return ResponseEntity.notFound().build();
+        }
         Optional<PieceService.DemoAudioFile> demoAudio = pieceService.loadDemoAudio(id);
         if (demoAudio.isEmpty()) {
             return ResponseEntity.notFound().build();

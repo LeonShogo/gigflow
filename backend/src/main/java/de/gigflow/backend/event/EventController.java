@@ -24,35 +24,63 @@ public class EventController {
     private final EventService eventService;
     private final EventParticipationService participationService;
     private final EventOwnershipService ownershipService;
+    private final EventAccessService accessService;
 
     public EventController(
             EventService eventService,
             EventParticipationService participationService,
-            EventOwnershipService ownershipService) {
+            EventOwnershipService ownershipService,
+            EventAccessService accessService) {
         this.eventService = eventService;
         this.participationService = participationService;
         this.ownershipService = ownershipService;
+        this.accessService = accessService;
     }
 
     @GetMapping
-    public List<EventResponse> getAllEvents() {
-        return eventService.findAllEvents();
+    public List<EventResponse> getAllEvents(@AuthenticationPrincipal AuthenticatedUser currentUser) {
+        if (currentUser == null) {
+            return List.of();
+        }
+        return eventService.findEventsVisibleToUser(currentUser.userId(), currentUser.musicianId()).stream()
+                .peek(event -> event.setCanEdit(ownershipService.canEditEvent(currentUser, event.getId())))
+                .toList();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<EventResponse> getEventById(@PathVariable Long id) {
+    public ResponseEntity<EventResponse> getEventById(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
+        if (!ownershipService.canViewEvent(currentUser, id)) {
+            return ResponseEntity.notFound().build();
+        }
         Optional<EventResponse> event = eventService.findEventById(id);
-        return event.map(ResponseEntity::ok)
+        return event.map(item -> {
+                    item.setCanEdit(ownershipService.canEditEvent(currentUser, id));
+                    return ResponseEntity.ok(item);
+                })
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @GetMapping("/by-concert/{concertId}")
-    public List<EventResponse> getRehearsalsByConcert(@PathVariable Long concertId) {
-        return eventService.findRehearsalsByConcert(concertId);
+    public List<EventResponse> getRehearsalsByConcert(
+            @PathVariable Long concertId,
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
+        if (!ownershipService.canViewEvent(currentUser, concertId)) {
+            return List.of();
+        }
+        return eventService.findRehearsalsByConcert(concertId).stream()
+                .peek(event -> event.setCanEdit(ownershipService.canEditEvent(currentUser, event.getId())))
+                .toList();
     }
 
     @GetMapping("/{id}/layout")
-    public ResponseEntity<PanelLayout> getPanelLayout(@PathVariable Long id) {
+    public ResponseEntity<PanelLayout> getPanelLayout(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
+        if (!ownershipService.canViewEvent(currentUser, id)) {
+            return ResponseEntity.notFound().build();
+        }
         return eventService.findPanelLayout(id)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
@@ -63,7 +91,7 @@ public class EventController {
             @PathVariable Long id,
             @AuthenticationPrincipal AuthenticatedUser currentUser,
             @RequestBody PanelLayout layout) {
-        if (!ownershipService.ownsEvent(currentUser, id)) {
+        if (!ownershipService.canEditEvent(currentUser, id)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         return eventService.updatePanelLayout(id, layout)
@@ -80,6 +108,9 @@ public class EventController {
         if (currentUser == null || currentUser.musicianId() == null) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorBody("Kein Musiker-Konto verknüpft."));
+        }
+        if (!ownershipService.canViewEvent(currentUser, id)) {
+            return ResponseEntity.notFound().build();
         }
         try {
             EventParticipationResponseDto joined = participationService.joinSelf(id, currentUser.musicianId());
@@ -108,17 +139,32 @@ public class EventController {
     }
 
     @PostMapping
-    public ResponseEntity<EventResponse> createEvent(
+    public ResponseEntity<?> createEvent(
             @AuthenticationPrincipal AuthenticatedUser currentUser,
             @Valid @RequestBody EventRequest request) {
         if (currentUser == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        if (request.getConcertId() != null && !ownershipService.ownsEvent(currentUser, request.getConcertId())) {
+        if (request.getConcertId() != null && !ownershipService.canEditEvent(currentUser, request.getConcertId())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        if (request.getEditPolicy() == EventEditPolicy.SELECTED_PARTICIPANTS) {
+            try {
+                accessService.validateEditorSelection(currentUser, request.getEditorUserIds());
+            } catch (IllegalArgumentException exception) {
+                return ResponseEntity.badRequest().body(new ErrorBody(exception.getMessage()));
+            }
         }
         try {
             EventResponse created = eventService.createEvent(request, currentUser.userId());
+            if (request.getEditPolicy() == EventEditPolicy.SELECTED_PARTICIPANTS) {
+                EventAccessRequest accessRequest = new EventAccessRequest();
+                accessRequest.setEditPolicy(request.getEditPolicy());
+                accessRequest.setEditorUserIds(request.getEditorUserIds());
+                EventAccessResponse accessResponse = accessService.configureEditing(created.getId(), currentUser, accessRequest);
+                created.setNotifications(accessResponse.getNotifications());
+            }
+            created.setCanEdit(true);
             return ResponseEntity.status(HttpStatus.CREATED).body(created);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
@@ -130,12 +176,13 @@ public class EventController {
             @PathVariable Long id,
             @AuthenticationPrincipal AuthenticatedUser currentUser,
             @Valid @RequestBody EventRequest request) {
-        if (!ownershipService.ownsEvent(currentUser, id)
-                || (request.getConcertId() != null && !ownershipService.ownsEvent(currentUser, request.getConcertId()))) {
+        if (!ownershipService.canEditEvent(currentUser, id)
+                || (request.getConcertId() != null && !ownershipService.canEditEvent(currentUser, request.getConcertId()))) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         try {
             EventResponse updated = eventService.updateEvent(id, request);
+            updated.setCanEdit(true);
             return ResponseEntity.ok(updated);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();

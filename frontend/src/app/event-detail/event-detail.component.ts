@@ -27,13 +27,16 @@ import { SetlistDownloadDialogComponent } from '../setlist/setlist-download-dial
 import { formatDate, formatTime, formatTimeOnly, repertoireLabel, typeLabel } from '../event-format';
 import type {
   Band,
+  EventEditPolicy,
   EventItem,
   EventParticipation,
   EventRequest,
+  EventInvitationResult,
   ParticipationStatus,
+  UserContact,
 } from '../dashboard/event.model';
 import { EventService } from '../dashboard/event.service';
-import type { PanelLayout } from '../dashboard/event.service';
+import type { EventAccessConfiguration, PanelLayout } from '../dashboard/event.service';
 import { EventUndoService, type EventUndoSnapshot } from '../dashboard/event-undo.service';
 import {
   EventParticipationService,
@@ -158,9 +161,25 @@ export class EventDetailComponent {
   protected readonly canManageEvent = computed(() => {
     const event = this.event();
     const userId = this.auth.currentUser()?.id;
-    return event?.createdByUserId != null && event.createdByUserId === userId;
+    return event?.canEdit === true || (event?.createdByUserId != null && event.createdByUserId === userId);
   });
-  protected readonly canDelete = this.canManageEvent;
+  protected readonly isEventOwner = computed(() => {
+    const event = this.event();
+    return event?.createdByUserId != null && event.createdByUserId === this.auth.currentUser()?.id;
+  });
+  protected readonly canDelete = this.isEventOwner;
+
+  protected readonly accessSettingsOpen = signal(false);
+  protected readonly accessLoading = signal(false);
+  protected readonly accessSaving = signal(false);
+  protected readonly accessError = signal<string | null>(null);
+  protected readonly contacts = signal<UserContact[]>([]);
+  protected readonly editPolicy = signal<EventEditPolicy>('OWNER_ONLY');
+  protected readonly editorUserIds = signal<number[]>([]);
+  protected readonly memberUserIds = signal<number[]>([]);
+  protected readonly invitationEmails = signal('');
+  protected readonly invitationResults = signal<EventInvitationResult[]>([]);
+  protected readonly invitationSending = signal(false);
 
   protected readonly participations = signal<EventParticipation[]>([]);
   protected readonly participantsLoading = signal(true);
@@ -215,7 +234,7 @@ export class EventDetailComponent {
     'ACCEPTED',
     'DECLINED',
   ];
-  protected readonly canManageMembers = this.canManageEvent;
+  protected readonly canManageMembers = this.isEventOwner;
   protected readonly canSelfJoin = computed(
     () => this.auth.isAuthenticated() && this.auth.musicianId() != null,
   );
@@ -228,6 +247,164 @@ export class EventDetailComponent {
     return this.participations().find((p) => p.musicianId === musicianId) ?? null;
   });
   protected readonly selfSaving = signal(false);
+
+  protected toggleEditor(userId: number, event: Event): void {
+    const checked = (event.target as HTMLInputElement).checked;
+    this.editorUserIds.update((ids) =>
+      checked ? [...new Set([...ids, userId])] : ids.filter((id) => id !== userId),
+    );
+  }
+
+  protected onEditPolicyChange(event: Event): void {
+    this.editPolicy.set((event.target as HTMLSelectElement).value as EventEditPolicy);
+  }
+
+  protected toggleMember(userId: number, event: Event): void {
+    const checked = (event.target as HTMLInputElement).checked;
+    this.memberUserIds.update((ids) =>
+      checked ? [...new Set([...ids, userId])] : ids.filter((id) => id !== userId),
+    );
+  }
+
+  protected openAccessSettings(): void {
+    const eventId = this.event()?.id;
+    if (eventId == null || !this.isEventOwner()) {
+      return;
+    }
+    this.accessSettingsOpen.set(true);
+    this.accessLoading.set(true);
+    this.accessError.set(null);
+    forkJoin({
+      access: this.eventService.loadEventAccess(eventId),
+      contacts: this.eventService.loadContacts(),
+    }).subscribe({
+      next: ({ access, contacts }) => {
+        this.editPolicy.set(access.editPolicy);
+        this.editorUserIds.set(access.editorUserIds);
+        this.contacts.set(contacts);
+        this.accessLoading.set(false);
+      },
+      error: () => {
+        this.accessLoading.set(false);
+        this.accessError.set('Event-Zugriff konnte nicht geladen werden.');
+      },
+    });
+  }
+
+  protected saveAccessSettings(): void {
+    const eventId = this.event()?.id;
+    if (eventId == null || this.accessSaving()) {
+      return;
+    }
+    const policy = this.editPolicy();
+    const configuration: EventAccessConfiguration = {
+      editPolicy: policy,
+      editorUserIds: policy === 'SELECTED_PARTICIPANTS' ? this.editorUserIds() : [],
+    };
+    this.accessSaving.set(true);
+    this.accessError.set(null);
+    this.eventService.updateEventAccess(eventId, configuration).subscribe({
+      next: (updated) => {
+        this.event.update((current) => current
+          ? { ...current, editPolicy: updated.editPolicy }
+          : current);
+        this.invitationResults.update((results) => [...results, ...(updated.notifications ?? [])]);
+        this.accessSaving.set(false);
+        this.accessSettingsOpen.set(false);
+        const unsentLink = updated.notifications?.find((notification) => notification.invitationUrl)?.invitationUrl;
+        if (unsentLink) {
+          this.toast.show('Freigabe gespeichert. Teile den Event-Link mit den Mitbearbeitenden.', {
+            label: 'Event-Link kopieren',
+            run: () => void globalThis.navigator?.clipboard?.writeText(unsentLink),
+          });
+        } else if (updated.notifications?.some((notification) => notification.emailSent)) {
+          this.toast.show('Freigabe gespeichert; Benachrichtigungen wurden versendet.');
+        } else {
+          this.toast.show('Bearbeitungsfreigabe gespeichert.');
+        }
+      },
+      error: (error) => {
+        this.accessSaving.set(false);
+        this.accessError.set(error?.error?.message ?? 'Bearbeitungsfreigabe konnte nicht gespeichert werden.');
+      },
+    });
+  }
+
+  protected addSelectedMembers(): void {
+    const eventId = this.event()?.id;
+    const userIds = this.memberUserIds();
+    if (eventId == null || userIds.length === 0) {
+      return;
+    }
+    this.accessSaving.set(true);
+    this.eventService.addEventMembers(eventId, userIds).subscribe({
+      next: (response) => {
+        this.participations.update((current) => {
+          const byId = new Map(current.map((participation) => [participation.id, participation]));
+          response.participations.forEach((participation) => byId.set(participation.id, participation));
+          return [...byId.values()];
+        });
+        this.invitationResults.update((results) => [...results, ...response.notifications]);
+        this.memberUserIds.set([]);
+        this.accessSaving.set(false);
+        this.toast.show('Teilnehmende hinzugefügt.');
+      },
+      error: (error) => {
+        this.accessSaving.set(false);
+        this.accessError.set(error?.error?.message ?? 'Teilnehmende konnten nicht hinzugefügt werden.');
+      },
+    });
+  }
+
+  protected onInvitationEmails(event: Event): void {
+    this.invitationEmails.set((event.target as HTMLTextAreaElement).value);
+  }
+
+  protected closeAccessSettings(): void {
+    if (!this.accessSaving() && !this.invitationSending()) {
+      this.accessSettingsOpen.set(false);
+      this.accessError.set(null);
+    }
+  }
+
+  protected sendEmailInvitations(): void {
+    const eventId = this.event()?.id;
+    const emails = [...new Set(this.invitationEmails().split(/[;,\n]/).map((email) => email.trim()).filter(Boolean))];
+    if (eventId == null || emails.length === 0 || this.invitationSending()) {
+      return;
+    }
+    this.invitationSending.set(true);
+    this.accessError.set(null);
+    this.eventService.inviteByEmail(eventId, emails).subscribe({
+      next: (results) => {
+        this.invitationResults.set(results);
+        this.invitationEmails.set('');
+        this.invitationSending.set(false);
+      },
+      error: (error) => {
+        this.invitationSending.set(false);
+        this.accessError.set(error?.error?.message ?? 'Einladungen konnten nicht erstellt werden.');
+      },
+    });
+  }
+
+  protected leaveEvent(): void {
+    const eventId = this.event()?.id;
+    if (eventId == null || this.isEventOwner() || !this.myParticipation()) {
+      return;
+    }
+    this.selfSaving.set(true);
+    this.eventService.leaveEvent(eventId).subscribe({
+      next: () => {
+        this.selfSaving.set(false);
+        void this.router.navigate(['/']);
+      },
+      error: () => {
+        this.selfSaving.set(false);
+        this.participationError.set('Event konnte nicht verlassen werden.');
+      },
+    });
+  }
 
   protected readonly panelOrder = signal<string[]>(PANEL_ORDER_DEFAULT);
   protected readonly dragStartDelay = { touch: 350, mouse: 0 };
@@ -1608,7 +1785,7 @@ export class EventDetailComponent {
     this.allRehearsalsLoading.set(true);
     this.eventService.loadEvents().subscribe({
       next: (events) => {
-        this.allRehearsals.set(events.filter((e) => e.type === 'REHEARSAL'));
+        this.allRehearsals.set(events.filter((e) => e.type === 'REHEARSAL' && e.canEdit));
         this.allRehearsalsLoading.set(false);
       },
       error: () => {

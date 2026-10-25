@@ -56,6 +56,8 @@ class PieceControllerTest {
 
     @BeforeEach
     void allowTestOwnerRequests() {
+        when(ownershipService.canViewPiece(nullable(AuthenticatedUser.class), anyLong())).thenReturn(true);
+        when(ownershipService.canViewDemoAudio(nullable(AuthenticatedUser.class), anyLong())).thenReturn(true);
         when(ownershipService.canManagePiece(nullable(AuthenticatedUser.class), anyLong())).thenReturn(true);
         when(ownershipService.canManageLink(nullable(AuthenticatedUser.class), anyLong())).thenReturn(true);
         when(ownershipService.canManageDemoAudio(nullable(AuthenticatedUser.class), anyLong())).thenReturn(true);

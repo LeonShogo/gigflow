@@ -34,18 +34,32 @@ public class EquipmentRequirementController {
     }
 
     @GetMapping
-    public List<EquipmentRequirementResponse> getAllRequirements() {
-        return requirementService.findAllRequirements();
+    public List<EquipmentRequirementResponse> getAllRequirements(
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
+        return requirementService.findAllRequirements().stream()
+                .filter(requirement -> ownershipService.canViewEvent(currentUser, requirement.getEventId()))
+                .toList();
     }
 
     @GetMapping("/event/{eventId}")
-    public List<EquipmentRequirementResponse> getRequirementsByEvent(@PathVariable Long eventId) {
+    public List<EquipmentRequirementResponse> getRequirementsByEvent(
+            @PathVariable Long eventId,
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
+        if (!ownershipService.canViewEvent(currentUser, eventId)) {
+            return List.of();
+        }
         return requirementService.findRequirementsByEvent(eventId);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<EquipmentRequirementResponse> getRequirementById(@PathVariable Long id) {
+    public ResponseEntity<EquipmentRequirementResponse> getRequirementById(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
         Optional<EquipmentRequirementResponse> requirement = requirementService.findRequirementById(id);
+        if (requirement.isPresent()
+                && !ownershipService.canViewEvent(currentUser, requirement.get().getEventId())) {
+            return ResponseEntity.notFound().build();
+        }
         return requirement.map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
@@ -54,7 +68,7 @@ public class EquipmentRequirementController {
     public ResponseEntity<EquipmentRequirementResponse> createRequirement(
             @AuthenticationPrincipal AuthenticatedUser currentUser,
             @Valid @RequestBody EquipmentRequirementRequest request) {
-        if (!ownershipService.ownsEvent(currentUser, request.getEventId())) {
+        if (!ownershipService.canEditEvent(currentUser, request.getEventId())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         try {
@@ -71,7 +85,7 @@ public class EquipmentRequirementController {
             @AuthenticationPrincipal AuthenticatedUser currentUser,
             @Valid @RequestBody EquipmentRequirementRequest request) {
         if (!ownershipService.canManageRequirement(currentUser, id)
-                || !ownershipService.ownsEvent(currentUser, request.getEventId())) {
+                || !ownershipService.canEditEvent(currentUser, request.getEventId())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         try {

@@ -12,8 +12,9 @@ import {
 import { Router, RouterLink } from '@angular/router';
 
 import { EventService } from '../dashboard/event.service';
-import type { Band, EventItem, EventType } from '../dashboard/event.model';
+import type { Band, EventEditPolicy, EventItem, EventType, UserContact } from '../dashboard/event.model';
 import { TranslatePipe } from '../language/translate.pipe';
+import { ToastService } from '../notifications/toast.service';
 
 @Component({
   selector: 'app-event-form',
@@ -26,6 +27,7 @@ export class EventFormComponent {
   private readonly formBuilder = inject(FormBuilder);
   private readonly router = inject(Router);
   private readonly eventService = inject(EventService);
+  private readonly toast = inject(ToastService);
 
   protected readonly form = this.formBuilder.nonNullable.group({
     title: ['', [Validators.required, Validators.maxLength(120)]],
@@ -34,6 +36,7 @@ export class EventFormComponent {
     time: ['', [Validators.required, Validators.pattern(/^\d{2}:\d{2}$/)]],
     bandId: [null as number | null, [Validators.required]],
     concert: [null as number | null],
+    editPolicy: ['OWNER_ONLY' as EventEditPolicy],
   });
 
   protected readonly bands = signal<Band[]>([]);
@@ -42,6 +45,8 @@ export class EventFormComponent {
   protected readonly saving = signal(false);
   protected readonly submitError = signal<string | null>(null);
   protected readonly isRehearsal = signal(false);
+  protected readonly contacts = signal<UserContact[]>([]);
+  protected readonly selectedEditorIds = signal<number[]>([]);
 
   constructor() {
     this.eventService.loadBands().subscribe({
@@ -57,8 +62,12 @@ export class EventFormComponent {
 
     this.eventService.loadEvents().subscribe({
       next: (events) =>
-        this.concerts.set(events.filter((event) => event.type === 'CONCERT')),
+        this.concerts.set(events.filter((event) => event.type === 'CONCERT' && event.canEdit)),
       error: () => this.choicesError.set('Vorhandene Gigs konnten nicht geladen werden.'),
+    });
+
+    this.eventService.loadContacts().subscribe({
+      next: (contacts) => this.contacts.set(contacts),
     });
 
     this.form.controls.type.valueChanges.subscribe((value) => {
@@ -85,15 +94,39 @@ export class EventFormComponent {
       type,
       bandId: bandId as number,
       concertId: type === 'REHEARSAL' ? concert : null,
+      editPolicy: this.form.controls.editPolicy.value,
+      editorUserIds: this.form.controls.editPolicy.value === 'SELECTED_PARTICIPANTS'
+        ? this.selectedEditorIds()
+        : [],
     };
 
     this.saving.set(true);
     this.eventService.createEvent(payload).subscribe({
-      next: () => this.router.navigate(['/']),
+      next: (created) => {
+        const pendingLink = created.notifications?.find((notification) => notification.invitationUrl)?.invitationUrl;
+        if (pendingLink) {
+          this.toast.show('Event erstellt. Kopiere den Event-Link und teile ihn mit den Mitbearbeitenden.', {
+            label: 'Event-Link kopieren',
+            run: () => {
+              void globalThis.navigator?.clipboard?.writeText(pendingLink);
+            },
+          });
+        } else if (created.notifications?.some((notification) => notification.emailSent)) {
+          this.toast.show('Event erstellt; Einladungen wurden per E-Mail versendet.');
+        }
+        void this.router.navigate(['/']);
+      },
       error: () => {
         this.saving.set(false);
         this.submitError.set('Event konnte nicht angelegt werden.');
       },
     });
+  }
+
+  protected toggleEditor(userId: number, event: Event): void {
+    const checked = (event.target as HTMLInputElement).checked;
+    this.selectedEditorIds.update((ids) =>
+      checked ? [...new Set([...ids, userId])] : ids.filter((id) => id !== userId),
+    );
   }
 }
