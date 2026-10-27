@@ -50,7 +50,7 @@ Die Eventübersicht zeigt nur selbst erstellte Events und Events, an denen das v
 
 Event-Ersteller:innen können Bearbeitungsrechte pro Event auf **nur mich**, **alle Teilnehmenden** oder **ausgewählte Teilnehmende** setzen. Bekannte Konten basieren auf gemeinsam erstellten bzw. besuchten Events. Für weitere Personen kann ein persönlicher Einladungslink erzeugt und manuell über WhatsApp oder die eigene E-Mail verschickt werden. Der Link ist einmal verwendbar und sieben Tage gültig; ein neuer Link deaktiviert noch offene Links des Events.
 
-Für ein Deployment muss `APP_PUBLIC_BASE_URL` auf die öffentliche GigFlow-Adresse zeigen, damit Einladungslinks auf die richtige App verweisen. Ein Mailkonto oder SMTP-Zugang ist nicht erforderlich.
+Einladungslinks verwenden die öffentliche App-Adresse. Auf Render wird sie automatisch erkannt; bei einer eigenen Domain kann sie mit `APP_PUBLIC_BASE_URL` überschrieben werden. Lokal ist der Standard `http://localhost:4200`. Ein Mailkonto oder SMTP-Zugang ist nicht erforderlich.
 
 ## HTTPS-Testdeployment auf Render
 
